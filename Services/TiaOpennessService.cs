@@ -139,7 +139,7 @@ namespace HerramientasSICAR.Services
                 bloque.Delete();
         }
 
-        public void ImportarBloque(string rutaImportacion)
+        public void ImportarBloque(string rutaImportacion, PlcBlockGroup grupoDestino = null)
         {
             if (_project == null)
                 throw new InvalidOperationException("El proyecto no está abierto.");
@@ -152,14 +152,20 @@ namespace HerramientasSICAR.Services
             if (plc == null)
                 throw new Exception("No se encontró ningún PLC con software en el proyecto.");
 
-            // Search for the main folder 10_Sequence & Messageblocks
-            PlcBlockGroup raiz = BuscarGrupo(plc.BlockGroup, "10_Sequence & Messageblocks");
-            if (raiz == null)
-                throw new Exception("No se encontró la carpeta '10_Sequence & Messageblocks'.");
+            PlcBlockGroup destino;
+            if (grupoDestino != null)
+            {
+                destino = grupoDestino;
+            }
+            else
+            {
+                PlcBlockGroup raiz = BuscarGrupo(plc.BlockGroup, "10_Sequence & Messageblocks");
+                if (raiz == null)
+                    throw new Exception("No se encontró la carpeta '10_Sequence & Messageblocks'.");
 
-            // Subfolder (OM1, OM2, General…)
-            string carpetaDestino = archivo.Directory.Name;
-            PlcBlockGroup destino = BuscarOCrearGrupo(raiz, carpetaDestino);
+                string carpetaDestino = archivo.Directory.Name;
+                destino = BuscarOCrearGrupo(raiz, carpetaDestino);
+            }
 
             destino.Blocks.Import(archivo, ImportOptions.Override);
         }
@@ -207,6 +213,34 @@ namespace HerramientasSICAR.Services
             foreach (PlcBlockGroup subgrupo in grupo.Groups)
             {
                 PlcBlock encontrado = BuscarBloque(subgrupo, nombreBloque);
+                if (encontrado != null)
+                    return encontrado;
+            }
+
+            return null;
+        }
+
+        public PlcBlockGroup BuscarGrupoBloque(string nombreBloque)
+        {
+            PlcSoftware plc = ObtenerPLCSoftware();
+            if (plc == null)
+                return null;
+
+            return BuscarGrupoBloqueRecursivo(plc.BlockGroup, nombreBloque);
+        }
+
+        private PlcBlockGroup BuscarGrupoBloqueRecursivo(PlcBlockGroup grupo, string nombreBloque)
+        {
+            if (grupo == null)
+                return null;
+
+            foreach (PlcBlock bloque in grupo.Blocks)
+                if (bloque.Name.Equals(nombreBloque, StringComparison.OrdinalIgnoreCase))
+                    return grupo;
+
+            foreach (PlcBlockGroup subgrupo in grupo.Groups)
+            {
+                PlcBlockGroup encontrado = BuscarGrupoBloqueRecursivo(subgrupo, nombreBloque);
                 if (encontrado != null)
                     return encontrado;
             }

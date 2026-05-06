@@ -50,3 +50,4 @@ C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Re
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Release\net48\HerramientasSICAR.pdb
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Release\net48\Views\RenombrarArrayView.baml
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Release\net48\Views\RenombrarArrayView.g.cs
+C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Release\net48\HerramientasSICAR.sourcelink.json

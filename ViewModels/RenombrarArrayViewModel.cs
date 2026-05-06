@@ -85,6 +85,7 @@ namespace HerramientasSICAR.ViewModels
 
             await Task.Run(() =>
             {
+                string xmlPath = null;
                 try
                 {
                     string pathExportar = Path.GetDirectoryName(RutaProyecto);
@@ -97,18 +98,24 @@ namespace HerramientasSICAR.ViewModels
                     Estado = "Exportando bloque...";
                     _tiaService.ExportarBloque(NombreBloque, pathExportar);
 
-                    string xmlPath = Path.Combine(pathExportar, NombreBloque + ".xml");
+                    xmlPath = Path.Combine(pathExportar, NombreBloque + ".xml");
                     if (!File.Exists(xmlPath))
                         throw new Exception("No se pudo exportar el bloque.");
 
                     Estado = "Reordenando índices del array...";
                     RenombrarIndicesArray(xmlPath, NombreArray);
 
+                    Estado = "Obteniendo ubicación del bloque...";
+                    var grupoOriginal = _tiaService.BuscarGrupoBloque(NombreBloque);
+
                     Estado = "Eliminando bloque original...";
                     _tiaService.EliminarBloque(NombreBloque);
 
                     Estado = "Importando bloque modificado...";
-                    _tiaService.ImportarBloque(xmlPath);
+                    if (grupoOriginal != null)
+                        _tiaService.ImportarBloque(xmlPath, grupoOriginal);
+                    else
+                        _tiaService.ImportarBloque(xmlPath);
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -126,6 +133,12 @@ namespace HerramientasSICAR.ViewModels
                 }
                 finally
                 {
+                    if (xmlPath != null && File.Exists(xmlPath))
+                    {
+                        try { File.Delete(xmlPath); }
+                        catch { }
+                    }
+
                     Estado = "Listo";
                     IsProcessing = false;
                 }
