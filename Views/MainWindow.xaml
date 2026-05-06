@@ -1,0 +1,201 @@
+<Window x:Class="HerramientasSICAR.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:views="clr-namespace:HerramientasSICAR.Views"
+        xmlns:vm="clr-namespace:HerramientasSICAR.ViewModels"
+        mc:Ignorable="d"
+        Title="{Binding Title}" 
+        Height="700" 
+        Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DiagExpectedViewModel}">
+            <views:DiagExpectedView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NumeradorViewModel}">
+            <views:NumeradorView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ComentadorViewModel}">
+            <views:ComentadorView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:RenombrarArrayViewModel}">
+            <views:RenombrarArrayView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Navigation Panel -->
+        <Border Grid.Column="0" 
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="#E0E0E0" 
+                BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Margin="20">
+                    <materialDesign:PackIcon Kind="Wrench" 
+                                           Width="48" 
+                                           Height="48"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                    <TextBlock Text="Herramientas" 
+                             FontSize="20" 
+                             FontWeight="Bold"
+                             TextAlignment="Center"
+                             Margin="0,12,0,0"
+                             Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBlock Text="SICAR" 
+                             FontSize="16"
+                             TextAlignment="Center"
+                             Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+
+                <!-- Navigation Items -->
+                <StackPanel Grid.Row="1" Margin="8,20,8,8">
+                    <Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToDiagExpectedCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileDocumentOutline" 
+                                                   Width="20" 
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="DiagExpected" 
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToNumeradorCommand}"
+                            Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FormatListNumbered" 
+                                                   Width="20" 
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Numerador" 
+                                     VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+<Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToComentadorCommand}"
+                            Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CommentTextOutline" 
+                                                   Width="20" 
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Comentador" 
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToRenombrarArrayCommand}"
+                            Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ReorderHorizontal" 
+                                                   Width="20" 
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Renombrar Array" 
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Footer -->
+                <StackPanel Grid.Row="2" Margin="20,8,20,20">
+                    <Separator Margin="0,0,0,12"/>
+                    <TextBlock Text="v1.0.0" 
+                             FontSize="11"
+                             Foreground="{StaticResource TextSecondaryBrush}"
+                             TextAlignment="Center"/>
+                    <TextBlock Text="Ignacio Suárez (Alomatek) © 2026" 
+                             FontSize="11"
+                             Foreground="{StaticResource TextSecondaryBrush}"
+                             TextAlignment="Center"
+                             Margin="0,4,0,0"/>
+                    
+                    <!-- Buy Me a Coffee Button -->
+                    <Button x:Name="BuyMeCoffeeButton"
+                            Click="BuyMeCoffeeButton_Click"
+                            HorizontalAlignment="Center"
+                            Margin="0,8,0,0"
+                            Padding="12,6"
+                            Background="#FFDD00"
+                            BorderBrush="#FFDD00"
+                            Cursor="Hand"
+                            ToolTip="Support me on Buy Me a Coffee">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#FFE84D"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Coffee" 
+                                                   Width="16" 
+                                                   Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="#000000"
+                                                   Margin="0,0,6,0"/>
+                            <TextBlock Text="Buy Me a Coffee" 
+                                     VerticalAlignment="Center"
+                                     FontSize="11"
+                                     FontWeight="Medium"
+                                     Foreground="#000000"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Content Area -->
+        <ContentControl Grid.Column="1" 
+                       Content="{Binding CurrentView}"
+                       Margin="0"/>
+    </Grid>
+</Window>

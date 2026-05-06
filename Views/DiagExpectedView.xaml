@@ -1,0 +1,137 @@
+<UserControl x:Class="HerramientasSICAR.Views.DiagExpectedView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800"
+             Background="{StaticResource BackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40">
+            <!-- Header -->
+            <TextBlock Text="DiagExpected" 
+                      Style="{StaticResource TitleTextStyle}"/>
+
+            <TextBlock Text="Genera plantilla para el DB de estado de cada sensor/actuador"
+                      Foreground="{StaticResource TextSecondaryBrush}"
+                      Margin="0,0,0,32"/>
+
+            <!-- Project Selection Card -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Proyecto TIA Portal" 
+                              Style="{StaticResource SubtitleTextStyle}"/>
+                    
+                    <TextBlock Text="RUTA DEL PROYECTO" 
+                              Style="{StaticResource LabelTextStyle}"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                Text="{Binding RutaProyecto, UpdateSourceTrigger=PropertyChanged}"
+                                materialDesign:HintAssist.Hint="Selecciona el archivo .ap19"
+                                IsReadOnly="True"
+                                Margin="0,0,8,0"/>
+
+                        <Button Grid.Column="1"
+                               Command="{Binding BuscarProyectoCommand}"
+                               Style="{StaticResource MaterialDesignRaisedButton}"
+                               materialDesign:ButtonAssist.CornerRadius="4"
+                               Height="40">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FolderOpen" 
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"/>
+                                <TextBlock Text="Buscar" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Block Configuration Card -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Configuración del Bloque" 
+                              Style="{StaticResource SubtitleTextStyle}"/>
+                    
+                    <TextBlock Text="NOMBRE DEL BLOQUE" 
+                              Style="{StaticResource LabelTextStyle}"/>
+                    
+                    <TextBox Text="{Binding NombreBloque, UpdateSourceTrigger=PropertyChanged}"
+                            materialDesign:HintAssist.Hint="Ej: MiBloque_FB"
+                            FontSize="14"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Action Card -->
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <Button Command="{Binding ExportarCommand}"
+                           Style="{StaticResource MaterialDesignRaisedButton}"
+                           materialDesign:ButtonAssist.CornerRadius="4"
+                           Height="48"
+                           FontSize="15"
+                           IsEnabled="{Binding IsProcessing, Converter={StaticResource InverseBooleanConverter}}"
+                           Background="{StaticResource PrimaryBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Export" 
+                                                   Width="24" 
+                                                   Height="24"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Exportar y Generar Excel" 
+                                     VerticalAlignment="Center"
+                                     FontWeight="Medium"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Status -->
+                    <StackPanel Orientation="Horizontal" 
+                               Margin="0,16,0,0"
+                               Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                    Value="0"
+                                    IsIndeterminate="True"
+                                    Width="24"
+                                    Height="24"
+                                    Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding Estado}" 
+                                  VerticalAlignment="Center"
+                                  Foreground="{StaticResource PrimaryBrush}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding Estado}" 
+                              VerticalAlignment="Center"
+                              Margin="0,16,0,0"
+                              Foreground="{StaticResource TextSecondaryBrush}"
+                              Visibility="{Binding IsProcessing, Converter={StaticResource InverseBoolToVisConverter}}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Info Card -->
+            <Border Background="#E3F2FD" 
+                   CornerRadius="8" 
+                   Padding="16"
+                   Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="InformationOutline" 
+                                           Width="24" 
+                                           Height="24"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           VerticalAlignment="Top"
+                                           Margin="0,0,12,0"/>
+                    <TextBlock TextWrapping="Wrap"
+                              Foreground="{StaticResource TextPrimaryBrush}">
+                         Se buscan palabras clave PP/Presencia/Ausencia en los símbolos
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
