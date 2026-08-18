@@ -35,6 +35,9 @@
         <DataTemplate DataType="{x:Type vm:GeneradorFitViewModel}">
             <views:GeneradorFitView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GeneradorHmiViewModel}">
+            <views:GeneradorHmiView/>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -140,7 +143,21 @@
                                                    Height="20"
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,12,0"/>
-                            <TextBlock Text="Generador FIT" 
+                            <TextBlock Text="Generador FIT"
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToGeneradorHmiCommand}"
+                            Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Monitor"
+                                                   Width="20"
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Generador HMI"
                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
