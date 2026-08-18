@@ -22,7 +22,7 @@ namespace HerramientasSICAR.ViewModels
         private string _nombreBloque = "";
 
         [ObservableProperty]
-        private string _nombreArray = "AuxTrans";
+        private string _nombreArray = "";
 
         [ObservableProperty]
         private string _estado = "Listo";

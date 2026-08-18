@@ -48,3 +48,6 @@ C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\De
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\Herramie.89E69DCF.Up2Date
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\HerramientasSICAR.exe
 C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\HerramientasSICAR.pdb
+C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\Views\RenombrarArrayView.baml
+C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\Views\RenombrarArrayView.g.cs
+C:\NAScho\IT\Desarrollo\Scripts .net\Herramientas SICAR\HerramientasSICAR\obj\Debug\net48\HerramientasSICAR.sourcelink.json

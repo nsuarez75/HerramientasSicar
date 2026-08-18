@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|c:\\nascho\\it\\desarrollo\\scripts .net\\herramientas sicar\\herramientassicar\\viewmodels\\renombrararrayviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|solutionrelative:viewmodels\\renombrararrayviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|c:\\nascho\\it\\desarrollo\\scripts .net\\herramientas sicar\\herramientassicar\\views\\renombrararrayview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|solutionrelative:views\\renombrararrayview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|c:\\nascho\\it\\desarrollo\\scripts .net\\herramientas sicar\\herramientassicar\\views\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{4D3BFBCC-E9DC-71DC-240B-35D8751471A5}|HerramientasSICAR.csproj|solutionrelative:views\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
@@ -46,11 +54,36 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
+              "Title": "RenombrarArrayViewModel.cs",
+              "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\ViewModels\\RenombrarArrayViewModel.cs",
+              "RelativeDocumentMoniker": "ViewModels\\RenombrarArrayViewModel.cs",
+              "ToolTip": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\ViewModels\\RenombrarArrayViewModel.cs",
+              "RelativeToolTip": "ViewModels\\RenombrarArrayViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-06T18:27:56.826Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "RenombrarArrayView.xaml",
+              "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\RenombrarArrayView.xaml",
+              "RelativeDocumentMoniker": "Views\\RenombrarArrayView.xaml",
+              "ToolTip": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\RenombrarArrayView.xaml",
+              "RelativeToolTip": "Views\\RenombrarArrayView.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-06T18:25:55.469Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "TiaVersionResolver.cs",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Helpers\\TiaVersionResolver.cs",
               "RelativeDocumentMoniker": "Helpers\\TiaVersionResolver.cs",
@@ -62,7 +95,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "NumeradorView.xaml",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\NumeradorView.xaml",
               "RelativeDocumentMoniker": "Views\\NumeradorView.xaml",
@@ -73,7 +106,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "DiagExpectedView.xaml",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\DiagExpectedView.xaml",
               "RelativeDocumentMoniker": "Views\\DiagExpectedView.xaml",
@@ -84,7 +117,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "MainWindow.xaml",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\MainWindow.xaml",
               "RelativeDocumentMoniker": "Views\\MainWindow.xaml",
@@ -96,7 +129,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "MainWindow.xaml.cs",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\MainWindow.xaml.cs",
               "RelativeDocumentMoniker": "Views\\MainWindow.xaml.cs",
@@ -108,7 +141,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "ComentadorView.xaml",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Views\\ComentadorView.xaml",
               "RelativeDocumentMoniker": "Views\\ComentadorView.xaml",
@@ -119,7 +152,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "RegistryReader.cs",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\Helpers\\RegistryReader.cs",
               "RelativeDocumentMoniker": "Helpers\\RegistryReader.cs",
@@ -131,7 +164,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "App.xaml.cs",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\App.xaml.cs",
               "RelativeDocumentMoniker": "App.xaml.cs",
@@ -143,7 +176,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "MainViewModel.cs",
               "DocumentMoniker": "C:\\NAScho\\IT\\Desarrollo\\Scripts .net\\Herramientas SICAR\\HerramientasSICAR\\ViewModels\\MainViewModel.cs",
               "RelativeDocumentMoniker": "ViewModels\\MainViewModel.cs",

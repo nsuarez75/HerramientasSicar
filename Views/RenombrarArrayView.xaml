@@ -10,10 +10,10 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="40">
             <!-- Header -->
-            <TextBlock Text="Renombrar Array" 
+            <TextBlock Text="Renumerar Array" 
                       Style="{StaticResource TitleTextStyle}"/>
 
-            <TextBlock Text="Reordena los índices de un Array of Bool en un FB de TIA Portal"
+            <TextBlock Text="Reordena los índices de un Array of Bool en un FB/FC de TIA Portal"
                       Foreground="{StaticResource TextSecondaryBrush}"
                       Margin="0,0,0,32"/>
 
@@ -136,7 +136,7 @@
                                            Margin="0,0,12,0"/>
                     <TextBlock TextWrapping="Wrap"
                               Foreground="{StaticResource TextPrimaryBrush}">
-                        Se exporta el FB, se reordenan los índices del array de booleanos de forma secuencial (1, 2, 3...), se elimina el bloque actual y se importa el bloque modificado.
+                        Si el array pertenece a un DB externo, indica solamente el nombre de la variable, no el DB
                     </TextBlock>
                 </StackPanel>
             </Border>
