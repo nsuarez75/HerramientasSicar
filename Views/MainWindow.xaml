@@ -32,6 +32,9 @@
         <DataTemplate DataType="{x:Type vm:RenombrarArrayViewModel}">
             <views:RenombrarArrayView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GeneradorFitViewModel}">
+            <views:GeneradorFitView/>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -124,6 +127,20 @@
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,12,0"/>
                             <TextBlock Text="Renumerar Array" 
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource NavigationButtonStyle}"
+                            Command="{Binding NavigateToGeneradorFitCommand}"
+                            Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileExcelOutline" 
+                                                   Width="20" 
+                                                   Height="20"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"/>
+                            <TextBlock Text="Generador FIT" 
                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>

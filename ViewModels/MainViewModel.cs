@@ -11,6 +11,7 @@ namespace HerramientasSICAR.ViewModels
         private readonly NumeradorViewModel _numeradorViewModel;
         private readonly ComentadorViewModel _comentadorViewModel;
         private readonly RenombrarArrayViewModel _renombrarArrayViewModel;
+        private readonly GeneradorFitViewModel _generadorFitViewModel;
 
         [ObservableProperty]
         private object _currentView;
@@ -23,13 +24,15 @@ namespace HerramientasSICAR.ViewModels
             DiagExpectedViewModel diagExpectedViewModel,
             NumeradorViewModel numeradorViewModel,
             ComentadorViewModel comentadorViewModel,
-            RenombrarArrayViewModel renomrarArrayViewModel)
+            RenombrarArrayViewModel renomrarArrayViewModel,
+            GeneradorFitViewModel generadorFitViewModel)
         {
             _navigationService = navigationService;
             _diagExpectedViewModel = diagExpectedViewModel;
             _numeradorViewModel = numeradorViewModel;
             _comentadorViewModel = comentadorViewModel;
             _renombrarArrayViewModel = renomrarArrayViewModel;
+            _generadorFitViewModel = generadorFitViewModel;
 
             // Subscribe to navigation changes
             _navigationService.PropertyChanged += (s, e) =>
@@ -66,6 +69,12 @@ namespace HerramientasSICAR.ViewModels
         private void NavigateToRenombrarArray()
         {
             _navigationService.NavigateTo(_renombrarArrayViewModel);
+        }
+
+        [RelayCommand]
+        private void NavigateToGeneradorFit()
+        {
+            _navigationService.NavigateTo(_generadorFitViewModel);
         }
     }
 }

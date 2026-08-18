@@ -1,0 +1,349 @@
+using ClosedXML.Excel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+
+namespace HerramientasSICAR.ViewModels
+{
+    public class FitData
+    {
+        public string Asset { get; set; }
+        public int NumAsset { get; set; }
+        public string RefClient { get; set; }
+        public string Fid { get; set; }
+        public string Working { get; set; }
+        public int Ref { get; set; }
+        public string Tech { get; set; }
+        public string Pointer { get; set; }
+    }
+
+    public partial class GeneradorFitViewModel : ObservableObject
+    {
+        [ObservableProperty]
+        private string _rutaOrigen = "";
+
+        [ObservableProperty]
+        private string _rutaDestino = "";
+
+        [ObservableProperty]
+        private int _referencias = 8;
+
+        [ObservableProperty]
+        private string _estado = "Listo";
+
+        [ObservableProperty]
+        private bool _isProcessing = false;
+
+        public GeneradorFitViewModel()
+        {
+        }
+
+        [RelayCommand]
+        private void BuscarOrigen()
+        {
+            var ofd = new OpenFileDialog
+            {
+                Filter = "Archivos Excel (*.xlsx)|*.xlsx|Todos los archivos (*.*)|*.*",
+                Title = "Seleccionar archivo Excel origen"
+            };
+
+            if (ofd.ShowDialog() == true)
+            {
+                RutaOrigen = ofd.FileName;
+                if (string.IsNullOrEmpty(RutaDestino))
+                {
+                    string dir = Path.GetDirectoryName(RutaOrigen);
+                    string filename = Path.GetFileNameWithoutExtension(RutaOrigen);
+                    RutaDestino = Path.Combine(dir, $"{filename}_FIT.xlsx");
+                }
+            }
+        }
+
+        [RelayCommand]
+        private void BuscarDestino()
+        {
+            var sfd = new SaveFileDialog
+            {
+                Filter = "Archivos Excel (*.xlsx)|*.xlsx",
+                DefaultExt = ".xlsx",
+                Title = "Guardar nuevo archivo Excel como..."
+            };
+
+            if (sfd.ShowDialog() == true)
+            {
+                RutaDestino = sfd.FileName;
+            }
+        }
+
+        [RelayCommand]
+        private async Task GenerarAsync()
+        {
+            if (string.IsNullOrWhiteSpace(RutaOrigen) || !File.Exists(RutaOrigen))
+            {
+                MessageBox.Show("Por favor, selecciona un archivo Excel de origen válido.",
+                    "Atención", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(RutaDestino))
+            {
+                MessageBox.Show("Por favor, selecciona una ruta de destino para guardar el archivo Excel.",
+                    "Atención", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (Referencias <= 0)
+            {
+                MessageBox.Show("El número de referencias debe ser mayor que 0.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            SetProcessing(true);
+            SetEstado("Iniciando...");
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    SetEstado("Cargando archivo en memoria...");
+
+                    // Usamos una aproximación más directa para evitar bloqueos por metadatos o eventos
+                    using (var stream = new FileStream(RutaOrigen, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        using (var libroEntrada = new XLWorkbook(stream))
+                        {
+                            var datos = GenerarDatos(libroEntrada, Referencias);
+
+                            if (datos.Count == 0)
+                            {
+                                throw new Exception("No se encontraron datos válidos en ninguna de las hojas FIT-RefX.");
+                            }
+
+                            SetEstado("Generando libro de salida...");
+                            using (var libroSalida = new XLWorkbook())
+                            {
+                                GenerarCodigoPLC(libroSalida, Referencias, datos);
+
+                                SetEstado("Guardando archivo...");
+                                libroSalida.SaveAs(RutaDestino);
+                            }
+                        }
+                    }
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"¡Éxito! Archivo generado en:\n{RutaDestino}",
+                            "Generación Completada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"Error durante el proceso:\n{ex.Message}",
+                            "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+                finally
+                {
+                    SetEstado("Listo");
+                    SetProcessing(false);
+                }
+            });
+        }
+
+        // Las propiedades ObservableProperty están enlazadas a controles WPF (DispatcherObject).
+        // GenerarAsync las actualiza desde el hilo de Task.Run, así que hay que reenviarlas
+        // siempre al hilo de UI o WPF lanza InvalidOperationException.
+        private void SetEstado(string texto)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null || dispatcher.CheckAccess())
+                Estado = texto;
+            else
+                dispatcher.Invoke(() => Estado = texto);
+        }
+
+        private void SetProcessing(bool valor)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null || dispatcher.CheckAccess())
+                IsProcessing = valor;
+            else
+                dispatcher.Invoke(() => IsProcessing = valor);
+        }
+
+        private List<FitData> GenerarDatos(XLWorkbook libroEntrada, int refs)
+        {
+            var datos = new List<FitData>();
+
+            for (int refNum = 1; refNum <= refs; refNum++)
+            {
+                string nombreHoja = $"FIT-Ref{refNum}";
+                if (!libroEntrada.Worksheets.TryGetWorksheet(nombreHoja, out var hoja))
+                    continue;
+
+                SetEstado($"Leyendo {nombreHoja}...");
+
+                // En lugar de RowsUsed(), vamos a buscar el límite real de datos manualmente
+                // para evitar que ClosedXML se pierda en miles de filas vacías con estilo.
+                int ultimaFila = 0;
+                var lastCell = hoja.LastCellUsed();
+                if (lastCell != null)
+                {
+                    ultimaFila = lastCell.Address.RowNumber;
+                }
+
+                // Si el Excel tiene un formato infinito, limitamos a algo razonable o usamos una lógica de parada
+                // El script original parece empezar en fila 2.
+                for (int fila = 2; fila <= ultimaFila; fila++)
+                {
+                    // Actualizamos el estado cada 100 filas para no saturar la UI pero dar feedback
+                    if (fila % 100 == 0)
+                    {
+                        SetEstado($"Leyendo {nombreHoja} (Fila {fila}/{ultimaFila})...");
+                    }
+
+                    // Columnas de Assets: F(6), H(8), J(10), L(12)
+                    for (int assetIdx = 1; assetIdx <= 4; assetIdx++)
+                    {
+                        int col = 6 + (assetIdx - 1) * 2;
+                        string assetVal = GetVal(hoja, fila, col);
+
+                        if (!string.IsNullOrWhiteSpace(assetVal))
+                        {
+                            datos.Add(new FitData
+                            {
+                                Asset = assetVal,
+                                NumAsset = assetIdx,
+                                RefClient = GetVal(hoja, fila, 14), // N
+                                Fid = GetVal(hoja, fila, 17),       // Q
+                                Working = GetVal(hoja, fila, 13),   // M
+                                Ref = refNum,
+                                Tech = GetVal(hoja, fila, 22),      // V
+                                Pointer = GetVal(hoja, fila, 23)    // W
+                            });
+                        }
+                    }
+
+                    // Opcional: si encontramos 10 filas vacías seguidas, podríamos asumir fin de datos
+                    // pero mantengamos la lógica de LastCellUsed por ahora.
+                }
+            }
+
+            return datos;
+        }
+
+        private string GetVal(IXLWorksheet hoja, int row, int col)
+        {
+            try
+            {
+                var cell = hoja.Cell(row, col);
+
+                // Usamos CachedValue (no Value) para replicar openpyxl con data_only=True:
+                // leemos el último resultado que Excel calculó y guardó en el archivo, sin
+                // pedirle a ClosedXML que recalcule la fórmula con su propio motor (que no
+                // soporta todas las funciones de Excel y puede fallar o dar otro resultado).
+                var valor = cell.CachedValue;
+
+                if (valor.IsBlank || valor.IsError) return "";
+
+                return valor.ToString(CultureInfo.InvariantCulture)?.Trim() ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private List<FitData> GenerarFidsLayoutName(List<FitData> datos, int numAsset)
+        {
+            var fids = new List<FitData>();
+            var fidsUnicos = new HashSet<string>();
+
+            foreach (var dato in datos)
+            {
+                // El script original no descarta filas con FID vacío, solo evita
+                // duplicar un mismo FID: replicamos eso exactamente (fidsUnicos admite "").
+                if (dato.NumAsset == numAsset && fidsUnicos.Add(dato.Fid ?? ""))
+                {
+                    fids.Add(new FitData
+                    {
+                        Fid = dato.Fid,
+                        Asset = dato.Asset,
+                        Working = dato.Working,
+                        RefClient = dato.RefClient
+                    });
+                }
+            }
+            return fids;
+        }
+
+        private void RellenarFIDsLayoutName(List<FitData> fids, IXLWorksheet hoja, string columna)
+        {
+            int puntero = 4;
+            foreach (var fid in fids)
+            {
+                hoja.Cell($"{columna}{puntero}").Value = $"'{fid.Asset}'";
+                puntero++;
+                hoja.Cell($"{columna}{puntero}").Value = $"'{fid.Working}'";
+                puntero++;
+                hoja.Cell($"{columna}{puntero}").Value = fid.Fid;
+                puntero++;
+                hoja.Cell($"{columna}{puntero}").Value = Blank.Value;
+                puntero++;
+            }
+        }
+
+        private void GenerarCodigoPLC(XLWorkbook libroSalida, int referencias, List<FitData> datos)
+        {
+            SetEstado("Tablas de datos...");
+            var hojaData = libroSalida.Worksheets.Add("User Data Table Info");
+            
+            RellenarFIDsLayoutName(GenerarFidsLayoutName(datos, 1), hojaData, "B");
+            RellenarFIDsLayoutName(GenerarFidsLayoutName(datos, 2), hojaData, "C");
+            RellenarFIDsLayoutName(GenerarFidsLayoutName(datos, 3), hojaData, "D");
+            RellenarFIDsLayoutName(GenerarFidsLayoutName(datos, 4), hojaData, "E");
+
+            SetEstado("Configuración PLC...");
+            var hojaConfig = libroSalida.Worksheets.Add("Config Reference");
+
+            int filaTitulo = 4;
+
+            for (int refNum = 0; refNum < referencias; refNum++)
+            {
+                int colActual = 1 + refNum;
+                hojaConfig.Cell(filaTitulo, colActual).Value = $"Referencia {refNum + 1}";
+
+                int filaCodigoActual = 5;
+
+                foreach (var dato in datos)
+                {
+                    if (dato.NumAsset == 1 && dato.Ref == refNum + 1)
+                    {
+                        hojaConfig.Cell(filaCodigoActual, colActual).Value = $"//{dato.Asset} {dato.RefClient}";
+                        filaCodigoActual++;
+
+                        hojaConfig.Cell(filaCodigoActual, colActual).Value = $"L {dato.Fid}";
+                        filaCodigoActual++;
+
+                        hojaConfig.Cell(filaCodigoActual, colActual).Value = $"T #Ref_{dato.Ref}.Tech0{dato.Tech}[{dato.Pointer}].Name";
+                        filaCodigoActual++;
+
+                        hojaConfig.Cell(filaCodigoActual, colActual).Value = "";
+                        filaCodigoActual++;
+                    }
+                }
+                hojaConfig.Column(colActual).Width = 45;
+            }
+        }
+    }
+}
