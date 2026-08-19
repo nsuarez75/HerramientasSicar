@@ -132,7 +132,7 @@ namespace HerramientasSICAR.ViewModels
 
                             if (datos.Count == 0)
                             {
-                                throw new Exception("No se encontraron datos válidos en ninguna de las hojas FIT-RefX.");
+                                throw new Exception("No se encontraron datos válidos en ninguna de las hojas PLC-RefX.");
                             }
 
                             SetEstado("Generando libro de salida...");
@@ -198,7 +198,7 @@ namespace HerramientasSICAR.ViewModels
 
             for (int refNum = 1; refNum <= refs; refNum++)
             {
-                string nombreHoja = $"FIT-Ref{refNum}";
+                string nombreHoja = $"PLC-Ref{refNum}";
                 if (!libroEntrada.Worksheets.TryGetWorksheet(nombreHoja, out var hoja))
                     continue;
 
@@ -224,22 +224,25 @@ namespace HerramientasSICAR.ViewModels
                     }
 
                     // Columnas comunes a toda la fila (no dependen del grupo de asset).
+                    // Se eliminaron del origen las columnas C (GUID) y V (ya iba vacía), por lo
+                    // que todo lo que estaba después de cada una se desplaza una posición a la
+                    // izquierda (dos posiciones para lo que iba después de V).
                     string plant = GetVal(hoja, fila, 1);           // A
                     string line = GetVal(hoja, fila, 2);            // B
-                    string guid = GetVal(hoja, fila, 3);            // C
-                    string partReference = GetVal(hoja, fila, 4);   // D
-                    string refClient = GetVal(hoja, fila, 17);          // Q
-                    string processFeatureType = GetVal(hoja, fila, 18); // R
-                    string location = GetVal(hoja, fila, 19);           // S
-                    string fid = GetVal(hoja, fila, 20);                // T
-                    string criticalFeature = GetVal(hoja, fila, 21);    // U
-                    string tech = GetVal(hoja, fila, 25);               // Y
-                    string pointer = GetVal(hoja, fila, 26);            // Z
+                    string guid = "";                               // GUID ya no existe en el origen (era la columna C)
+                    string partReference = GetVal(hoja, fila, 3);   // C (antes D)
+                    string refClient = GetVal(hoja, fila, 16);          // P (antes Q)
+                    string processFeatureType = GetVal(hoja, fila, 17); // Q (antes R)
+                    string location = GetVal(hoja, fila, 18);           // R (antes S)
+                    string fid = GetVal(hoja, fila, 19);                // S (antes T)
+                    string criticalFeature = GetVal(hoja, fila, 20);    // T (antes U)
+                    string tech = GetVal(hoja, fila, 23);               // W (antes Y)
+                    string pointer = GetVal(hoja, fila, 24);            // X (antes Z)
 
-                    // Columnas de LayoutName: F(6), I(9), L(12), O(15).
-                    // El Asset de cada grupo está en la columna anterior (E, H, K, N) y el
-                    // Working en la siguiente (G, J, M, P); ya no es una única columna M para todos.
-                    int[] columnasLayoutName = { 6, 9, 12, 15 };
+                    // Columnas de LayoutName: E(5), H(8), K(11), N(14).
+                    // El Asset de cada grupo está en la columna anterior (D, G, J, M) y el
+                    // Working en la siguiente (F, I, L, O); ya no es una única columna M para todos.
+                    int[] columnasLayoutName = { 5, 8, 11, 14 };
                     for (int assetIdx = 1; assetIdx <= 4; assetIdx++)
                     {
                         int col = columnasLayoutName[assetIdx - 1];
@@ -357,7 +360,7 @@ namespace HerramientasSICAR.ViewModels
 
             // Una fila por cada combinación (fila origen × asset con LayoutName), tal cual está
             // en "datos": si un mismo FeatureId aparece en varios assets de la misma fila, o en
-            // varias referencias (hojas FIT-RefX), cada combinación ya generó su propio FitData.
+            // varias referencias (hojas PLC-RefX), cada combinación ya generó su propio FitData.
             int fila = 2;
             foreach (var dato in datos)
             {
@@ -365,7 +368,7 @@ namespace HerramientasSICAR.ViewModels
                 hoja.Cell(fila, 2).Value = dato.Line;
                 hoja.Cell(fila, 3).Value = dato.Guid;
                 hoja.Cell(fila, 4).Value = dato.PartReference;
-                hoja.Cell(fila, 5).Value = dato.Asset;
+                // Columna E (Asset) se deja sin rellenar a propósito.
                 hoja.Cell(fila, 6).Value = dato.LayoutName;
                 hoja.Cell(fila, 7).Value = dato.Working;
                 hoja.Cell(fila, 8).Value = dato.RefClient;
