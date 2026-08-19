@@ -368,7 +368,7 @@ namespace HerramientasSICAR.ViewModels
                 hoja.Cell(fila, 2).Value = dato.Line;
                 hoja.Cell(fila, 3).Value = dato.Guid;
                 hoja.Cell(fila, 4).Value = dato.PartReference;
-                hoja.Cell(fila, 5).Value = dato.Asset;
+                // Columna E (Asset) se deja sin rellenar a propósito.
                 hoja.Cell(fila, 6).Value = dato.LayoutName;
                 hoja.Cell(fila, 7).Value = dato.Working;
                 hoja.Cell(fila, 8).Value = dato.RefClient;
