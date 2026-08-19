@@ -69,6 +69,11 @@
             <!-- Action Card -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel>
+                    <CheckBox Content="Traducir títulos (inglés / alemán / español)"
+                             IsChecked="{Binding TraducirTextos}"
+                             IsEnabled="{Binding IsProcessing, Converter={StaticResource InverseBooleanConverter}}"
+                             Margin="0,0,0,16"/>
+
                     <Button Command="{Binding EjecutarCommand}"
                            Style="{StaticResource MaterialDesignRaisedButton}"
                            materialDesign:ButtonAssist.CornerRadius="4"
@@ -89,18 +94,14 @@
                     </Button>
 
                     <!-- Status -->
-                    <StackPanel Orientation="Horizontal" 
-                               Margin="0,16,0,0"
+                    <StackPanel Margin="0,16,0,0"
                                Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
-                                    Value="0"
-                                    IsIndeterminate="True"
-                                    Width="24"
-                                    Height="24"
-                                    Margin="0,0,12,0"/>
-                        <TextBlock Text="Procesando archivo..." 
-                                  VerticalAlignment="Center"
-                                  Foreground="{StaticResource PrimaryBrush}"/>
+                        <TextBlock Text="{Binding ProgresoTexto}"
+                                  Foreground="{StaticResource PrimaryBrush}"
+                                  Margin="0,0,0,8"/>
+                        <ProgressBar Value="{Binding ProgresoActual, Mode=OneWay}"
+                                    Maximum="{Binding ProgresoTotal, Mode=OneWay}"
+                                    Height="6"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

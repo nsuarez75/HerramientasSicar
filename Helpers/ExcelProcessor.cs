@@ -1,14 +1,49 @@
 using ClosedXML.Excel;
+using GTranslate.Translators;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HerramientasSICAR.Helpers
 {
     public static class ExcelProcessor
     {
-        public static void ModificarTodosComentarios(string inputPath, string outputPath)
+        private const int MaxTraduccionesConcurrentes = 20;
+
+        private static readonly ITranslator Translator = new AggregateTranslator();
+
+        static ExcelProcessor()
+        {
+            // .NET Framework limita por defecto a 2 conexiones HTTP simultáneas por host,
+            // lo que anula cualquier paralelismo real al traducir. Sin este ajuste, 20 tareas
+            // en paralelo tardan casi lo mismo que en secuencial.
+            if (ServicePointManager.DefaultConnectionLimit < MaxTraduccionesConcurrentes * 2)
+                ServicePointManager.DefaultConnectionLimit = MaxTraduccionesConcurrentes * 2;
+        }
+
+        private static async Task<string> TraducirAsync(string texto, string idiomaDestino)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return texto;
+
+            try
+            {
+                // fromLanguage = null -> auto-detección: el texto base puede no estar realmente en inglés.
+                var resultado = await Translator.TranslateAsync(texto, idiomaDestino, null);
+                return resultado.Translation;
+            }
+            catch
+            {
+                // Si falla la traducción (p.ej. sin conexión o rate-limit), se conserva el texto original.
+                return texto;
+            }
+        }
+
+        public static async Task ModificarTodosComentariosAsync(string inputPath, string outputPath, bool traducir = true, IProgress<(int completados, int total)> progress = null)
         {
             // 1. Read Data Phase
             var copyWsUser = new List<List<string>>();
@@ -24,7 +59,7 @@ namespace HerramientasSICAR.Helpers
                 {
                     var rowData = new List<string>();
                     int lastCol = row.LastCellUsed()?.Address.ColumnNumber ?? 0;
-                    
+
                     for(int c = 1; c <= lastCol; c++)
                     {
                         rowData.Add(row.Cell(c).Value.ToString());
@@ -72,14 +107,14 @@ namespace HerramientasSICAR.Helpers
                         string viewPath = copyWsUser[i][viewPathIdx];
 
                         // Filter
-                         bool matchesFilter = 
+                         bool matchesFilter =
                             viewPath.Contains("10_Sequence & Messageblocks") &&
-                            omRegex.IsMatch(viewPath) && 
+                            omRegex.IsMatch(viewPath) &&
                             viewPath.Contains("_FB") &&
                             !viewPath.Contains("Summary") &&
                             !viewPath.Contains("Messages") &&
                             !viewPath.Contains("50_Safety");
-                        
+
                         if (!matchesFilter) continue;
 
                         if (viewPath.EndsWith(@"\Title"))
@@ -90,20 +125,24 @@ namespace HerramientasSICAR.Helpers
                         }
                     }
 
-                    // Second pass: Update Comments
+                    // Second pass: Collect which rows need translation and the distinct titles involved
+                    var filasATraducir = new List<int>();
+                    var tituloPorFila = new Dictionary<int, string>();
+                    var titulosUnicos = new HashSet<string>();
+
                     for (int i = 1; i < copyWsUser.Count; i++)
                     {
                         if (viewPathIdx >= copyWsUser[i].Count) continue;
                         string viewPath = copyWsUser[i][viewPathIdx];
 
-                         bool matchesFilter = 
+                         bool matchesFilter =
                             viewPath.Contains("10_Sequence & Messageblocks") &&
-                            omRegex.IsMatch(viewPath) && 
+                            omRegex.IsMatch(viewPath) &&
                             viewPath.Contains("_FB") &&
                             !viewPath.Contains("Summary") &&
                             !viewPath.Contains("Messages") &&
                             !viewPath.Contains("50_Safety");
-                        
+
                         if (!matchesFilter) continue;
 
                         if (viewPath.EndsWith(@"\Comment"))
@@ -114,19 +153,74 @@ namespace HerramientasSICAR.Helpers
                                 string tituloSinStep = stepRegex.Replace(titulo, "").Trim();
                                 if (!string.IsNullOrEmpty(tituloSinStep))
                                 {
-                                    string nuevoTexto = $"Title_english {tituloSinStep}\n" +
-                                                      $"Title_deutsch {tituloSinStep}\n" +
-                                                      $"Title_espanol {tituloSinStep}";
-
-                                    // Ensure list is big enough (it should be)
-                                    while (copyWsUser[i].Count <= Math.Max(enUsStarIdx, enUsIdx))
-                                        copyWsUser[i].Add("");
-
-                                    copyWsUser[i][enUsStarIdx] = nuevoTexto;
-                                    copyWsUser[i][enUsIdx] = nuevoTexto;
+                                    filasATraducir.Add(i);
+                                    tituloPorFila[i] = tituloSinStep;
+                                    titulosUnicos.Add(tituloSinStep);
                                 }
                             }
                         }
+                    }
+
+                    // Third pass: resolve every distinct título into its en/de/es text.
+                    // If "traducir" is off, keep the legacy behavior: copy the same text into all three languages.
+                    string[] idiomas = { "en", "de", "es" };
+                    var pares = titulosUnicos
+                        .SelectMany(titulo => idiomas.Select(idioma => (titulo, idioma)))
+                        .ToList();
+
+                    var traducciones = new ConcurrentDictionary<(string titulo, string idioma), string>();
+                    int total = pares.Count;
+                    int completados = 0;
+                    progress?.Report((0, total));
+
+                    if (traducir)
+                    {
+                        using (var semaphore = new SemaphoreSlim(MaxTraduccionesConcurrentes))
+                        {
+                            var tareas = pares.Select(async par =>
+                            {
+                                await semaphore.WaitAsync();
+                                try
+                                {
+                                    traducciones[par] = await TraducirAsync(par.titulo, par.idioma);
+                                }
+                                finally
+                                {
+                                    semaphore.Release();
+                                    int hechos = Interlocked.Increment(ref completados);
+                                    progress?.Report((hechos, total));
+                                }
+                            });
+
+                            await Task.WhenAll(tareas);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var par in pares)
+                            traducciones[par] = par.titulo;
+
+                        progress?.Report((total, total));
+                    }
+
+                    // Fourth pass: apply the translated texts to each row
+                    foreach (int i in filasATraducir)
+                    {
+                        string tituloSinStep = tituloPorFila[i];
+                        string tituloIngles = traducciones[(tituloSinStep, "en")];
+                        string tituloAleman = traducciones[(tituloSinStep, "de")];
+                        string tituloEspanol = traducciones[(tituloSinStep, "es")];
+
+                        string nuevoTexto = $"Title_english {tituloIngles}\n" +
+                                          $"Title_deutsch {tituloAleman}\n" +
+                                          $"Title_espanol {tituloEspanol}";
+
+                        // Ensure list is big enough (it should be)
+                        while (copyWsUser[i].Count <= Math.Max(enUsStarIdx, enUsIdx))
+                            copyWsUser[i].Add("");
+
+                        copyWsUser[i][enUsStarIdx] = nuevoTexto;
+                        copyWsUser[i][enUsIdx] = nuevoTexto;
                     }
                 }
             }
