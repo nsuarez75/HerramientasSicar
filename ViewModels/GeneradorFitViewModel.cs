@@ -14,10 +14,18 @@ namespace HerramientasSICAR.ViewModels
 {
     public class FitData
     {
+        public string Plant { get; set; }
+        public string Line { get; set; }
+        public string Guid { get; set; }
+        public string PartReference { get; set; }
         public string Asset { get; set; }
+        public string LayoutName { get; set; }
         public int NumAsset { get; set; }
         public string RefClient { get; set; }
+        public string ProcessFeatureType { get; set; }
+        public string Location { get; set; }
         public string Fid { get; set; }
+        public string CriticalFeature { get; set; }
         public string Working { get; set; }
         public int Ref { get; set; }
         public string Tech { get; set; }
@@ -130,6 +138,9 @@ namespace HerramientasSICAR.ViewModels
                             SetEstado("Generando libro de salida...");
                             using (var libroSalida = new XLWorkbook())
                             {
+                                SetEstado("Hoja FIT...");
+                                GenerarHojaFIT(libroSalida, datos);
+
                                 GenerarCodigoPLC(libroSalida, Referencias, datos);
 
                                 SetEstado("Guardando archivo...");
@@ -212,24 +223,48 @@ namespace HerramientasSICAR.ViewModels
                         SetEstado($"Leyendo {nombreHoja} (Fila {fila}/{ultimaFila})...");
                     }
 
-                    // Columnas de Assets: F(6), H(8), J(10), L(12)
+                    // Columnas comunes a toda la fila (no dependen del grupo de asset).
+                    string plant = GetVal(hoja, fila, 1);           // A
+                    string line = GetVal(hoja, fila, 2);            // B
+                    string guid = GetVal(hoja, fila, 3);            // C
+                    string partReference = GetVal(hoja, fila, 4);   // D
+                    string refClient = GetVal(hoja, fila, 17);          // Q
+                    string processFeatureType = GetVal(hoja, fila, 18); // R
+                    string location = GetVal(hoja, fila, 19);           // S
+                    string fid = GetVal(hoja, fila, 20);                // T
+                    string criticalFeature = GetVal(hoja, fila, 21);    // U
+                    string tech = GetVal(hoja, fila, 25);               // Y
+                    string pointer = GetVal(hoja, fila, 26);            // Z
+
+                    // Columnas de LayoutName: F(6), I(9), L(12), O(15).
+                    // El Asset de cada grupo está en la columna anterior (E, H, K, N) y el
+                    // Working en la siguiente (G, J, M, P); ya no es una única columna M para todos.
+                    int[] columnasLayoutName = { 6, 9, 12, 15 };
                     for (int assetIdx = 1; assetIdx <= 4; assetIdx++)
                     {
-                        int col = 6 + (assetIdx - 1) * 2;
-                        string assetVal = GetVal(hoja, fila, col);
+                        int col = columnasLayoutName[assetIdx - 1];
+                        string layoutNameVal = GetVal(hoja, fila, col);
 
-                        if (!string.IsNullOrWhiteSpace(assetVal))
+                        if (!string.IsNullOrWhiteSpace(layoutNameVal))
                         {
                             datos.Add(new FitData
                             {
-                                Asset = assetVal,
+                                Plant = plant,
+                                Line = line,
+                                Guid = guid,
+                                PartReference = partReference,
+                                Asset = GetVal(hoja, fila, col - 1),
+                                LayoutName = layoutNameVal,
                                 NumAsset = assetIdx,
-                                RefClient = GetVal(hoja, fila, 14), // N
-                                Fid = GetVal(hoja, fila, 17),       // Q
-                                Working = GetVal(hoja, fila, 13),   // M
+                                RefClient = refClient,
+                                ProcessFeatureType = processFeatureType,
+                                Location = location,
+                                Fid = fid,
+                                CriticalFeature = criticalFeature,
+                                Working = GetVal(hoja, fila, col + 1),
                                 Ref = refNum,
-                                Tech = GetVal(hoja, fila, 22),      // V
-                                Pointer = GetVal(hoja, fila, 23)    // W
+                                Tech = tech,
+                                Pointer = pointer
                             });
                         }
                     }
@@ -278,7 +313,7 @@ namespace HerramientasSICAR.ViewModels
                     fids.Add(new FitData
                     {
                         Fid = dato.Fid,
-                        Asset = dato.Asset,
+                        LayoutName = dato.LayoutName,
                         Working = dato.Working,
                         RefClient = dato.RefClient
                     });
@@ -292,15 +327,57 @@ namespace HerramientasSICAR.ViewModels
             int puntero = 4;
             foreach (var fid in fids)
             {
-                hoja.Cell($"{columna}{puntero}").Value = $"'{fid.Asset}'";
+                // Comilla inicial doble: al copiar/pegar en Excel, la primera comilla se
+                // interpreta como marcador de texto y desaparece, así que hace falta una
+                // segunda para que quede una comilla visible en el resultado pegado.
+                hoja.Cell($"{columna}{puntero}").Value = $"''{fid.LayoutName}'";
                 puntero++;
-                hoja.Cell($"{columna}{puntero}").Value = $"'{fid.Working}'";
+                hoja.Cell($"{columna}{puntero}").Value = $"''{fid.Working}'";
                 puntero++;
                 hoja.Cell($"{columna}{puntero}").Value = fid.Fid;
                 puntero++;
                 hoja.Cell($"{columna}{puntero}").Value = Blank.Value;
                 puntero++;
             }
+        }
+
+        private void GenerarHojaFIT(XLWorkbook libroSalida, List<FitData> datos)
+        {
+            var hoja = libroSalida.Worksheets.Add("FIT");
+
+            string[] cabeceras =
+            {
+                "Plant", "Line", "GUID", "PartReference", "Asset", "LayoutName",
+                "Working", "FeatureReferenceClient", "Process | FeatureType",
+                "Location", "FeatureId", "CriticalFeature"
+            };
+
+            for (int c = 0; c < cabeceras.Length; c++)
+                hoja.Cell(1, c + 1).Value = cabeceras[c];
+
+            // Una fila por cada combinación (fila origen × asset con LayoutName), tal cual está
+            // en "datos": si un mismo FeatureId aparece en varios assets de la misma fila, o en
+            // varias referencias (hojas FIT-RefX), cada combinación ya generó su propio FitData.
+            int fila = 2;
+            foreach (var dato in datos)
+            {
+                hoja.Cell(fila, 1).Value = dato.Plant;
+                hoja.Cell(fila, 2).Value = dato.Line;
+                hoja.Cell(fila, 3).Value = dato.Guid;
+                hoja.Cell(fila, 4).Value = dato.PartReference;
+                hoja.Cell(fila, 5).Value = dato.Asset;
+                hoja.Cell(fila, 6).Value = dato.LayoutName;
+                hoja.Cell(fila, 7).Value = dato.Working;
+                hoja.Cell(fila, 8).Value = dato.RefClient;
+                hoja.Cell(fila, 9).Value = dato.ProcessFeatureType;
+                hoja.Cell(fila, 10).Value = dato.Location;
+                hoja.Cell(fila, 11).Value = dato.Fid;
+                hoja.Cell(fila, 12).Value = dato.CriticalFeature;
+                fila++;
+            }
+
+            var rango = hoja.Range(1, 1, fila - 1, cabeceras.Length);
+            rango.CreateTable("FIT");
         }
 
         private void GenerarCodigoPLC(XLWorkbook libroSalida, int referencias, List<FitData> datos)
@@ -329,7 +406,7 @@ namespace HerramientasSICAR.ViewModels
                 {
                     if (dato.NumAsset == 1 && dato.Ref == refNum + 1)
                     {
-                        hojaConfig.Cell(filaCodigoActual, colActual).Value = $"//{dato.Asset} {dato.RefClient}";
+                        hojaConfig.Cell(filaCodigoActual, colActual).Value = $"//{dato.LayoutName} {dato.RefClient}";
                         filaCodigoActual++;
 
                         hojaConfig.Cell(filaCodigoActual, colActual).Value = $"L {dato.Fid}";
