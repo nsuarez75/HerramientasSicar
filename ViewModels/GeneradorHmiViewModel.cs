@@ -310,13 +310,80 @@ namespace HerramientasSICAR.ViewModels
 
         private bool EsVisible(IXLCell cell)
         {
-            var bg = cell.Style.Fill.BackgroundColor;
+            var fill = cell.Style.Fill;
 
-            // Replica "fill.start_color.index != 0" de openpyxl. En la plantilla, las celdas
-            // que deben quedar ocultas se rellenan explícitamente con el color indexado 0
-            // (el blanco de la paleta clásica de Excel); cualquier otro relleno, o la ausencia
-            // total de relleno, se considera visible.
-            return !(bg.ColorType == XLColorType.Indexed && bg.Indexed == 0);
+            // Sin relleno sólido, la celda se ve con el fondo blanco por defecto de Excel.
+            if (fill.PatternType != XLFillPatternValues.Solid)
+                return false;
+
+            var color = ResolverColor(cell.Worksheet.Workbook, fill.BackgroundColor);
+            return !EsBlancoOTransparente(color);
+        }
+
+        // Las plantillas HMI usan colores de tema (Accent1, Background1...) en vez de la
+        // paleta indexada clásica de Excel, así que hay que resolverlos contra el tema del
+        // libro (y aplicar el tinte) para saber el color real que se ve en la celda.
+        private static System.Drawing.Color ResolverColor(XLWorkbook libro, XLColor color)
+        {
+            switch (color.ColorType)
+            {
+                case XLColorType.Color:
+                    return color.Color;
+                case XLColorType.Indexed:
+                    return XLColor.FromIndex(color.Indexed).Color;
+                case XLColorType.Theme:
+                    var baseColor = ResolverColorTema(libro, color.ThemeColor);
+                    return AplicarTinte(baseColor, color.ThemeTint);
+                default:
+                    return System.Drawing.Color.White;
+            }
+        }
+
+        private static System.Drawing.Color ResolverColorTema(XLWorkbook libro, XLThemeColor tema)
+        {
+            var t = libro.Theme;
+            switch (tema)
+            {
+                case XLThemeColor.Background1: return t.Background1.Color;
+                case XLThemeColor.Text1: return t.Text1.Color;
+                case XLThemeColor.Background2: return t.Background2.Color;
+                case XLThemeColor.Text2: return t.Text2.Color;
+                case XLThemeColor.Accent1: return t.Accent1.Color;
+                case XLThemeColor.Accent2: return t.Accent2.Color;
+                case XLThemeColor.Accent3: return t.Accent3.Color;
+                case XLThemeColor.Accent4: return t.Accent4.Color;
+                case XLThemeColor.Accent5: return t.Accent5.Color;
+                case XLThemeColor.Accent6: return t.Accent6.Color;
+                case XLThemeColor.Hyperlink: return t.Hyperlink.Color;
+                case XLThemeColor.FollowedHyperlink: return t.FollowedHyperlink.Color;
+                default: return System.Drawing.Color.White;
+            }
+        }
+
+        // Fórmula de tinte de OOXML: tinte negativo oscurece hacia negro, tinte positivo
+        // aclara hacia blanco (p.ej. Accent1 con tinte 0.8 da un azul muy claro, no blanco puro).
+        private static System.Drawing.Color AplicarTinte(System.Drawing.Color color, double tinte)
+        {
+            if (tinte == 0) return color;
+
+            double Ajustar(byte canal) => tinte < 0
+                ? canal * (1 + tinte)
+                : canal * (1 - tinte) + (255 * tinte);
+
+            int r = (int)Math.Round(Ajustar(color.R));
+            int g = (int)Math.Round(Ajustar(color.G));
+            int b = (int)Math.Round(Ajustar(color.B));
+
+            return System.Drawing.Color.FromArgb(
+                Math.Max(0, Math.Min(255, r)),
+                Math.Max(0, Math.Min(255, g)),
+                Math.Max(0, Math.Min(255, b)));
+        }
+
+        private static bool EsBlancoOTransparente(System.Drawing.Color color)
+        {
+            const int umbral = 250;
+            return color.A == 0 || (color.R >= umbral && color.G >= umbral && color.B >= umbral);
         }
 
         private string GetVal(IXLCell cell)
