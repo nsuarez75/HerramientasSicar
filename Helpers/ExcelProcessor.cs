@@ -26,7 +26,7 @@ namespace HerramientasSICAR.Helpers
                 ServicePointManager.DefaultConnectionLimit = MaxTraduccionesConcurrentes * 2;
         }
 
-        private static async Task<string> TraducirAsync(string texto, string idiomaDestino)
+        public static async Task<string> TraducirAsync(string texto, string idiomaDestino)
         {
             if (string.IsNullOrWhiteSpace(texto)) return texto;
 

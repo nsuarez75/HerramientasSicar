@@ -1,12 +1,15 @@
 using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HerramientasSICAR.Helpers;
 using Microsoft.Win32;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -189,7 +192,7 @@ namespace HerramientasSICAR.ViewModels
             SetProcessing(true);
             SetEstado("Iniciando...");
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 try
                 {
@@ -213,7 +216,7 @@ namespace HerramientasSICAR.ViewModels
                             // igual que en el script Python (todas las hojas HMI comparten la
                             // misma disposición de nombres de pantalla).
                             var hojaTextos = libroEntrada.Worksheets.First();
-                            GenerarListasTextos(hojaTextos, libroSalida);
+                            await GenerarListasTextosAsync(hojaTextos, libroSalida);
 
                             SetEstado("Guardando archivo...");
                             libroSalida.SaveAs(RutaDestino);
@@ -559,7 +562,7 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        private void GenerarListasTextos(IXLWorksheet hojaDatos, XLWorkbook libroSalida)
+        private async Task GenerarListasTextosAsync(IXLWorksheet hojaDatos, XLWorkbook libroSalida)
         {
             SetEstado("Generando listas de textos...");
 
@@ -694,7 +697,7 @@ namespace HerramientasSICAR.ViewModels
                     }
                 }
             }
-            CrearHoja("CO_UserFunctions", datosUserFunctions);
+            await EscribirUserFunctionsTraducidoAsync(libroSalida, datosUserFunctions);
 
             // 10. CO_PokaYokeTest_ID
             var datosPoka = new List<(int, string)> { (0, "<<PokaYoke test level xx>>") };
@@ -715,6 +718,72 @@ namespace HerramientasSICAR.ViewModels
             var datosWeb = new List<(int, string)> { (0, "<<Web server device level xx>>") };
             AgregarRango(datosWeb, "H", 108, 115, 0);
             CrearHoja("CO_WebServer_Device_ID", datosWeb);
+        }
+
+        private const int MaxTraduccionesConcurrentes = 20;
+
+        // Traduce los textos de comandos/funciones de CO_UserFunctions a inglés, alemán y
+        // español (idioma de origen desconocido, auto-detección) reutilizando el mismo
+        // traductor que usa el Comentador. Los placeholders "<<...>>" de funciones sin
+        // configurar y las celdas vacías se copian tal cual, sin pasar por el traductor.
+        private async Task EscribirUserFunctionsTraducidoAsync(XLWorkbook libroSalida, List<(int Valor, string Texto)> datos)
+        {
+            SetEstado("Traduciendo funciones de usuario...");
+
+            bool EsPlaceholder(string texto) => texto.StartsWith("<<") && texto.EndsWith(">>");
+            bool NecesitaTraduccion(string texto) => !string.IsNullOrWhiteSpace(texto) && !EsPlaceholder(texto);
+
+            string[] idiomas = { "en", "de", "es" };
+            var textosUnicos = datos.Select(d => d.Texto).Where(NecesitaTraduccion).Distinct().ToList();
+            var pares = textosUnicos.SelectMany(t => idiomas.Select(idioma => (texto: t, idioma))).ToList();
+
+            var traducciones = new ConcurrentDictionary<(string texto, string idioma), string>();
+            using (var semaphore = new SemaphoreSlim(MaxTraduccionesConcurrentes))
+            {
+                var tareas = pares.Select(async par =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        traducciones[par] = await ExcelProcessor.TraducirAsync(par.texto, par.idioma);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                await Task.WhenAll(tareas);
+            }
+
+            var ws = libroSalida.Worksheets.Add("CO_UserFunctions");
+            ws.Cell(1, 1).Value = "Value";
+            ws.Cell(1, 2).Value = "Text";
+            ws.Cell(1, 3).Value = "English";
+            ws.Cell(1, 4).Value = "German";
+            ws.Cell(1, 5).Value = "Spanish";
+
+            int fila = 2;
+            foreach (var (valor, texto) in datos)
+            {
+                ws.Cell(fila, 1).Value = valor;
+                ws.Cell(fila, 2).Value = texto;
+
+                if (NecesitaTraduccion(texto))
+                {
+                    ws.Cell(fila, 3).Value = traducciones[(texto, "en")];
+                    ws.Cell(fila, 4).Value = traducciones[(texto, "de")];
+                    ws.Cell(fila, 5).Value = traducciones[(texto, "es")];
+                }
+                else
+                {
+                    ws.Cell(fila, 3).Value = texto;
+                    ws.Cell(fila, 4).Value = texto;
+                    ws.Cell(fila, 5).Value = texto;
+                }
+
+                fila++;
+            }
         }
     }
 }
