@@ -57,6 +57,11 @@ namespace HerramientasSICAR.ViewModels
             ("R", "Interface",    "Identification", "Spare08"),
         };
 
+        // Columna de inicio (numero de columna, V=22) de cada una de las 8 imagenes de funcion
+        // de usuario dentro de un bloque; cada imagen ocupa 4 columnas: [contador][feedback
+        // izq.][nombre][feedback der.]. Hay 3 bloques apilados verticalmente (24 imagenes en total).
+        private static readonly int[] ColumnasUserFunctions = { 22, 26, 30, 34, 38, 42, 46, 50 };
+
         // Equivalente al diccionario "estructura" del script Python: solo los subgrupos
         // listados aquí tienen un bloque IDB real en el PLC; el resto de columnas/subgrupos
         // (p.ej. "Spare07") se leen del Excel pero no generan salida, igual que en Python.
@@ -104,7 +109,7 @@ namespace HerramientasSICAR.ViewModels
                 {
                     new SubgrupoConfig { Clave = "Manual1",       Id = 1, Comentario = "Manual Movements 1", PlcName = "ManualMovements1", MaxSize = 32 },
                     new SubgrupoConfig { Clave = "Manual2",       Id = 2, Comentario = "Manual Movements 2", PlcName = "ManualMovements2", MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "UserFunctions", Id = 3, Comentario = "User functions",     PlcName = "UserFunctions",    MaxSize = 15 },
+                    new SubgrupoConfig { Clave = "UserFunctions", Id = 3, Comentario = "User functions",     PlcName = "UserFunctions",    MaxSize = 24 },
                     new SubgrupoConfig { Clave = "Poka",          Id = 4, Comentario = "Poka-Yoke test",     PlcName = "PokaYokeTest",     MaxSize = 8  },
                     new SubgrupoConfig { Clave = "Docking",       Id = 5, Comentario = "Docking stations",   PlcName = "DockingStations",  MaxSize = 8  },
                 }
@@ -639,10 +644,57 @@ namespace HerramientasSICAR.ViewModels
             AgregarRango(datosMan, "F", 74, 105, 32);
             CrearHoja("CO_Manual_Movements_ID", datosMan);
 
-            // 9. CO_UserFunctions_ID
+            // 9. CO_UserFunctions_ID (24 pantallas: H74:H97)
             var datosUser = new List<(int, string)> { (0, "<<User functions level xx>>") };
-            AgregarRango(datosUser, "H", 74, 88, 0);
+            AgregarRango(datosUser, "H", 74, 97, 0);
             CrearHoja("CO_UserFunctions_ID", datosUser);
+
+            // 9b. CO_UserFunctions: 24 imagenes apiladas en 3 bloques de 8 (filas de titulo 5,
+            // 14 y 23), cada imagen con 8 funciones. Por cada funcion se generan 5 indices
+            // (nombre, 2 vacios, feedback izq., feedback der.) separados de 10 en 10 dentro de
+            // un bloque de 100 por imagen, aunque no haya nada configurado en el Excel.
+            var datosUserFunctions = new List<(int, string)>();
+            for (int bloque = 0; bloque < 3; bloque++)
+            {
+                int filaTitulo = 5 + bloque * 9;
+
+                for (int posImagen = 0; posImagen < ColumnasUserFunctions.Length; posImagen++)
+                {
+                    int numImagen = bloque * ColumnasUserFunctions.Length + posImagen + 1;
+                    int colInicio = ColumnasUserFunctions[posImagen];
+
+                    for (int fn = 1; fn <= 8; fn++)
+                    {
+                        int fila = filaTitulo + fn;
+                        string feedbackIzq = GetVal(hojaDatos.Cell(fila, colInicio + 1));
+                        string nombre = GetVal(hojaDatos.Cell(fila, colInicio + 2));
+                        string feedbackDer = GetVal(hojaDatos.Cell(fila, colInicio + 3));
+
+                        int baseIdx = 111 + (numImagen - 1) * 100 + (fn - 1) * 10;
+                        bool sinUsar = string.IsNullOrEmpty(nombre) && string.IsNullOrEmpty(feedbackIzq) && string.IsNullOrEmpty(feedbackDer);
+
+                        if (sinUsar)
+                        {
+                            // Funcion no configurada: se marcan los 5 indices con un placeholder
+                            // identificable (pantalla/funcion) en vez de dejarlos vacios.
+                            datosUserFunctions.Add((baseIdx, $"<<S{numImagen} L{fn} Name>>"));
+                            datosUserFunctions.Add((baseIdx + 1, $"<<S{numImagen} L{fn} Action left>>"));
+                            datosUserFunctions.Add((baseIdx + 2, $"<<S{numImagen} L{fn} Action right>>"));
+                            datosUserFunctions.Add((baseIdx + 3, $"<<S{numImagen} L{fn} Feed back left>>"));
+                            datosUserFunctions.Add((baseIdx + 4, $"<<S{numImagen} L{fn} Feed back right>>"));
+                        }
+                        else
+                        {
+                            datosUserFunctions.Add((baseIdx, nombre));
+                            datosUserFunctions.Add((baseIdx + 1, ""));
+                            datosUserFunctions.Add((baseIdx + 2, ""));
+                            datosUserFunctions.Add((baseIdx + 3, feedbackIzq));
+                            datosUserFunctions.Add((baseIdx + 4, feedbackDer));
+                        }
+                    }
+                }
+            }
+            CrearHoja("CO_UserFunctions", datosUserFunctions);
 
             // 10. CO_PokaYokeTest_ID
             var datosPoka = new List<(int, string)> { (0, "<<PokaYoke test level xx>>") };
