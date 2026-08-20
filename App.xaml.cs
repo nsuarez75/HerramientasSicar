@@ -62,7 +62,6 @@ namespace HerramientasSICAR
             services.AddTransient<NumeradorViewModel>();
             services.AddTransient<ComentadorViewModel>();
             services.AddTransient<RenombrarArrayViewModel>();
-            services.AddTransient<GeneradorFitViewModel>();
             services.AddTransient<GeneradorHmiViewModel>();
 
             // Views
