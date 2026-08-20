@@ -273,30 +273,33 @@ namespace HerramientasSICAR.ViewModels
 
                     // Pantallas OEM
                     for (int fila = 7; fila <= 14; fila++)
-                        AgregarSiHayValor(hmi, hoja, columna, fila, "OEM", $"OEM{numOem}");
+                        AgregarPosicion(hmi, hoja, columna, fila, "OEM", $"OEM{numOem}");
 
                     // Installation
                     for (int fila = 16; fila <= 47; fila++)
-                        AgregarSiHayValor(hmi, hoja, columna, fila, "Installation", inst);
+                        AgregarPosicion(hmi, hoja, columna, fila, "Installation", inst);
 
                     // Equipment
                     for (int fila = 49; fila <= 72; fila++)
-                        AgregarSiHayValor(hmi, hoja, columna, fila, "Equipment", equip);
+                        AgregarPosicion(hmi, hoja, columna, fila, "Equipment", equip);
 
                     // Manual Operations
                     for (int fila = 74; fila <= 105; fila++)
-                        AgregarSiHayValor(hmi, hoja, columna, fila, "Manual Operations", man);
+                        AgregarPosicion(hmi, hoja, columna, fila, "Manual Operations", man);
                 }
             }
 
             return hmi;
         }
 
-        private void AgregarSiHayValor(List<HmiScreenData> hmi, IXLWorksheet hoja, string columna, int fila, string grupo, string subgrupo)
+        // Se añade siempre una entrada por posición (fila), incluso cuando la celda está vacía,
+        // para que el índice dentro de "valores" en GenerarConfigPLC siga correspondiéndose 1:1
+        // con la posición del array del PLC. Si se omitieran las celdas vacías, un hueco en medio
+        // del rango desplazaría todas las posiciones siguientes y desalinearía la visibilidad.
+        private void AgregarPosicion(List<HmiScreenData> hmi, IXLWorksheet hoja, string columna, int fila, string grupo, string subgrupo)
         {
             var cell = hoja.Cell($"{columna}{fila}");
             string nombre = GetVal(cell);
-            if (string.IsNullOrEmpty(nombre)) return;
 
             hmi.Add(new HmiScreenData
             {
@@ -304,7 +307,7 @@ namespace HerramientasSICAR.ViewModels
                 Grupo = grupo,
                 Subgrupo = subgrupo,
                 Nombre = nombre,
-                Visible = EsVisible(cell)
+                Visible = !string.IsNullOrEmpty(nombre) && EsVisible(cell)
             });
         }
 
