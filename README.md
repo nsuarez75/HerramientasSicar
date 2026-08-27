@@ -44,6 +44,7 @@ Genera el comentario de los pasos de secuencia en español inglés y alemán de 
 Esta funcionalidad no es especifica para el estándar SICAR@GST.
 Lo que hace es coger una variable Array del tipo que sea en un FB/FC dado y renumerar todas sus apariciones de menor a mayor.
 Útil cuando tienes un array de flancos por ejemplo y necesitas intercalar un nuevo segmento sin tener que calcular el último usado o reordenar todos para tener orden.
+Si la variable pertenece a un DB Global, no es necesario indicar el nombre anidado con el DB, solamente el nombre de la variable.
 
 ### Generador HMI
 
