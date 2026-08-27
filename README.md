@@ -29,6 +29,7 @@ Genera el comentario de los pasos de secuencia en español inglés y alemán de 
 
 - Exportar textos del proyecto (seleccionar unicamente "block comment").
 <img width="221" height="145" alt="image" src="https://github.com/user-attachments/assets/ede494a7-db1b-42a5-9757-3196a9f33fe9" />
+
 <img width="644" height="697" alt="image" src="https://github.com/user-attachments/assets/66866a69-a1a1-422d-aadb-7123a28c41c6" />
 
 
