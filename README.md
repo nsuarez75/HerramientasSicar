@@ -29,7 +29,8 @@ Genera el comentario de los pasos de secuencia en español inglés y alemán de 
 
 - Exportar textos del proyecto (seleccionar unicamente "block comment").
 <img width="221" height="145" alt="image" src="https://github.com/user-attachments/assets/ede494a7-db1b-42a5-9757-3196a9f33fe9" />
-<img width="647" height="702" alt="image" src="https://github.com/user-attachments/assets/eef5bdee-f437-4437-a482-fdb7d17307d7" />
+<img width="644" height="697" alt="image" src="https://github.com/user-attachments/assets/66866a69-a1a1-422d-aadb-7123a28c41c6" />
+
 
 - Seleccionar el archivo de origen, elegir nombre para el archivo de salida y hacer click en el botón de procesar.
 - Si se selecciona la opción de traducción automática se requiere conexión a internet. Tener en cuenta que la traducción usa APIs de terceros
