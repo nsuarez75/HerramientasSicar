@@ -63,6 +63,7 @@ namespace HerramientasSICAR
             services.AddTransient<ComentadorViewModel>();
             services.AddTransient<RenombrarArrayViewModel>();
             services.AddTransient<GeneradorHmiViewModel>();
+            services.AddTransient<SincroCheckerViewModel>();
 
             // Views
             services.AddSingleton<MainWindow>(provider =>

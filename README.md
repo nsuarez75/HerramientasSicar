@@ -54,3 +54,19 @@ y se genera una excel con todas las listas de textos completadas para copiar en 
 
 
 
+
+### Sincro Checker
+
+Al pasar de manual a automático, el motor de secuencia SICAR busca el paso cuyos ilocks se cumplen y salta a él; si se cumplen en varios pasos a la vez da error de sincronización.
+Sincro Checker detecta esa situación al programar: abre un FB de secuencia (LAD) y comprueba, para cada par de pasos, si existe algún estado de señales que cumpla los ilocks de ambos.
+
+- Se comprueban todos los pasos automáticos `S###`, cualquier combinación de dos (si tres pasos pudieran coincidir, también lo haría cada par).
+- Condición de cada paso: `ilockAuto` y `ilockExtSync` del paso, junto con los de PERM (que se ejecuta en cada ciclo con el paso activo). Un ilock que la network no escribe vale 1.
+- Los pasos manuales se omiten: desde el primer paso manual en adelante todos se consideran manuales. Se detecta como el primer paso que solo escribe `ilockManual`/`limitManual`; si no se detecta, la herramienta pide indicarlo (vacío = no hay pasos manuales).
+- La lógica se reconstruye a partir del cableado del bloque (`Wires`), igual que SIMATIC Automation Compare Tool, no del orden de los elementos en el XML.
+- Reglas físicas opcionales: un actuador no puede estar en `-H` y `-W` a la vez, y solo un valor puede estar activo en señales decodificadas (`ProcessCode=N`, comparaciones `x == N`).
+- Cada coincidencia se muestra en una vista LAD interactiva con PERM y los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
+- Para cada coincidencia muestra las diferencias entre los dos pasos: señales que un paso exige siempre y el otro no comprueba (o admite con el valor contrario). Son hechos sobre los ilocks, no propuestas: qué señal usar para separarlos depende del proceso. Esas señales se resaltan en el LAD.
+- Si se abre la tabla de variables de una estación (`++XXXX.xml`) en lugar de su FB, propone abrir el FB de secuencia de la misma carpeta.
+- Se puede abrir un XML ya exportado o exportar el bloque desde el proyecto TIA abierto.
+- Las networks STL/SCL no se interpretan.

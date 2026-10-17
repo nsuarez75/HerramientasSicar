@@ -12,6 +12,7 @@ namespace HerramientasSICAR.ViewModels
         private readonly ComentadorViewModel _comentadorViewModel;
         private readonly RenombrarArrayViewModel _renombrarArrayViewModel;
         private readonly GeneradorHmiViewModel _generadorHmiViewModel;
+        private readonly SincroCheckerViewModel _sincroCheckerViewModel;
 
         [ObservableProperty]
         private object _currentView;
@@ -25,7 +26,8 @@ namespace HerramientasSICAR.ViewModels
             NumeradorViewModel numeradorViewModel,
             ComentadorViewModel comentadorViewModel,
             RenombrarArrayViewModel renomrarArrayViewModel,
-            GeneradorHmiViewModel generadorHmiViewModel)
+            GeneradorHmiViewModel generadorHmiViewModel,
+            SincroCheckerViewModel sincroCheckerViewModel)
         {
             _navigationService = navigationService;
             _diagExpectedViewModel = diagExpectedViewModel;
@@ -33,6 +35,7 @@ namespace HerramientasSICAR.ViewModels
             _comentadorViewModel = comentadorViewModel;
             _renombrarArrayViewModel = renomrarArrayViewModel;
             _generadorHmiViewModel = generadorHmiViewModel;
+            _sincroCheckerViewModel = sincroCheckerViewModel;
 
             // Subscribe to navigation changes
             _navigationService.PropertyChanged += (s, e) =>
@@ -75,6 +78,12 @@ namespace HerramientasSICAR.ViewModels
         private void NavigateToGeneradorHmi()
         {
             _navigationService.NavigateTo(_generadorHmiViewModel);
+        }
+
+        [RelayCommand]
+        private void NavigateToSincroChecker()
+        {
+            _navigationService.NavigateTo(_sincroCheckerViewModel);
         }
     }
 }
