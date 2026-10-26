@@ -7,6 +7,10 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 - .net framework 4.8
 - Usuario dentro del grupo TIA Openness en windows
 
+## Comprobar antes de un commit
+
+`./checks.sh` compila en Release y termina en 0 solo si todo está bien. Necesita TIA Portal V19 instalado (usa `Siemens.Engineering.dll`).
+
 ## Funcionalidades
 
 Las funcionalidades que solicitan elegir ruta de proyecto, requieren tener TIA abierto con ese proyecto abierto. No más de esa instancia abierta simultaneamente.
