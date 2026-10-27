@@ -13,7 +13,7 @@ de terceros de esta lista, cada uno con su licencia. Las herramientas que solo s
 | HarfBuzzSharp y HarfBuzz nativo | MIT (HarfBuzz: ver `licenses/HarfBuzzSharp-THIRD-PARTY-NOTICES.txt`) | Microsoft Corporation | https://github.com/mono/SkiaSharp |
 | MicroCom.Runtime | MIT | Nikita Tsukanov | https://github.com/kekekeks/MicroCom |
 | Tmds.DBus.Protocol | MIT | Tom Deseyn | https://github.com/tmds/Tmds.DBus |
-| Lucide (trazos de los iconos, copiados en `Controls/Icon.cs`) | ISC | Lucide Contributors; partes de Feather, Cole Bemis | https://lucide.dev |
+| Lucide (trazos de los iconos, copiados en `src/HerramientasSICAR/Controls/Icon.cs`) | ISC | Lucide Contributors; partes de Feather, Cole Bemis | https://lucide.dev |
 | ClosedXML | MIT | ClosedXML contributors | https://github.com/ClosedXML/ClosedXML |
 | DocumentFormat.OpenXml (Open XML SDK) | MIT | Microsoft Corporation | https://github.com/dotnet/Open-XML-SDK |
 | ExcelNumberFormat | MIT | andersnm | https://github.com/andersnm/ExcelNumberFormat |

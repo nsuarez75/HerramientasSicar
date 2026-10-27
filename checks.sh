@@ -8,6 +8,6 @@ echo "== Compilación"
 dotnet build HerramientasSICAR.sln -c Release -nologo -v quiet -warnaserror
 
 echo "== Tests"
-dotnet test HerramientasSICAR.Tests/HerramientasSICAR.Tests.csproj -c Release --no-build -nologo -v quiet
+dotnet test tests/HerramientasSICAR.Tests/HerramientasSICAR.Tests.csproj -c Release --no-build -nologo -v quiet
 
 echo "== Todo correcto"

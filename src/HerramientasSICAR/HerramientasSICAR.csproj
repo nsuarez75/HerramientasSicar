@@ -15,9 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Los tests son otro proyecto dentro de esta carpeta -->
-    <Compile Remove="HerramientasSICAR.Tests\**" />
-    <None Remove="HerramientasSICAR.Tests\**" />
     <AvaloniaResource Include="Assets\alomatek.png" />
   </ItemGroup>
 
