@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.GeneradorHmiView"
+             x:DataType="vm:GeneradorHmiViewModel">
+    <ScrollViewer>
+        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="760" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Spacing="16">
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                    <TextBlock Text="{l:T 'Excel de origen'}" Classes="label" />
+                    <TextBox Grid.Column="1" Text="{Binding RutaOrigen}" IsReadOnly="True" Watermark="{l:T 'Configuración de pantallas HMI (.xlsx)'}" />
+                    <Button Grid.Column="2" Command="{Binding ElegirOrigenCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="folder" />
+                            <TextBlock Text="{l:T 'Elegir…'}" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Grid.Row="1" Text="{l:T 'Excel generado'}" Classes="label" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RutaDestino}" Watermark="{l:T 'Dónde guardar el resultado (.xlsx)'}" />
+                    <Button Grid.Row="1" Grid.Column="2" Command="{Binding ElegirDestinoCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="save" />
+                            <TextBlock Text="{l:T 'Guardar como…'}" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" Classes="accent" Command="{Binding GenerarCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="file-sheet" />
+                            <TextBlock Text="{l:T 'Generar Excel'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

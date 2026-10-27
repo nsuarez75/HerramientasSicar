@@ -1,111 +1,88 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
-using Microsoft.Win32;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace HerramientasSICAR.ViewModels
 {
-    public partial class ComentadorViewModel : ObservableObject
+    public partial class ComentadorViewModel : Herramienta
     {
+        public ComentadorViewModel(Contexto contexto) : base(contexto)
+        {
+        }
+
+        public override string Nombre => L.T("Comentador");
+        public override string Descripcion => L.T("Genera el comentario de los pasos de secuencia en castellano, inglés y alemán a partir del título de cada segmento.");
+        public override string Icono => "languages";
+        public override bool UsaTia => false;
+
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ProcesarCommand))]
         private string _rutaEntrada = "";
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ProcesarCommand))]
         private string _nombreSalida = "";
-
-        [ObservableProperty]
-        private bool _isProcessing = false;
-
-        [ObservableProperty]
-        private int _progresoActual = 0;
-
-        [ObservableProperty]
-        private int _progresoTotal = 0;
-
-        [ObservableProperty]
-        private string _progresoTexto = "";
 
         [ObservableProperty]
         private bool _traducirTextos = true;
 
-        public ComentadorViewModel()
-        {
-        }
+        [ObservableProperty]
+        private double _progreso;
 
-        [RelayCommand]
-        private void SeleccionarArchivo()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Excel files (*.xlsx)|*.xlsx|All files (*.*)|*.*";
-            
-            if (openFileDialog.ShowDialog() == true)
-            {
-                RutaEntrada = openFileDialog.FileName;
-            }
-        }
+        [ObservableProperty]
+        private bool _hayProgreso;
 
-        [RelayCommand]
-        private async Task EjecutarAsync()
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task ElegirEntrada()
         {
-            if (string.IsNullOrWhiteSpace(RutaEntrada))
-            {
-                MessageBox.Show("Selecciona una lista de textos", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Lista de textos exportada de TIA"), CarpetaInicial(), TipoArchivo.Excel);
+            if (ruta == null)
                 return;
-            }
-
+            RutaEntrada = ruta;
             if (string.IsNullOrWhiteSpace(NombreSalida))
+                NombreSalida = Path.GetFileNameWithoutExtension(ruta) + "_comentada.xlsx";
+        }
+
+        [RelayCommand(CanExecute = nameof(PuedeProcesar))]
+        private async Task Procesar()
+        {
+            string salida = NombreSalida.Trim();
+            if (!salida.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+                salida += ".xlsx";
+            string rutaSalida = Path.Combine(Path.GetDirectoryName(RutaEntrada), salida);
+            bool traducir = TraducirTextos;
+
+            Progreso = 0;
+            HayProgreso = true;
+            await Contexto.Trabajar(L.T("Leyendo la lista de textos…"), async () =>
             {
-                MessageBox.Show("Introduce un nombre para la lista modificada", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            string outputName = NombreSalida;
-            if (!outputName.EndsWith(".xlsx"))
-            {
-                outputName += ".xlsx";
-            }
-
-            IsProcessing = true;
-            ProgresoActual = 0;
-            ProgresoTotal = 0;
-            ProgresoTexto = "Leyendo archivo...";
-
-            try
-            {
-                string outputPath = Path.Combine(Path.GetDirectoryName(RutaEntrada), outputName);
-
-                // Progress<T> captures the current (UI) SynchronizationContext, so the callback
-                // runs on the UI thread even though the translation work happens in background.
-                bool traducir = TraducirTextos;
-                var progress = new Progress<(int completados, int total)>(p =>
+                // Progress<T> devuelve el avance al hilo de la ventana aunque el trabajo vaya en segundo plano.
+                var avance = new Progress<(int completados, int total)>(p =>
                 {
-                    ProgresoActual = p.completados;
-                    ProgresoTotal = p.total;
-                    ProgresoTexto = p.total > 0
-                        ? (traducir
-                            ? $"Traduciendo títulos: {p.completados}/{p.total} ({(int)(100.0 * p.completados / p.total)}%)"
-                            : $"Copiando títulos: {p.completados}/{p.total}")
-                        : "Preparando...";
+                    Progreso = p.total > 0 ? 100.0 * p.completados / p.total : 0;
+                    Contexto.MostrarEstado(p.total == 0 ? L.T("Preparando…")
+                        : traducir ? L.T("Traduciendo títulos: {0}/{1}", p.completados, p.total)
+                        : L.T("Copiando títulos: {0}/{1}", p.completados, p.total));
                 });
 
-                // Call Processor (translates titles to English/German/Spanish via GTranslate, unless disabled)
-                // Runs off the UI thread since it mixes blocking Excel I/O with network calls
-                await Task.Run(() => ExcelProcessor.ModificarTodosComentariosAsync(RutaEntrada, outputPath, traducir, progress));
+                // Mezcla lectura de Excel con llamadas de red: fuera del hilo de la ventana.
+                await Task.Run(() => ExcelProcessor.ModificarTodosComentariosAsync(RutaEntrada, rutaSalida, traducir, avance));
+                Contexto.MostrarEstado(L.T("Lista de textos guardada: {0}", rutaSalida));
+            });
+            HayProgreso = false;
+        }
 
-                MessageBox.Show($"Archivo guardado correctamente:\n{outputPath}", "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ocurrió un error:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsProcessing = false;
-            }
+        private string CarpetaInicial() => string.IsNullOrEmpty(RutaEntrada) ? null : Path.GetDirectoryName(RutaEntrada);
+
+        private bool PuedeProcesar() => Libre && File.Exists(RutaEntrada) && !string.IsNullOrWhiteSpace(NombreSalida);
+
+        protected override void ActualizarComandos()
+        {
+            ElegirEntradaCommand.NotifyCanExecuteChanged();
+            ProcesarCommand.NotifyCanExecuteChanged();
         }
     }
 }

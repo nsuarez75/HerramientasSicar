@@ -16,7 +16,7 @@ namespace HerramientasSICAR.Helpers
         public void ProcesarYGenerarExcel(string rutaXml, string rutaExcel)
         {
             if (!File.Exists(rutaXml))
-                throw new FileNotFoundException("El archivo XML exportado no existe.", rutaXml);
+                throw new FileNotFoundException(L.T("El archivo XML exportado no existe."), rutaXml);
 
             var filasOriginales = AnalizarBloque(rutaXml);
 
@@ -47,7 +47,7 @@ namespace HerramientasSICAR.Helpers
             ExportarExcel(filasCompletas, rutaExcel);
 
             if (!File.Exists(rutaExcel))
-                throw new IOException("No se pudo crear el archivo Excel.");
+                throw new IOException(L.T("No se pudo crear el archivo Excel."));
         }
 
         private List<Dictionary<string, string>> AnalizarBloque(string rutaXml)

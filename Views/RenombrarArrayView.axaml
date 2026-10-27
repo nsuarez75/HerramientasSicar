@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.RenombrarArrayView"
+             x:DataType="vm:RenombrarArrayViewModel">
+    <ScrollViewer>
+        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="760" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Spacing="16">
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                    <TextBlock Text="{l:T 'Bloque (FB o FC)'}" Classes="label" />
+                    <TextBox Grid.Column="1" Text="{Binding NombreBloque}" Watermark="{l:T 'Ej.: User_Transfer_Location_FB'}" />
+                    <TextBlock Grid.Row="1" Text="{l:T 'Array'}" Classes="label" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NombreArray}" Watermark="{l:T 'Ej.: AuxTrans'}" />
+                    <Button Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Classes="accent" Command="{Binding RenumerarCommand}" IsDefault="True">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="list-ordered" />
+                            <TextBlock Text="{l:T 'Renumerar'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+            <Border Classes="tip">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                    <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="660"
+                               Text="{l:T 'Si el array es de un DB global, basta con el nombre de la variable, sin el del DB. El bloque se exporta, se renumera y se importa encima del original. Al terminar, guarda el proyecto en TIA.'}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

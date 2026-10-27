@@ -1,11 +1,14 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Input;
+using Avalonia.Media;
 using HerramientasSICAR.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace HerramientasSICAR.Controls
 {
@@ -14,7 +17,7 @@ namespace HerramientasSICAR.Controls
     /// ending in a coil, with the power flow for the given signal state.
     /// Clicking a contact executes ToggleCommand with the signal name.
     /// </summary>
-    public class LadRungView : FrameworkElement
+    public class LadRungView : Control
     {
         private const double AnchoCelda = 128;
         private const double AltoCelda = 58;
@@ -22,66 +25,78 @@ namespace HerramientasSICAR.Controls
         private const double AnchoBobina = 170;
         private const double AnchoContacto = 18;
 
-        private static readonly Brush _energizado = Freeze(new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)));
-        private static readonly Brush _apagado = Freeze(new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0x9E)));
-        private static readonly Brush _cerrado = Freeze(new SolidColorBrush(Color.FromRgb(0xC8, 0xE6, 0xC9)));
-        private static readonly Brush _texto = Freeze(new SolidColorBrush(Color.FromRgb(0x21, 0x21, 0x21)));
-        private static readonly Brush _hover = Freeze(new SolidColorBrush(Color.FromArgb(0x22, 0x21, 0x96, 0xF3)));
-        private static readonly Brush _clave = Freeze(new SolidColorBrush(Color.FromRgb(0xE6, 0x51, 0x00)));
-        private static readonly Brush _claveFondo = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xE0, 0xB2)));
-        private static readonly Typeface _fuente = new Typeface("Segoe UI");
+        private static readonly IBrush Apagado = new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0x9E));
 
         private readonly List<(Rect Zona, string Variable)> _contactos = new List<(Rect, string)>();
         private string _variableHover;
 
-        public static readonly DependencyProperty ExpresionProperty = DependencyProperty.Register(
-            nameof(Expresion), typeof(ExpresionLogica), typeof(LadRungView),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
+        // Colores del tema (claro u oscuro), leídos en cada repintado.
+        private IBrush _texto, _energizado, _cerrado, _clave, _claveFondo, _hover, _superficie;
 
-        public static readonly DependencyProperty BobinaProperty = DependencyProperty.Register(
-            nameof(Bobina), typeof(string), typeof(LadRungView),
-            new FrameworkPropertyMetadata("", FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly StyledProperty<ExpresionLogica> ExpresionProperty =
+            AvaloniaProperty.Register<LadRungView, ExpresionLogica>(nameof(Expresion));
 
-        public static readonly DependencyProperty EstadoProperty = DependencyProperty.Register(
-            nameof(Estado), typeof(IDictionary<string, bool>), typeof(LadRungView),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly StyledProperty<string> BobinaProperty =
+            AvaloniaProperty.Register<LadRungView, string>(nameof(Bobina), "");
 
-        public static readonly DependencyProperty SenalesClaveProperty = DependencyProperty.Register(
-            nameof(SenalesClave), typeof(ISet<string>), typeof(LadRungView),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+        public static readonly StyledProperty<IDictionary<string, bool>> EstadoProperty =
+            AvaloniaProperty.Register<LadRungView, IDictionary<string, bool>>(nameof(Estado));
 
-        public static readonly DependencyProperty ToggleCommandProperty = DependencyProperty.Register(
-            nameof(ToggleCommand), typeof(ICommand), typeof(LadRungView));
+        public static readonly StyledProperty<ISet<string>> SenalesClaveProperty =
+            AvaloniaProperty.Register<LadRungView, ISet<string>>(nameof(SenalesClave));
+
+        public static readonly StyledProperty<ICommand> ToggleCommandProperty =
+            AvaloniaProperty.Register<LadRungView, ICommand>(nameof(ToggleCommand));
+
+        // Color del texto: se hereda del contenedor, así sigue al tema.
+        public static readonly StyledProperty<IBrush> ForegroundProperty = TextElement.ForegroundProperty.AddOwner<LadRungView>();
+
+        static LadRungView()
+        {
+            AffectsMeasure<LadRungView>(ExpresionProperty);
+            AffectsRender<LadRungView>(ExpresionProperty, BobinaProperty, EstadoProperty, SenalesClaveProperty, ForegroundProperty);
+        }
+
+        public LadRungView()
+        {
+            ActualThemeVariantChanged += (_, __) => InvalidateVisual();
+        }
 
         public ExpresionLogica Expresion
         {
-            get => (ExpresionLogica)GetValue(ExpresionProperty);
+            get => GetValue(ExpresionProperty);
             set => SetValue(ExpresionProperty, value);
         }
 
         public string Bobina
         {
-            get => (string)GetValue(BobinaProperty);
+            get => GetValue(BobinaProperty);
             set => SetValue(BobinaProperty, value);
         }
 
         public IDictionary<string, bool> Estado
         {
-            get => (IDictionary<string, bool>)GetValue(EstadoProperty);
+            get => GetValue(EstadoProperty);
             set => SetValue(EstadoProperty, value);
         }
 
         /// <summary>Signals highlighted as decisive; when set, the labels of the other contacts are dimmed.</summary>
         public ISet<string> SenalesClave
         {
-            get => (ISet<string>)GetValue(SenalesClaveProperty);
+            get => GetValue(SenalesClaveProperty);
             set => SetValue(SenalesClaveProperty, value);
         }
 
         public ICommand ToggleCommand
         {
-            get => (ICommand)GetValue(ToggleCommandProperty);
+            get => GetValue(ToggleCommandProperty);
             set => SetValue(ToggleCommandProperty, value);
+        }
+
+        public IBrush Foreground
+        {
+            get => GetValue(ForegroundProperty);
+            set => SetValue(ForegroundProperty, value);
         }
 
         #region Layout
@@ -106,8 +121,7 @@ namespace HerramientasSICAR.Controls
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            var e = Expresion ?? ExpresionLogica.True;
-            var (ancho, alto) = Medir(e);
+            var (ancho, alto) = Medir(Expresion ?? ExpresionLogica.True);
             return new Size(Margen * 2 + ancho * AnchoCelda + AnchoBobina, alto * AltoCelda + 6);
         }
 
@@ -115,9 +129,14 @@ namespace HerramientasSICAR.Controls
 
         #region Rendering
 
-        protected override void OnRender(DrawingContext dc)
+        public override void Render(DrawingContext dc)
         {
+            LeerColores();
             _contactos.Clear();
+
+            // Without a background the control is not hit-testable between the lines
+            dc.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+
             var e = Expresion ?? ExpresionLogica.True;
             var (ancho, alto) = Medir(e);
 
@@ -129,21 +148,36 @@ namespace HerramientasSICAR.Controls
             // Coil
             double y = YLinea(0);
             double x = Margen + ancho * AnchoCelda;
-            var pen = Lapiz(salida);
-            dc.DrawLine(pen, new Point(x, y), new Point(x + 24, y));
+            dc.DrawLine(Lapiz(salida), new Point(x, y), new Point(x + 24, y));
             var arco = new StreamGeometry();
             using (var ctx = arco.Open())
             {
-                ctx.BeginFigure(new Point(x + 30, y - 11), false, false);
-                ctx.ArcTo(new Point(x + 30, y + 11), new Size(14, 14), 0, false, SweepDirection.Counterclockwise, true, false);
-                ctx.BeginFigure(new Point(x + 42, y - 11), false, false);
-                ctx.ArcTo(new Point(x + 42, y + 11), new Size(14, 14), 0, false, SweepDirection.Clockwise, true, false);
+                ctx.BeginFigure(new Point(x + 30, y - 11), false);
+                ctx.ArcTo(new Point(x + 30, y + 11), new Size(14, 14), 0, false, SweepDirection.CounterClockwise);
+                ctx.EndFigure(false);
+                ctx.BeginFigure(new Point(x + 42, y - 11), false);
+                ctx.ArcTo(new Point(x + 42, y + 11), new Size(14, 14), 0, false, SweepDirection.Clockwise);
+                ctx.EndFigure(false);
             }
             if (salida)
                 dc.DrawEllipse(_cerrado, null, new Point(x + 36, y), 9, 9);
             dc.DrawGeometry(null, new Pen(salida ? _energizado : _texto, 2), arco);
-            DibujarTexto(dc, Bobina ?? "", x, y - 32, AnchoBobina - 8, TextAlignment.Left, salida ? FontWeights.Bold : FontWeights.Normal);
+            DibujarTexto(dc, Bobina ?? "", x, y - 32, AnchoBobina - 8, TextAlignment.Left, salida ? FontWeight.Bold : FontWeight.Normal);
         }
+
+        private void LeerColores()
+        {
+            _texto = Foreground ?? Brushes.Black;
+            _energizado = Recurso("App.Good", Brushes.Green);
+            _cerrado = Recurso("App.GoodSoft", Brushes.LightGreen);
+            _clave = Recurso("App.Warn", Brushes.DarkOrange);
+            _claveFondo = Recurso("App.WarnSoft", Brushes.Moccasin);
+            _hover = Recurso("App.AccentSoft", Brushes.LightBlue);
+            _superficie = Recurso("App.Surface", Brushes.White);
+        }
+
+        private IBrush Recurso(string clave, IBrush otro) =>
+            this.TryFindResource(clave, ActualThemeVariant, out object valor) && valor is IBrush brocha ? brocha : otro;
 
         private bool Dibujar(DrawingContext dc, ExpresionLogica e, int col, int fila, int anchoAsignado, bool entrada)
         {
@@ -229,9 +263,9 @@ namespace HerramientasSICAR.Controls
             bool hayClaves = SenalesClave != null && SenalesClave.Count > 0;
             bool esClave = hayClaves && SenalesClave.Contains(variable);
             if (esClave)
-                dc.DrawRoundedRectangle(_claveFondo, new Pen(_clave, 1.5), zona, 4, 4);
+                dc.DrawRectangle(_claveFondo, new Pen(_clave, 1.5), zona, 4, 4);
             if (variable == _variableHover)
-                dc.DrawRoundedRectangle(_hover, null, zona, 4, 4);
+                dc.DrawRectangle(_hover, null, zona, 4, 4);
 
             DibujarCable(dc, x0, xa, y, entrada);
             DibujarCable(dc, xb, x0 + AnchoCelda, y, salida);
@@ -245,36 +279,35 @@ namespace HerramientasSICAR.Controls
                 dc.DrawLine(barra, new Point(xa + 3, y + 9), new Point(xb - 3, y - 9));
 
             DibujarTexto(dc, NombreVisible(variable), x0 + 4, y - 40, AnchoCelda - 8, TextAlignment.Center,
-                         valor || esClave ? FontWeights.Bold : FontWeights.Normal,
-                         esClave ? _clave : hayClaves ? _apagado : null);
-            DibujarTexto(dc, valor ? "1" : "0", xb + 3, y + 2, 12, TextAlignment.Left, FontWeights.Normal, valor ? _energizado : _apagado);
+                         valor || esClave ? FontWeight.Bold : FontWeight.Normal,
+                         esClave ? _clave : hayClaves ? Apagado : null);
+            DibujarTexto(dc, valor ? "1" : "0", xb + 3, y + 2, 12, TextAlignment.Left, FontWeight.Normal, valor ? _energizado : Apagado);
         }
 
         private void DibujarCaja(DrawingContext dc, string texto, double xc, double y, bool salida)
         {
             var rect = new Rect(xc - AnchoContacto, y - 11, AnchoContacto * 2, 22);
-            dc.DrawRectangle(salida ? _cerrado : Brushes.White, new Pen(salida ? _energizado : _texto, 1.5), rect);
-            DibujarTexto(dc, texto, rect.X, y - 8, rect.Width, TextAlignment.Center, FontWeights.SemiBold);
+            dc.DrawRectangle(salida ? _cerrado : _superficie, new Pen(salida ? _energizado : _texto, 1.5), rect);
+            DibujarTexto(dc, texto, rect.X, y - 8, rect.Width, TextAlignment.Center, FontWeight.SemiBold);
         }
 
-        private static void DibujarCable(DrawingContext dc, double xDesde, double xHasta, double y, bool energizado)
+        private void DibujarCable(DrawingContext dc, double xDesde, double xHasta, double y, bool energizado)
         {
             if (xHasta > xDesde)
                 dc.DrawLine(Lapiz(energizado), new Point(xDesde, y), new Point(xHasta, y));
         }
 
         private void DibujarTexto(DrawingContext dc, string texto, double x, double y, double ancho, TextAlignment alineacion,
-                                  FontWeight peso, Brush color = null)
+                                  FontWeight peso, IBrush color = null)
         {
-            var ft = new FormattedText(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, _fuente, 10.5,
-                                       color ?? _texto, VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            var ft = new FormattedText(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                                       new Typeface(FontFamily.Default, FontStyle.Normal, peso), 10.5, color ?? _texto)
             {
                 MaxTextWidth = Math.Max(1, ancho),
                 MaxLineCount = 2,
                 Trimming = TextTrimming.CharacterEllipsis,
                 TextAlignment = alineacion
             };
-            ft.SetFontWeight(peso);
             dc.DrawText(ft, new Point(x, y));
         }
 
@@ -282,15 +315,9 @@ namespace HerramientasSICAR.Controls
 
         private static double YLinea(int fila) => fila * AltoCelda + AltoCelda - 16;
 
-        private static Pen Lapiz(bool energizado) => energizado ? new Pen(_energizado, 2.5) : new Pen(_apagado, 1.5);
+        private IPen Lapiz(bool energizado) => energizado ? new Pen(_energizado, 2.5) : new Pen(Apagado, 1.5);
 
         private IDictionary<string, bool> EstadoActual => Estado ?? new Dictionary<string, bool>();
-
-        private static Brush Freeze(SolidColorBrush b)
-        {
-            b.Freeze();
-            return b;
-        }
 
         #endregion
 
@@ -298,40 +325,38 @@ namespace HerramientasSICAR.Controls
 
         private string ContactoEn(Point p) => _contactos.FirstOrDefault(c => c.Zona.Contains(p)).Variable;
 
-        protected override void OnMouseMove(MouseEventArgs e)
+        protected override void OnPointerMoved(PointerEventArgs e)
         {
-            base.OnMouseMove(e);
+            base.OnPointerMoved(e);
             string variable = ContactoEn(e.GetPosition(this));
             if (variable == _variableHover)
                 return;
 
             _variableHover = variable;
-            Cursor = variable != null ? Cursors.Hand : null;
-            ToolTip = variable == null ? null
+            Cursor = variable != null ? new Cursor(StandardCursorType.Hand) : null;
+            ToolTip.SetTip(this, variable == null ? null
                 : variable + " = " + (EstadoActual.TryGetValue(variable, out bool v) && v ? "1" : "0")
-                  + (SenalesClave != null && SenalesClave.Contains(variable) ? "\nSeñal clave: cambiarla sola cambia la coincidencia" : "")
-                  + "\nClic para cambiar";
+                  + (SenalesClave != null && SenalesClave.Contains(variable) ? "\n" + L.T("Señal que diferencia los dos pasos") : "")
+                  + "\n" + L.T("Clic para cambiarla"));
             InvalidateVisual();
         }
 
-        protected override void OnMouseLeave(MouseEventArgs e)
+        protected override void OnPointerExited(PointerEventArgs e)
         {
-            base.OnMouseLeave(e);
+            base.OnPointerExited(e);
             _variableHover = null;
             InvalidateVisual();
         }
 
-        protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+        protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
-            base.OnMouseLeftButtonUp(e);
+            base.OnPointerReleased(e);
+            if (e.InitialPressMouseButton != MouseButton.Left)
+                return;
             string variable = ContactoEn(e.GetPosition(this));
             if (variable != null && ToggleCommand?.CanExecute(variable) == true)
                 ToggleCommand.Execute(variable);
         }
-
-        // Without a background the element is not hit-testable between the lines
-        protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters) =>
-            new PointHitTestResult(this, hitTestParameters.HitPoint);
 
         #endregion
     }

@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.ComentadorView"
+             x:DataType="vm:ComentadorViewModel">
+    <ScrollViewer>
+        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="760" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Spacing="16">
+            <Border Classes="card">
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                    <TextBlock Text="{l:T 'Lista de textos'}" Classes="label" />
+                    <TextBox Grid.Column="1" Text="{Binding RutaEntrada}" IsReadOnly="True" Watermark="{l:T 'Excel exportado de TIA (.xlsx)'}" />
+                    <Button Grid.Column="2" Command="{Binding ElegirEntradaCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="folder" />
+                            <TextBlock Text="{l:T 'Elegir…'}" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Grid.Row="1" Text="{l:T 'Archivo de salida'}" Classes="label" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NombreSalida}" Watermark="{l:T 'Ej.: TextList_comentada.xlsx'}" />
+
+                    <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding TraducirTextos}"
+                              Content="{l:T 'Traducir los títulos (inglés, alemán y castellano). Necesita conexión a internet.'}" />
+
+                    <Button Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" Classes="accent" Command="{Binding ProcesarCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="languages" />
+                            <TextBlock Text="{l:T 'Generar comentarios'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+            <ProgressBar Value="{Binding Progreso}" Maximum="100" IsVisible="{Binding HayProgreso}" Height="6" />
+            <Border Classes="tip">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                    <StackPanel Spacing="6" MaxWidth="660">
+                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
+                                   Text="{l:T '1. En TIA, exporta los textos del proyecto marcando solo «Block comment».'}" />
+                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
+                                   Text="{l:T '2. Elige ese Excel aquí y genera los comentarios. La salida se guarda en la misma carpeta.'}" />
+                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
+                                   Text="{l:T '3. Importa en TIA el archivo generado con «Import source language» marcado y sin ningún FB de secuencia abierto.'}" />
+                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
+                                   Text="{l:T 'La traducción usa servicios de terceros (Google Translate): su calidad depende de lo claro que sea el título de cada paso.'}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

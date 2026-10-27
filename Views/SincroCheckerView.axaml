@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:h="using:HerramientasSICAR.Helpers"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.SincroCheckerView"
+             x:DataType="vm:SincroCheckerViewModel">
+    <UserControl.Styles>
+        <!-- Señales que diferencian los dos pasos: en naranja, como en el LAD -->
+        <Style Selector="TextBlock.senal">
+            <Setter Property="Foreground" Value="{DynamicResource App.TextMuted}" />
+        </Style>
+        <Style Selector="TextBlock.senal.clave">
+            <Setter Property="Foreground" Value="{DynamicResource App.Warn}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="24,0,24,16">
+        <!-- ░░ Bloque a comprobar y opciones ░░ -->
+        <Border Classes="card">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Button Classes="accent" Command="{Binding AbrirXmlCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="folder" />
+                            <TextBlock Text="{l:T 'Abrir FB exportado…'}" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Grid.Column="1" Text="{Binding RutaXml}" Classes="label" TextTrimming="LeadingCharacterEllipsis"
+                               ToolTip.Tip="{Binding RutaXml}" />
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <TextBlock Text="{l:T 'o exporta del proyecto conectado:'}" Classes="label" />
+                    <TextBox Grid.Column="1" Text="{Binding NombreBloque}" Watermark="{l:T 'Nombre del FB de secuencia'}"
+                             IsEnabled="{Binding Contexto.Conectado}" />
+                    <Button Grid.Column="2" Command="{Binding ExportarDesdeTiaCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="download" />
+                            <TextBlock Text="{l:T 'Exportar y comprobar'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <WrapPanel>
+                    <CheckBox IsChecked="{Binding ExcluirHomeWork}" Margin="0,0,24,0"
+                              Content="{l:T 'Un actuador no puede estar en -H y -W a la vez'}" />
+                    <CheckBox IsChecked="{Binding ExcluirValoresDecodificados}"
+                              Content="{l:T 'Solo un valor activo por señal decodificada (ProcessCode=N, x == N)'}" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ░░ Resultado y primer paso manual ░░ -->
+        <StackPanel Grid.Row="1" Spacing="8" Margin="0,12,0,12">
+            <Border Classes="tip" Background="{DynamicResource App.WarnSoft}" IsVisible="{Binding PedirPrimerManual}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <c:Icon Kind="alert" Width="16" Height="16" Foreground="{DynamicResource App.Warn}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding AvisoPrimerManual}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="2" Width="80" Text="{Binding PrimerPasoManual, UpdateSourceTrigger=LostFocus}"
+                             Watermark="{l:T 'Ninguno'}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HayResumen}">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <c:Icon Kind="circle-x" Width="18" Height="18" Foreground="{DynamicResource App.Bad}" IsVisible="{Binding ResumenConConflictos}" />
+                    <c:Icon Kind="circle-check" Width="18" Height="18" Foreground="{DynamicResource App.Good}" IsVisible="{Binding !ResumenConConflictos}" />
+                    <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding MostrarPrimerManual}">
+                    <TextBlock Text="{l:T 'Primer paso manual:'}" Classes="label" />
+                    <TextBox Width="80" Text="{Binding PrimerPasoManual, UpdateSourceTrigger=LostFocus}" Watermark="{l:T 'Ninguno'}"
+                             ToolTip.Tip="{l:T 'Desde este paso en adelante todos se consideran manuales y no se comprueban'}" />
+                    <TextBlock Text="{Binding AvisoPrimerManual}" Classes="label" FontSize="11" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+        <!-- ░░ Coincidencias y detalle ░░ -->
+        <Grid Grid.Row="2" ColumnDefinitions="210,12,*" IsVisible="{Binding HayResumen}">
+            <Border Classes="card" Padding="4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{l:T 'COINCIDENCIAS'}" Classes="caption" Margin="10,8,8,4" />
+                    <ListBox Classes="cards" ItemsSource="{Binding Conflictos}" SelectedItem="{Binding ConflictoSeleccionado}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="h:ConflictoSincro">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <c:Icon Kind="git-compare" Width="15" Height="15" Foreground="{DynamicResource App.Bad}" />
+                                    <TextBlock Text="{Binding Descripcion}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="2" Classes="card" IsVisible="{Binding HayConflictoActivo}">
+                <Grid RowDefinitions="Auto,2*,Auto,*,Auto">
+                    <DockPanel Margin="4,0,0,8">
+                        <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding RestaurarEstadoCommand}"
+                                ToolTip.Tip="{l:T 'Volver al estado de ejemplo que provoca la coincidencia'}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:Icon Kind="rotate-ccw" />
+                                <TextBlock Text="{l:T 'Estado de ejemplo'}" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="{Binding ResultadoSincro}" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource App.AccentText}" />
+                    </DockPanel>
+
+                    <!-- LAD de PERM y de los dos pasos -->
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Secciones}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SeccionPaso">
+                                    <StackPanel Margin="0,0,0,14">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,0,0,2">
+                                            <c:Icon Kind="circle-check" Width="18" Height="18" Foreground="{DynamicResource App.Good}" IsVisible="{Binding Cumple}" />
+                                            <c:Icon Kind="circle-x" Width="18" Height="18" Foreground="{DynamicResource App.TextMuted}" IsVisible="{Binding !Cumple}" />
+                                            <TextBlock Text="{Binding Titulo}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Subtitulo}" Classes="label" VerticalAlignment="Center" Margin="2,0,0,0" />
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding Segmentos}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:SegmentoLad">
+                                                    <Border BorderBrush="{DynamicResource App.Border}" BorderThickness="0,0,0,1" Padding="0,4">
+                                                        <c:LadRungView HorizontalAlignment="Left"
+                                                                       Expresion="{Binding Expresion}"
+                                                                       Bobina="{Binding Bobina}"
+                                                                       Estado="{Binding $parent[UserControl].((vm:SincroCheckerViewModel)DataContext).EstadoSenales}"
+                                                                       SenalesClave="{Binding $parent[UserControl].((vm:SincroCheckerViewModel)DataContext).SenalesClave}"
+                                                                       ToggleCommand="{Binding $parent[UserControl].((vm:SincroCheckerViewModel)DataContext).ToggleSenalCommand}" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <GridSplitter Grid.Row="2" Height="6" ResizeDirection="Rows" Background="{DynamicResource App.Border}" Margin="0,4" />
+
+                    <!-- Por qué coinciden y en qué se diferencian -->
+                    <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="4" Margin="8,4,8,4">
+                            <TextBlock Text="{l:T 'DIFERENCIAS ENTRE LOS DOS PASOS (VÁLIDAS EN CUALQUIER ESTADO; EN NARANJA EN EL LAD)'}" Classes="caption" TextWrapping="Wrap" />
+                            <TextBlock Classes="muted" IsVisible="{Binding SinDiferencias}"
+                                       Text="{l:T 'Ningún paso exige siempre una señal que el otro no exija: la coincidencia depende de combinaciones de ramas.'}" />
+                            <ItemsControl ItemsSource="{Binding Diferencias}" Margin="0,0,0,10">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GrupoDiferencias">
+                                        <StackPanel Margin="0,2,0,4">
+                                            <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Senales}" TextWrapping="Wrap" Foreground="{DynamicResource App.Warn}" Margin="12,1,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{l:T 'POR QUÉ COINCIDEN EN ESTE ESTADO'}" Classes="caption" />
+                            <TextBlock Text="{Binding ResumenClave}" TextWrapping="Wrap" Foreground="{DynamicResource App.Warn}" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Expander Grid.Row="4" Margin="0,4,0,0" HorizontalAlignment="Stretch"
+                              Header="{l:T 'Señales implicadas (también se cambian con clic en el contacto)'}">
+                        <ScrollViewer MaxHeight="160">
+                            <ItemsControl ItemsSource="{Binding Senales}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SenalSincro">
+                                        <CheckBox IsChecked="{Binding Valor}" Width="250" Margin="4,2" ToolTip.Tip="{Binding Nombre}">
+                                            <TextBlock Text="{Binding Nombre}" TextTrimming="CharacterEllipsis" Classes="senal" Classes.clave="{Binding Clave}" />
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Expander>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

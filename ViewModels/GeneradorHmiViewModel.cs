@@ -2,7 +2,6 @@ using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
-using Microsoft.Win32;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -43,7 +41,7 @@ namespace HerramientasSICAR.ViewModels
         public List<SubgrupoConfig> Subgrupos { get; set; }
     }
 
-    public partial class GeneradorHmiViewModel : ObservableObject
+    public partial class GeneradorHmiViewModel : Herramienta
     {
         // Columna de Excel, y nombres de subgrupo para Installation/Equipment/Manual Operations,
         // para cada uno de los 8 bloques de pantallas que hay en cada hoja HMI (equivale al
@@ -120,93 +118,62 @@ namespace HerramientasSICAR.ViewModels
         };
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(GenerarCommand))]
         private string _rutaOrigen = "";
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(GenerarCommand))]
         private string _rutaDestino = "";
 
-        [ObservableProperty]
-        private string _estado = "Listo";
+        private IProgress<string> _progreso;
 
-        [ObservableProperty]
-        private bool _isProcessing = false;
-
-        public GeneradorHmiViewModel()
+        public GeneradorHmiViewModel(Contexto contexto) : base(contexto)
         {
         }
 
-        [RelayCommand]
-        private void BuscarOrigen()
+        public override string Nombre => L.T("Generador HMI");
+        public override string Descripcion => L.T("A partir del Excel de configuración de pantallas HMI (plantilla de GESTAMP), genera la configuración de menús del PLC y las listas de textos, y el código AWL que configura qué imágenes del HMI se ven.");
+        public override string Icono => "monitor";
+        public override bool UsaTia => false;
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task ElegirOrigen()
         {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "Archivos Excel (*.xlsx)|*.xlsx|Todos los archivos (*.*)|*.*",
-                Title = "Seleccionar archivo Excel origen"
-            };
-
-            if (ofd.ShowDialog() == true)
-            {
-                RutaOrigen = ofd.FileName;
-                if (string.IsNullOrEmpty(RutaDestino))
-                {
-                    string dir = Path.GetDirectoryName(RutaOrigen);
-                    string filename = Path.GetFileNameWithoutExtension(RutaOrigen);
-                    RutaDestino = Path.Combine(dir, $"{filename}_PLC.xlsx");
-                }
-            }
-        }
-
-        [RelayCommand]
-        private void BuscarDestino()
-        {
-            var sfd = new SaveFileDialog
-            {
-                Filter = "Archivos Excel (*.xlsx)|*.xlsx",
-                DefaultExt = ".xlsx",
-                Title = "Guardar nuevo archivo Excel como..."
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                RutaDestino = sfd.FileName;
-            }
-        }
-
-        [RelayCommand]
-        private async Task GenerarAsync()
-        {
-            if (string.IsNullOrWhiteSpace(RutaOrigen) || !File.Exists(RutaOrigen))
-            {
-                MessageBox.Show("Por favor, selecciona un archivo Excel de origen válido.",
-                    "Atención", MessageBoxButton.OK, MessageBoxImage.Warning);
+            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Excel de configuración de pantallas HMI"),
+                string.IsNullOrEmpty(RutaOrigen) ? null : Path.GetDirectoryName(RutaOrigen), TipoArchivo.Excel);
+            if (ruta == null)
                 return;
-            }
+            RutaOrigen = ruta;
+            if (string.IsNullOrEmpty(RutaDestino))
+                RutaDestino = Path.Combine(Path.GetDirectoryName(ruta), Path.GetFileNameWithoutExtension(ruta) + "_PLC.xlsx");
+        }
 
-            if (string.IsNullOrWhiteSpace(RutaDestino))
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task ElegirDestino()
+        {
+            string ruta = await Contexto.Dialogos.GuardarArchivo(L.T("Guardar el Excel generado como…"),
+                string.IsNullOrEmpty(RutaDestino) ? null : RutaDestino, TipoArchivo.Excel);
+            if (ruta != null)
+                RutaDestino = ruta;
+        }
+
+        [RelayCommand(CanExecute = nameof(PuedeGenerar))]
+        private async Task Generar()
+        {
+            string origen = RutaOrigen;
+            string destino = RutaDestino.Trim();
+            await Contexto.Trabajar(L.T("Cargando el Excel de origen…"), async () =>
             {
-                MessageBox.Show("Por favor, selecciona una ruta de destino para guardar el archivo Excel.",
-                    "Atención", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            SetProcessing(true);
-            SetEstado("Iniciando...");
-
-            await Task.Run(async () =>
-            {
-                try
+                _progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
+                // ClosedXML y las traducciones bloquean: fuera del hilo de la ventana.
+                await Task.Run(async () =>
                 {
-                    SetEstado("Cargando archivo en memoria...");
-
-                    using (var stream = new FileStream(RutaOrigen, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var stream = new FileStream(origen, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     using (var libroEntrada = new XLWorkbook(stream))
                     {
                         var datos = GenerarDatos(libroEntrada);
-
                         if (datos.Count == 0)
-                        {
-                            throw new Exception("No se encontraron pantallas válidas en ninguna hoja del archivo de origen.");
-                        }
+                            throw new InvalidOperationException(L.T("No se encontraron pantallas válidas en ninguna hoja del archivo de origen."));
 
                         using (var libroSalida = new XLWorkbook())
                         {
@@ -218,52 +185,25 @@ namespace HerramientasSICAR.ViewModels
                             var hojaTextos = libroEntrada.Worksheets.First();
                             await GenerarListasTextosAsync(hojaTextos, libroSalida);
 
-                            SetEstado("Guardando archivo...");
-                            libroSalida.SaveAs(RutaDestino);
+                            SetEstado(L.T("Guardando el archivo…"));
+                            libroSalida.SaveAs(destino);
                         }
                     }
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show($"¡Éxito! Archivo generado en:\n{RutaDestino}",
-                            "Generación Completada", MessageBoxButton.OK, MessageBoxImage.Information);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show($"Error durante el proceso:\n{ex.Message}",
-                            "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    });
-                }
-                finally
-                {
-                    SetEstado("Listo");
-                    SetProcessing(false);
-                }
+                });
+                Contexto.MostrarEstado(L.T("Excel generado: {0}", destino));
             });
         }
 
-        // Las propiedades ObservableProperty están enlazadas a controles WPF (DispatcherObject).
-        // GenerarAsync las actualiza desde el hilo de Task.Run, así que hay que reenviarlas
-        // siempre al hilo de UI o WPF lanza InvalidOperationException.
-        private void SetEstado(string texto)
-        {
-            var dispatcher = Application.Current?.Dispatcher;
-            if (dispatcher == null || dispatcher.CheckAccess())
-                Estado = texto;
-            else
-                dispatcher.Invoke(() => Estado = texto);
-        }
+        // Se llama desde el hilo de Task.Run: Progress devuelve el texto al hilo de la ventana.
+        private void SetEstado(string texto) => _progreso?.Report(texto);
 
-        private void SetProcessing(bool valor)
+        private bool PuedeGenerar() => Libre && File.Exists(RutaOrigen) && !string.IsNullOrWhiteSpace(RutaDestino);
+
+        protected override void ActualizarComandos()
         {
-            var dispatcher = Application.Current?.Dispatcher;
-            if (dispatcher == null || dispatcher.CheckAccess())
-                IsProcessing = valor;
-            else
-                dispatcher.Invoke(() => IsProcessing = valor);
+            ElegirOrigenCommand.NotifyCanExecuteChanged();
+            ElegirDestinoCommand.NotifyCanExecuteChanged();
+            GenerarCommand.NotifyCanExecuteChanged();
         }
 
         private List<HmiScreenData> GenerarDatos(XLWorkbook libro)
@@ -272,7 +212,7 @@ namespace HerramientasSICAR.ViewModels
 
             foreach (var hoja in libro.Worksheets)
             {
-                SetEstado($"Leyendo {hoja.Name}...");
+                SetEstado(L.T("Leyendo {0}…", hoja.Name));
 
                 for (int colIdx = 0; colIdx < ColumnasConfig.Length; colIdx++)
                 {
@@ -418,7 +358,7 @@ namespace HerramientasSICAR.ViewModels
 
         private void GenerarConfigPLC(XLWorkbook libroSalida, List<HmiScreenData> datos)
         {
-            SetEstado("Generando configuración PLC...");
+            SetEstado(L.T("Generando la configuración del PLC…"));
 
             // Agrupamos visibilidad por HMI/Grupo/Subgrupo, preservando el orden de aparición
             // (equivalente a "datos_agrupados" en Python).
@@ -564,7 +504,7 @@ namespace HerramientasSICAR.ViewModels
 
         private async Task GenerarListasTextosAsync(IXLWorksheet hojaDatos, XLWorkbook libroSalida)
         {
-            SetEstado("Generando listas de textos...");
+            SetEstado(L.T("Generando las listas de textos…"));
 
             void CrearHoja(string nombre, List<(int Valor, string Texto)> pares)
             {
@@ -728,7 +668,7 @@ namespace HerramientasSICAR.ViewModels
         // configurar y las celdas vacías se copian tal cual, sin pasar por el traductor.
         private async Task EscribirUserFunctionsTraducidoAsync(XLWorkbook libroSalida, List<(int Valor, string Texto)> datos)
         {
-            SetEstado("Traduciendo funciones de usuario...");
+            SetEstado(L.T("Traduciendo las funciones de usuario…"));
 
             bool EsPlaceholder(string texto) => texto.StartsWith("<<") && texto.EndsWith(">>");
             bool NecesitaTraduccion(string texto) => !string.IsNullOrWhiteSpace(texto) && !EsPlaceholder(texto);
