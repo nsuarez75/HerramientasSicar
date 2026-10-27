@@ -1,76 +1,96 @@
-## Propósito
+# Herramientas SICAR
 
-Conjunto de herramientas para automatizar algunas tareas en los proyectos de líneas de producción de GESTAMP basadas en el estándar SICAR@GST V4.
+Conjunto de herramientas para automatizar algunas tareas en los proyectos de líneas de producción de GESTAMP basadas en el estándar SICAR@GST V4. En inglés, la app se llama **SicarTools**.
 
 ## Requisitos
 
-- .net framework 4.8
-- Usuario dentro del grupo TIA Openness en windows
+- Windows con .NET Framework 4.8.
+- TIA Portal V19 instalado, con Openness. Las herramientas que trabajan con archivos (Comentador y Generador HMI) funcionan sin él.
+- El usuario de Windows tiene que estar en el grupo **Siemens TIA Openness**.
 
-## Comprobar antes de un commit
+## Uso
 
-`./checks.sh` compila en Release y termina en 0 solo si todo está bien. Necesita TIA Portal V19 instalado (usa `Siemens.Engineering.dll`).
+1. Abre el proyecto en TIA Portal V19.
+2. Abre la aplicación: busca sola los proyectos abiertos (botón ↻ de la barra superior para volver a buscar). Elige uno y pulsa **Conectar**. La primera vez TIA pregunta si deja entrar a la aplicación: hay que aceptarlo.
+3. Elige la herramienta en el lateral. Las del grupo **Con TIA** trabajan sobre el proyecto conectado; sin conexión muestran un aviso y sus botones están desactivados. Las del grupo **Con archivos** no necesitan TIA.
 
-## Funcionalidades
+La aplicación nunca abre, guarda ni cierra proyectos en TIA: después de una herramienta que cambia bloques, guarda el proyecto en TIA. Si cierras el proyecto en TIA, vuelve a conectar.
 
-Las funcionalidades que solicitan elegir ruta de proyecto, requieren tener TIA abierto con ese proyecto abierto. No más de esa instancia abierta simultaneamente.
+La barra inferior dice qué está pasando; si algo falla en varios bloques, se despliega la lista con el motivo. En la barra superior están también el idioma (castellano/inglés), el tema (sistema, claro u oscuro) y «Acerca de». Se recuerdan en `%AppData%\HerramientasSICAR\ajustes.json`, junto con la última carpeta usada. Al arrancar, la aplicación avisa si hay una versión nueva en GitHub.
 
-### DiagExpected
+## Herramientas
 
-Dado un FB de secuencia, genera un excel con el estado necesario en cada paso de actuadores y sensores.
-Es necesario revisar el contenido generado para evitar errores, ya que no funciona de manera perfecta, sirve para sacar una primera plantilla sobre la que trabajar.
+### Con TIA
 
-### Numerador
+#### Importar / Exportar
 
-Renumera de 1 a X los mensajes de todos los FB de mensajes del proyecto.
-Paso previo a realizar una generación de DiagAddon.
+Saca bloques del proyecto a archivos XML y los mete de vuelta (en el mismo proyecto o en otro). A la izquierda está el árbol con cada PLC, sus carpetas y sus bloques; el cuadro de arriba filtra por nombre.
 
-### Comentador
+- **Exportar**: marca las casillas de los bloques (marcar una carpeta marca todo lo que tiene dentro; con el filtro puesto, solo lo que se ve) y pulsa **Exportar marcados…**. Cada bloque se guarda como `<nombre>.xml` y las carpetas de TIA se recrean como subcarpetas. Si los bloques son de varios PLC, cada PLC va en su subcarpeta. Los bloques sin compilar se compilan antes de exportar; los protegidos (know-how) no se pueden exportar.
+- **Importar**: selecciona en el árbol el PLC o la carpeta destino y pulsa **Importar archivos…** (uno o varios XML, directos a esa carpeta) o **Importar carpeta…** (todos los XML de una carpeta; sus subcarpetas se crean como carpetas en TIA). Los bloques que ya existen con el mismo nombre se sobrescriben (se pide confirmación). Se importan en orden FC → FB → DB → DB de instancia → OB.
 
-Genera el comentario de los pasos de secuencia en español inglés y alemán de manera automática partiendo del titulo del segmento.
+#### DiagExpected
 
-#### Instrucciones
+Dado un FB de secuencia, genera un Excel con el estado necesario en cada paso de actuadores y sensores. El bloque se compila y se exporta a la carpeta del proyecto, y el Excel se guarda allí como `<bloque>_DIAG.xlsx`.
+Es necesario revisar el contenido generado, ya que no funciona de manera perfecta: sirve para sacar una primera plantilla sobre la que trabajar.
 
-- Exportar textos del proyecto (seleccionar unicamente "block comment").
-<img width="221" height="145" alt="image" src="https://github.com/user-attachments/assets/ede494a7-db1b-42a5-9757-3196a9f33fe9" />
+#### Numerador
 
-<img width="644" height="697" alt="image" src="https://github.com/user-attachments/assets/66866a69-a1a1-422d-aadb-7123a28c41c6" />
+Renumera de 1 a X los mensajes de los FB de mensajes del proyecto (`GeneralMessages_FB` y `OM1_Messages_FB` … `OM8_Messages_FB`). Es el paso previo a generar el DiagAddon. Se compila el proyecto y cada FB de mensajes se exporta, se renumera y se vuelve a importar en su misma carpeta; los que el proyecto no tiene se saltan.
 
+#### Renumerar Array
 
-- Seleccionar el archivo de origen, elegir nombre para el archivo de salida y hacer click en el botón de procesar.
-- Si se selecciona la opción de traducción automática se requiere conexión a internet. Tener en cuenta que la traducción usa APIs de terceros
-  como Google Translator, y su calidad se verá limitada a la calidad del titulo de ese paso de la secuencia.
-- Importar de vuelta los textos generados. Es importante no tener ningun FB de secuencia abierto durante la importación. Seleccionar el check "Import source language".
-<img width="502" height="165" alt="image" src="https://github.com/user-attachments/assets/de829597-2f9f-44e3-904e-2bde345b5b46" />
+No es específica del estándar SICAR@GST. Coge una variable Array, del tipo que sea, en un FB/FC dado y renumera todas sus apariciones de menor a mayor.
+Útil cuando tienes un array de flancos, por ejemplo, y necesitas intercalar un segmento nuevo sin calcular el último usado ni reordenarlos todos.
+Si la variable pertenece a un DB global, no hace falta indicar el nombre del DB, solo el de la variable.
 
-### Renumerar Array
+#### Sincro Checker
 
-Esta funcionalidad no es especifica para el estándar SICAR@GST.
-Lo que hace es coger una variable Array del tipo que sea en un FB/FC dado y renumerar todas sus apariciones de menor a mayor.
-Útil cuando tienes un array de flancos por ejemplo y necesitas intercalar un nuevo segmento sin tener que calcular el último usado o reordenar todos para tener orden.
-Si la variable pertenece a un DB Global, no es necesario indicar el nombre anidado con el DB, solamente el nombre de la variable.
-
-### Generador HMI
-
-Partiendo de una plantilla estándar suministrada por GESTAMP, se rellena la configuración de menús de cada HMI del proyecto con el nombre de cada menú/submenú
-y se genera una excel con todas las listas de textos completadas para copiar en el proyecto, así como el codigo AWL de configuración de visibilidad de las imagenes del HMI.
-
-
-
-
-
-### Sincro Checker
-
-Al pasar de manual a automático, el motor de secuencia SICAR busca el paso cuyos ilocks se cumplen y salta a él; si se cumplen en varios pasos a la vez da error de sincronización.
+Al pasar de manual a automático, el motor de secuencia SICAR busca el paso cuyos ilocks se cumplen y salta a él; si se cumplen en varios pasos a la vez, da error de sincronización.
 Sincro Checker detecta esa situación al programar: abre un FB de secuencia (LAD) y comprueba, para cada par de pasos, si existe algún estado de señales que cumpla los ilocks de ambos.
 
+- Se puede abrir un XML ya exportado (no necesita conexión) o exportar el bloque desde el proyecto conectado.
 - Se comprueban todos los pasos automáticos `S###`, cualquier combinación de dos (si tres pasos pudieran coincidir, también lo haría cada par).
-- Condición de cada paso: `ilockAuto` y `ilockExtSync` del paso, junto con los de PERM (que se ejecuta en cada ciclo con el paso activo). Un ilock que la network no escribe vale 1.
+- Condición de cada paso: `ilockAuto` e `ilockExtSync` del paso, junto con los de PERM (que se ejecuta en cada ciclo con el paso activo). Un ilock que la network no escribe vale 1.
 - Los pasos manuales se omiten: desde el primer paso manual en adelante todos se consideran manuales. Se detecta como el primer paso que solo escribe `ilockManual`/`limitManual`; si no se detecta, la herramienta pide indicarlo (vacío = no hay pasos manuales).
 - Reglas físicas opcionales: un actuador no puede estar en `-H` y `-W` a la vez, y solo un valor puede estar activo en señales decodificadas (`ProcessCode=N`, comparaciones `x == N`).
 - Cada coincidencia se muestra en una vista LAD interactiva con PERM y los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
 - Para cada coincidencia muestra las diferencias entre los dos pasos: señales que un paso exige siempre y el otro no comprueba (o admite con el valor contrario). Son hechos sobre los ilocks, no propuestas: qué señal usar para separarlos depende del proceso. Esas señales se resaltan en el LAD.
-- Se puede abrir un XML ya exportado o exportar el bloque desde el proyecto TIA abierto.
+
+### Con archivos
+
+#### Comentador
+
+Genera el comentario de los pasos de secuencia en castellano, inglés y alemán de manera automática, partiendo del título del segmento.
+
+- Exportar los textos del proyecto (seleccionar únicamente "block comment").
+<img width="221" height="145" alt="image" src="https://github.com/user-attachments/assets/ede494a7-db1b-42a5-9757-3196a9f33fe9" />
+
+<img width="644" height="697" alt="image" src="https://github.com/user-attachments/assets/66866a69-a1a1-422d-aadb-7123a28c41c6" />
+
+- Elegir el archivo de origen, poner nombre al archivo de salida y pulsar **Generar comentarios**.
+- Si se marca la traducción automática se necesita conexión a internet. La traducción usa servicios de terceros (Google Translate), y su calidad depende de la del título de cada paso de la secuencia.
+- Importar de vuelta los textos generados. Es importante no tener ningún FB de secuencia abierto durante la importación. Marcar "Import source language".
+<img width="502" height="165" alt="image" src="https://github.com/user-attachments/assets/de829597-2f9f-44e3-904e-2bde345b5b46" />
+
+#### Generador HMI
+
+Partiendo de una plantilla estándar suministrada por GESTAMP, rellena la configuración de menús de cada HMI del proyecto con el nombre de cada menú/submenú y genera un Excel con todas las listas de textos completadas para copiar en el proyecto, así como el código AWL de configuración de visibilidad de las imágenes del HMI.
+
+## Compilar
+
+Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR.sln -c Release`. El resultado es un único `HerramientasSICAR.exe` de 64 bits (las librerías, también las nativas de dibujo, van dentro con Costura, que las extrae a una carpeta temporal al arrancar). `Siemens.Engineering.dll` no se incluye: al arrancar se carga la de la instalación de TIA Portal V19 (ruta del registro de Openness o, si no está, la estándar). Ver `Program.cs`.
+
+## Comprobar antes de un commit
+
+`./checks.sh` compila en Release con los avisos como errores y pasa los tests (`HerramientasSICAR.Tests`, solo la lógica que no necesita TIA, y que todos los textos tengan traducción al inglés). Termina en 0 solo si todo está bien. Necesita TIA Portal V19 instalado para compilar.
+
+## Estructura
+
+- `Services/TiaOpennessService.cs`: todo lo que habla con TIA (proyectos abiertos, conexión, árbol de bloques, exportar e importar, y las operaciones de cada herramienta en `ProyectoTia`). Va siempre por `HiloOpenness`, un único hilo para las llamadas a Openness.
+- `Helpers/`: la lógica de cada herramienta (análisis LAD de Sincro Checker, Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque y comprobación de versión.
+- `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide); `Controls/LadRungView.cs`, el dibujo LAD de Sincro Checker.
+- `L.cs` y `Textos.en.cs`: los textos se escriben en castellano y se traducen al inglés con `L.T`. Al añadir un texto, añadir su traducción (el test lo comprueba).
 
 ## Licencia
 

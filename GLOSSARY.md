@@ -58,3 +58,8 @@ _Evitar_: conflicto, solape
 
 **Plantilla HMI**:
 Proyecto HMI estándar que suministra GESTAMP y que el Generador HMI rellena con los menús de cada estación.
+
+**Proyecto conectado**:
+Proyecto abierto en TIA Portal que se ha elegido en la barra superior. Las herramientas del grupo «Con TIA» trabajan
+sobre él; la app nunca lo abre, guarda ni cierra.
+_Evitar_: proyecto seleccionado, ruta del proyecto
