@@ -67,12 +67,6 @@ namespace HerramientasSICAR.Helpers
         /// <summary>Evaluates with the given signal state; missing signals count as 0.</summary>
         public abstract bool Evaluar(IDictionary<string, bool> estado);
 
-        public bool EsConstante(out bool valor)
-        {
-            valor = this is Constante c && c.Valor;
-            return this is Constante;
-        }
-
         /// <summary>
         /// Searches an assignment that makes the expression true (DPLL over the tree).
         /// Returns null when the expression can never be true.

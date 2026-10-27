@@ -87,6 +87,8 @@ Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR
 
 ## Estructura
 
+El código de la app está en `src/HerramientasSICAR/` y los tests en `tests/HerramientasSICAR.Tests/`. Dentro de `src/HerramientasSICAR/`:
+
 - `Services/TiaOpennessService.cs`: todo lo que habla con TIA (proyectos abiertos, conexión, árbol de bloques, exportar e importar, y las operaciones de cada herramienta en `ProyectoTia`). Va siempre por `HiloOpenness`, un único hilo para las llamadas a Openness.
 - `Helpers/`: la lógica de cada herramienta (análisis LAD de Sincro Checker, Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque y comprobación de versión.
 - `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide); `Controls/LadRungView.cs`, el dibujo LAD de Sincro Checker.

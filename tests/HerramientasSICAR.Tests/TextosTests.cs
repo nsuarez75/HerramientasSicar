@@ -55,17 +55,20 @@ namespace HerramientasSICAR.Tests
             }
         }
 
-        // Fuentes de la app, sin las carpetas de compilación ni las de los tests.
+        // Fuentes de la app, sin las carpetas de compilación.
         private static IEnumerable<string> Fuentes(string raiz, string patron) =>
             Directory.GetFiles(raiz, patron, SearchOption.AllDirectories)
-                .Where(a => !a.Split(Path.DirectorySeparatorChar).Any(c => c == "bin" || c == "obj" || c == "HerramientasSICAR.Tests"));
+                .Where(a => !a.Split(Path.DirectorySeparatorChar).Any(c => c == "bin" || c == "obj"));
 
+        // Carpeta src/HerramientasSICAR, buscando la raíz del repo (la del .sln) hacia arriba desde los tests.
         private static string RaizDelProyecto()
         {
             var carpeta = new DirectoryInfo(AppContext.BaseDirectory);
-            while (carpeta != null && !File.Exists(Path.Combine(carpeta.FullName, "HerramientasSICAR.csproj")))
+            while (carpeta != null && !File.Exists(Path.Combine(carpeta.FullName, "HerramientasSICAR.sln")))
                 carpeta = carpeta.Parent;
-            return carpeta?.FullName ?? throw new InvalidOperationException("No se encuentra HerramientasSICAR.csproj");
+            if (carpeta == null)
+                throw new InvalidOperationException("No se encuentra HerramientasSICAR.sln");
+            return Path.Combine(carpeta.FullName, "src", "HerramientasSICAR");
         }
     }
 }

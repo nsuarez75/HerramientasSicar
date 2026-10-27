@@ -8,10 +8,10 @@
 
   <ItemGroup>
     <!-- Solo la lógica sin TIA ni ventanas: así los tests no necesitan Openness ni Avalonia -->
-    <Compile Include="..\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
-    <Compile Include="..\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
-    <Compile Include="..\L.cs" Link="L.cs" />
-    <Compile Include="..\Textos.en.cs" Link="Textos.en.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

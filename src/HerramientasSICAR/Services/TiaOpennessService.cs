@@ -243,8 +243,6 @@ namespace HerramientasSICAR.Services
         /// <summary>Grupo donde está el bloque, o null si no existe.</summary>
         public PlcBlockGroup GrupoDe(string nombreBloque) => BuscarBloque(nombreBloque)?.Parent as PlcBlockGroup;
 
-        public void EliminarBloque(string nombreBloque) => BuscarBloque(nombreBloque)?.Delete();
-
         /// <summary>Importa el XML en el grupo; si ya hay un bloque con ese nombre, se sobrescribe.</summary>
         public void ImportarBloque(string rutaXml, PlcBlockGroup grupo)
         {
