@@ -1,4 +1,4 @@
-using OfficeOpenXml;
+using ClosedXML.Excel;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -169,9 +169,9 @@ namespace HerramientasSICAR.Helpers
 
         private void ExportarExcel(List<Dictionary<string, string>> filas, string ruta)
         {
-            using (ExcelPackage pck = new ExcelPackage())
+            using (var libro = new XLWorkbook())
             {
-                var ws = pck.Workbook.Worksheets.Add("DATA");
+                var ws = libro.Worksheets.Add("DATA");
 
                 List<string> columnas = new List<string>();
                 foreach (var d in filas)
@@ -182,19 +182,23 @@ namespace HerramientasSICAR.Helpers
                 }
 
                 for (int c = 0; c < columnas.Count; c++)
-                    ws.Cells[1, c + 1].Value = columnas[c];
+                    ws.Cell(1, c + 1).Value = columnas[c];
 
                 for (int f = 0; f < filas.Count; f++)
                 {
                     foreach (var kv in filas[f])
                     {
+                        // Una celda sin valor se deja vacía, como hacía EPPlus
+                        if (kv.Value == null)
+                            continue;
+
                         int colIndex = columnas.IndexOf(kv.Key) + 1;
-                        ws.Cells[f + 2, colIndex].Value = kv.Value;
+                        ws.Cell(f + 2, colIndex).Value = kv.Value;
                     }
                 }
 
-                ws.Cells.AutoFitColumns();
-                pck.SaveAs(new FileInfo(ruta));
+                ws.Columns().AdjustToContents();
+                libro.SaveAs(ruta);
             }
         }
     }
