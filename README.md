@@ -71,3 +71,10 @@ Sincro Checker detecta esa situación al programar: abre un FB de secuencia (LAD
 - Cada coincidencia se muestra en una vista LAD interactiva con PERM y los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
 - Para cada coincidencia muestra las diferencias entre los dos pasos: señales que un paso exige siempre y el otro no comprueba (o admite con el valor contrario). Son hechos sobre los ilocks, no propuestas: qué señal usar para separarlos depende del proceso. Esas señales se resaltan en el LAD.
 - Se puede abrir un XML ya exportado o exportar el bloque desde el proyecto TIA abierto.
+
+## Licencia
+
+El código se publica con licencia [MIT](LICENSE) © 2026 Ignacio Suarez. Las librerías de terceros que van dentro del
+ejecutable tienen sus propias licencias: ver [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+La licencia no cubre el logotipo de Alomatek ni las marcas de terceros (Siemens, TIA Portal, Openness…), que pertenecen a sus dueños.
