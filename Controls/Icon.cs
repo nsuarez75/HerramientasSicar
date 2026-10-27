@@ -102,8 +102,6 @@ public sealed class Icon : Control
         set => SetValue(StrokeWidthProperty, value);
     }
 
-    public static bool IsKnown(string kind) => Paths.ContainsKey(kind);
-
     public override void Render(DrawingContext context)
     {
         if (Kind is not { } kind || !Paths.TryGetValue(kind, out var data))
