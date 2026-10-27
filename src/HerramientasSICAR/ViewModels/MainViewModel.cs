@@ -197,12 +197,12 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"), async () =>
             {
                 Contexto.ProyectoConectado = null;
-                _importarExportar.MostrarPlcs(Enumerable.Empty<Services.PlcInfo>());
-                var plcs = await Contexto.Tia().ConectarAsync(ruta);
-                _importarExportar.MostrarPlcs(plcs);
+                _importarExportar.MostrarArbol(new Services.ArbolProyecto());
+                var arbol = await Contexto.Tia().ConectarAsync(ruta);
+                _importarExportar.MostrarArbol(arbol);
                 Contexto.ProyectoConectado = ruta;
-                Contexto.MostrarEstado(plcs.Count == 0
-                    ? L.T("Conectado, pero el proyecto no tiene ningún PLC.")
+                Contexto.MostrarEstado(arbol.Plcs.Count == 0 && arbol.Hmis.Count == 0
+                    ? L.T("Conectado, pero el proyecto no tiene ningún PLC ni HMI.")
                     : L.T("Conectado con {0}.", Contexto.NombreProyecto));
             });
         }

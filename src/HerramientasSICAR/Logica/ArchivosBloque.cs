@@ -114,6 +114,16 @@ namespace HerramientasSICAR.Logica
                 .Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
         }
 
+        /// <summary>
+        /// Si la ruta del archivo pasa del límite de Windows (y de TIA): 259 caracteres el archivo, 247 su carpeta.
+        /// Las carpetas de una HMI suelen ser profundas y con nombres largos.
+        /// </summary>
+        public static bool RutaDemasiadoLarga(string rutaArchivo)
+        {
+            int barra = rutaArchivo.LastIndexOfAny(new[] { '\\', '/' });
+            return rutaArchivo.Length >= 260 || barra >= 248;
+        }
+
         /// <summary>Cambia por '_' los caracteres que Windows no admite en nombres de archivo o carpeta.</summary>
         public static string NombreSeguro(string nombre)
         {

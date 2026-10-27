@@ -6,11 +6,11 @@
              x:Class="HerramientasSICAR.Views.ImportarExportarView"
              x:DataType="vm:ImportarExportarViewModel">
     <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
-        <!-- ░░ Bloques del proyecto (casilla = exportar, selección = destino de la importación) ░░ -->
+        <!-- ░░ PLC y HMI del proyecto (casilla = exportar, selección = destino de la importación) ░░ -->
         <Border Classes="card" Padding="6,12,6,6">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="10,0,4,8">
-                    <TextBlock Text="{l:T 'BLOQUES'}" Classes="caption" VerticalAlignment="Center" />
+                    <TextBlock Text="{l:T 'PROYECTO'}" Classes="caption" VerticalAlignment="Center" />
                     <Border Grid.Column="1" Classes="pill" Classes.accent="{Binding HayMarcados}" IsVisible="{Binding Contexto.Conectado}">
                         <TextBlock Text="{Binding TextoMarcados}" />
                     </Border>
@@ -22,8 +22,8 @@
                     </TextBox.InnerLeftContent>
                 </TextBox>
                 <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="10,4" FontSize="12" IsVisible="{Binding Contexto.SinConectar}"
-                           Text="{l:T 'Conecta con un proyecto para ver sus PLC, carpetas y bloques.'}" />
-                <TreeView ItemsSource="{Binding Plcs}" SelectedItem="{Binding NodoSeleccionado}">
+                           Text="{l:T 'Conecta con un proyecto para ver sus PLC y HMI con todo lo que tienen dentro.'}" />
+                <TreeView ItemsSource="{Binding Dispositivos}" SelectedItem="{Binding NodoSeleccionado}">
                     <TreeView.ItemTemplate>
                         <TreeDataTemplate DataType="vm:NodoArbol" ItemsSource="{Binding Hijos}">
                             <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
@@ -56,7 +56,7 @@
                             <TextBlock Text="{l:T 'Exportar'}" Classes="h2" />
                         </StackPanel>
                         <TextBlock Grid.Row="1" Classes="muted"
-                                   Text="{l:T 'Marca en el árbol los bloques (marcar una carpeta marca todo lo que tiene dentro). Cada bloque se guarda como XML y las carpetas de TIA se crean como subcarpetas.'}" />
+                                   Text="{l:T 'Marca en el árbol los bloques y elementos de HMI (marcar una carpeta marca todo lo que tiene dentro). Cada uno se guarda como XML y las carpetas de TIA se crean como subcarpetas.'}" />
                         <Button Grid.Column="1" Grid.RowSpan="2" Classes="accent" VerticalAlignment="Center" Command="{Binding ExportarCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <c:Icon Kind="download" />
@@ -73,7 +73,7 @@
                             <TextBlock Text="{l:T 'Importar'}" Classes="h2" />
                         </StackPanel>
                         <TextBlock Classes="muted"
-                                   Text="{l:T 'Selecciona en el árbol el PLC o la carpeta destino. Los bloques que ya existan con el mismo nombre se sobrescriben.'}" />
+                                   Text="{l:T 'Selecciona en el árbol el PLC o la carpeta destino. En una HMI, cada archivo va a su rama; si seleccionas una carpeta de una rama, lo de esa rama entra en ella. Lo que ya exista con el mismo nombre se sobrescribe.'}" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{l:T 'Destino'}" Classes="label" />
                             <Border Classes="pill" Classes.accent="{Binding HayDestino}">
@@ -81,7 +81,7 @@
                             </Border>
                         </StackPanel>
                         <WrapPanel Orientation="Horizontal">
-                            <Button Command="{Binding ImportarArchivosCommand}" Margin="0,0,8,0" ToolTip.Tip="{l:T 'Uno o varios XML, directos a la carpeta destino'}">
+                            <Button Command="{Binding ImportarArchivosCommand}" Margin="0,0,8,0" ToolTip.Tip="{l:T 'Uno o varios XML, directos al destino'}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <c:Icon Kind="file-plus" />
                                     <TextBlock Text="{l:T 'Importar archivos…'}" />
@@ -101,7 +101,7 @@
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
                         <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="560"
-                                   Text="{l:T 'La aplicación nunca abre, guarda ni cierra el proyecto. Después de importar, guárdalo en TIA. Los bloques sin compilar se compilan antes de exportar; los protegidos con contraseña no se pueden exportar.'}" />
+                                   Text="{l:T 'La aplicación nunca abre, guarda ni cierra el proyecto. Después de importar, guárdalo en TIA. Los bloques sin compilar se compilan antes de exportar; los protegidos con contraseña no se pueden exportar. De las HMI se ven las WinCC clásicas (Basic, Comfort, Advanced); los avisos, las recetas y los usuarios no se pueden exportar.'}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

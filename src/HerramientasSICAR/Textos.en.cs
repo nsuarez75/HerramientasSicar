@@ -33,7 +33,7 @@ namespace HerramientasSICAR
             ["No hay ningún proyecto abierto en TIA Portal V19."] = "There is no project open in TIA Portal V19.",
             ["{0} proyecto(s) abierto(s) en TIA. Elige uno y pulsa Conectar."] = "{0} project(s) open in TIA. Pick one and press Connect.",
             ["Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"] = "Connecting… (if TIA asks for permission for this application, accept it)",
-            ["Conectado, pero el proyecto no tiene ningún PLC."] = "Connected, but the project has no PLC.",
+            ["Conectado, pero el proyecto no tiene ningún PLC ni HMI."] = "Connected, but the project has no PLC or HMI.",
             ["Conectado con {0}."] = "Connected to {0}.",
             ["No se encuentra TIA Portal V19 con Openness en este equipo."] = "TIA Portal V19 with Openness was not found on this computer.",
             ["No se encuentra TIA Portal V19 con Openness en este equipo. Las herramientas con archivos sí funcionan."] =
@@ -64,43 +64,68 @@ namespace HerramientasSICAR
 
             // ---- Importar / Exportar
             ["Importar / Exportar"] = "Import / Export",
-            ["Exporta bloques del proyecto a XML e importa XML en una carpeta del proyecto."] = "Exports project blocks to XML and imports XML files into a project folder.",
-            ["BLOQUES"] = "BLOCKS",
+            ["Exporta bloques y elementos de HMI del proyecto a XML e importa XML en el proyecto."] = "Exports project blocks and HMI items to XML and imports XML files into the project.",
+            ["PROYECTO"] = "PROJECT",
             ["Filtrar por nombre"] = "Filter by name",
-            ["Conecta con un proyecto para ver sus PLC, carpetas y bloques."] = "Connect to a project to see its PLCs, folders and blocks.",
-            ["Ningún bloque marcado"] = "No blocks checked",
-            ["{0} bloque(s) marcado(s)"] = "{0} block(s) checked",
+            ["Conecta con un proyecto para ver sus PLC y HMI con todo lo que tienen dentro."] = "Connect to a project to see its PLCs and HMIs with everything inside them.",
+            ["Ningún elemento marcado"] = "No items checked",
+            ["{0} elemento(s) marcado(s)"] = "{0} item(s) checked",
             ["protegido"] = "protected",
             ["Exportar"] = "Export",
-            ["Marca en el árbol los bloques (marcar una carpeta marca todo lo que tiene dentro). Cada bloque se guarda como XML y las carpetas de TIA se crean como subcarpetas."] =
-                "Check the blocks in the tree (checking a folder checks everything inside it). Each block is saved as XML and the TIA folders become subfolders.",
+            ["Marca en el árbol los bloques y elementos de HMI (marcar una carpeta marca todo lo que tiene dentro). Cada uno se guarda como XML y las carpetas de TIA se crean como subcarpetas."] =
+                "Check the blocks and HMI items in the tree (checking a folder checks everything inside it). Each one is saved as XML and the TIA folders become subfolders.",
             ["Exportar marcados…"] = "Export checked…",
             ["Importar"] = "Import",
-            ["Selecciona en el árbol el PLC o la carpeta destino. Los bloques que ya existan con el mismo nombre se sobrescriben."] =
-                "Select the target PLC or folder in the tree. Existing blocks with the same name are overwritten.",
+            ["Selecciona en el árbol el PLC o la carpeta destino. En una HMI, cada archivo va a su rama; si seleccionas una carpeta de una rama, lo de esa rama entra en ella. Lo que ya exista con el mismo nombre se sobrescribe."] =
+                "Select the target PLC or folder in the tree. In an HMI, each file goes to its branch; if you select a folder of a branch, items of that branch go into it. Anything that already exists with the same name is overwritten.",
             ["Destino"] = "Target",
             ["Selecciona en el árbol dónde importar"] = "Select in the tree where to import",
             ["Importar archivos…"] = "Import files…",
-            ["Uno o varios XML, directos a la carpeta destino"] = "One or more XML files, straight into the target folder",
+            ["Uno o varios XML, directos al destino"] = "One or more XML files, straight into the target",
             ["Importar carpeta…"] = "Import folder…",
             ["Todos los XML de una carpeta; sus subcarpetas se crean como carpetas en TIA"] = "Every XML in a folder; its subfolders become folders in TIA",
-            ["La aplicación nunca abre, guarda ni cierra el proyecto. Después de importar, guárdalo en TIA. Los bloques sin compilar se compilan antes de exportar; los protegidos con contraseña no se pueden exportar."] =
-                "The application never opens, saves or closes the project. After importing, save it in TIA. Uncompiled blocks are compiled before export; password-protected blocks cannot be exported.",
+            ["La aplicación nunca abre, guarda ni cierra el proyecto. Después de importar, guárdalo en TIA. Los bloques sin compilar se compilan antes de exportar; los protegidos con contraseña no se pueden exportar. De las HMI se ven las WinCC clásicas (Basic, Comfort, Advanced); los avisos, las recetas y los usuarios no se pueden exportar."] =
+                "The application never opens, saves or closes the project. After importing, save it in TIA. Uncompiled blocks are compiled before export; password-protected blocks cannot be exported. Only classic WinCC HMIs (Basic, Comfort, Advanced) are shown; alarms, recipes and users cannot be exported.",
             ["Exportando…"] = "Exporting…",
             ["Importando…"] = "Importing…",
             ["Exportando {0}/{1}: {2}"] = "Exporting {0}/{1}: {2}",
             ["Importando {0}/{1}: {2}"] = "Importing {0}/{1}: {2}",
-            ["{0} bloque(s) exportado(s) a {1}."] = "{0} block(s) exported to {1}.",
+            ["{0} elemento(s) exportado(s) a {1}."] = "{0} item(s) exported to {1}.",
             ["{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos."] = "{0} block(s) imported. Save the project in TIA to keep them.",
             ["{0} con error (ver abajo)."] = "{0} with errors (see below).",
             ["No hay bloques que importar."] = "There are no blocks to import.",
             ["{0}: no es un bloque exportado de TIA, no se importa"] = "{0}: not a block exported from TIA, not imported",
-            ["Carpeta donde guardar los bloques exportados"] = "Folder to save the exported blocks",
-            ["Bloques a importar"] = "Blocks to import",
-            ["Carpeta con los bloques a importar (las subcarpetas se crean como carpetas)"] = "Folder with the blocks to import (subfolders become folders)",
+            ["Carpeta donde guardar lo exportado"] = "Folder to save the export",
+            ["Archivos a importar"] = "Files to import",
+            ["Carpeta con lo que se va a importar (las subcarpetas se crean como carpetas)"] = "Folder with what will be imported (subfolders become folders)",
             ["Importar bloques"] = "Import blocks",
             ["Se van a importar {0} bloque(s) en {1}.\n\nLos bloques que ya existan con el mismo nombre se sobrescriben."] =
                 "{0} block(s) will be imported into {1}.\n\nExisting blocks with the same name are overwritten.",
+            ["{0}: no es un elemento de HMI exportado de TIA, no se importa"] = "{0}: not an HMI item exported from TIA, not imported",
+            ["No hay elementos de HMI que importar."] = "There are no HMI items to import.",
+            ["Importar en la HMI"] = "Import into the HMI",
+            ["Se van a importar {0} elemento(s) en la HMI {1}, cada uno en su rama.\n\nLo que ya exista con el mismo nombre se sobrescribe."] =
+                "{0} item(s) will be imported into HMI {1}, each into its branch.\n\nAnything that already exists with the same name is overwritten.",
+            ["{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos."] = "{0} item(s) imported. Save the project in TIA to keep them.",
+            ["no se encuentra la HMI '{0}'"] = "HMI '{0}' not found",
+            ["es la tabla de variables estándar de la HMI; no se sobrescribe"] = "it is the HMI's default tag table; it is not overwritten",
+            ["TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer."] =
+                "TIA Portal has closed or no longer has the project open: stopping here with {0} left to do.",
+            ["la ruta es demasiado larga para Windows ({0} caracteres); exporta a una carpeta con una ruta más corta"] =
+                "the path is too long for Windows ({0} characters); export to a folder with a shorter path",
+            ["esta HMI no admite ese tipo de elemento"] = "this HMI does not support that kind of item",
+            ["Pantallas"] = "Screens",
+            ["Plantillas"] = "Templates",
+            ["Pop-ups"] = "Pop-ups",
+            ["Slide-ins"] = "Slide-ins",
+            ["Elementos globales"] = "Global elements",
+            ["Vista general de pantallas"] = "Screen overview",
+            ["Variables HMI"] = "HMI tags",
+            ["Conexiones"] = "Connections",
+            ["Ciclos"] = "Cycles",
+            ["Listas de textos"] = "Text lists",
+            ["Listas de gráficos"] = "Graphic lists",
+            ["Scripts VB"] = "VB scripts",
 
             // ---- DiagExpected
             ["Dado un FB de secuencia, genera un Excel con el estado que deben tener actuadores y sensores en cada paso. Es una primera plantilla: revísala antes de usarla."] =
