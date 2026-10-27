@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 
 namespace HerramientasSICAR.ViewModels
 {
-    /// <summary>Saca bloques del proyecto conectado a XML y mete XML de vuelta (en el mismo proyecto o en otro).</summary>
+    /// <summary>
+    /// Saca bloques y elementos de HMI del proyecto conectado a XML y mete XML de vuelta (en el mismo proyecto o en otro).
+    /// </summary>
     public partial class ImportarExportarViewModel : Herramienta
     {
         private readonly IProgress<string> _progreso;
@@ -22,11 +24,12 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => L.T("Importar / Exportar");
-        public override string Descripcion => L.T("Exporta bloques del proyecto a XML e importa XML en una carpeta del proyecto.");
+        public override string Descripcion => L.T("Exporta bloques y elementos de HMI del proyecto a XML e importa XML en el proyecto.");
         public override string Icono => "replace";
         public override bool UsaTia => true;
 
-        public ObservableCollection<NodoArbol> Plcs { get; } = new ObservableCollection<NodoArbol>();
+        /// <summary>PLC y HMI del proyecto conectado, cada uno con su árbol.</summary>
+        public ObservableCollection<NodoArbol> Dispositivos { get; } = new ObservableCollection<NodoArbol>();
 
         [ObservableProperty]
         private string _filtro;
@@ -43,69 +46,95 @@ namespace HerramientasSICAR.ViewModels
 
         public bool HayMarcados => Marcados > 0;
         public bool HayDestino => NodoSeleccionado != null;
-        public string TextoMarcados => Marcados == 0 ? L.T("Ningún bloque marcado") : L.T("{0} bloque(s) marcado(s)", Marcados);
+        public string TextoMarcados => Marcados == 0 ? L.T("Ningún elemento marcado") : L.T("{0} elemento(s) marcado(s)", Marcados);
 
-        /// <summary>Grupo donde se importará: el seleccionado en el árbol (o el de un bloque seleccionado).</summary>
-        public string Destino => NodoSeleccionado == null
-            ? L.T("Selecciona en el árbol dónde importar")
-            : string.Join(" › ", new[] { NodoSeleccionado.Plc }.Concat(NodoSeleccionado.Grupos));
+        /// <summary>
+        /// Dónde se importará: la carpeta seleccionada en el árbol (o la de un bloque seleccionado).
+        /// En una HMI, cada archivo va a su rama; lo seleccionado solo cuenta para los de esa misma rama.
+        /// </summary>
+        public string Destino
+        {
+            get
+            {
+                var nodo = NodoSeleccionado;
+                if (nodo == null)
+                    return L.T("Selecciona en el árbol dónde importar");
+                var partes = new List<string> { nodo.Dispositivo };
+                if (nodo.Rama != null)
+                    partes.Add(L.T(ArchivosHmi.Nombre(nodo.Rama.Value)));
+                partes.AddRange(nodo.Grupos);
+                return string.Join(" › ", partes);
+            }
+        }
 
         /// <summary>Árbol del proyecto recién conectado (o vacío si se desconecta).</summary>
-        public void MostrarPlcs(IEnumerable<PlcInfo> plcs)
+        public void MostrarArbol(ArbolProyecto arbol)
         {
-            Plcs.Clear();
+            Dispositivos.Clear();
             NodoSeleccionado = null;
-            foreach (var plc in plcs)
-                Plcs.Add(NodoArbol.DesdePlc(plc, ContarMarcados));
+            foreach (var plc in arbol.Plcs)
+                Dispositivos.Add(NodoArbol.DesdePlc(plc, ContarMarcados));
+            foreach (var hmi in arbol.Hmis)
+                Dispositivos.Add(NodoArbol.DesdeHmi(hmi, ContarMarcados));
             OnFiltroChanged(Filtro);
             ContarMarcados();
         }
 
         partial void OnFiltroChanged(string value)
         {
-            foreach (var plc in Plcs)
-                plc.AplicarFiltro(value);
+            foreach (var dispositivo in Dispositivos)
+                dispositivo.AplicarFiltro(value);
         }
 
         [RelayCommand(CanExecute = nameof(PuedeExportar))]
         private async Task Exportar()
         {
-            var bloques = Plcs.SelectMany(p => p.BloquesMarcados())
-                .Select(n => new BloqueRef { Plc = n.Plc, Grupos = n.Grupos, Nombre = n.Nombre })
+            var hojas = Dispositivos.SelectMany(d => d.HojasMarcadas()).ToList();
+            var bloques = hojas.Where(n => n.Tipo == TipoNodo.Bloque)
+                .Select(n => new BloqueRef { Plc = n.Dispositivo, Grupos = n.Grupos, Nombre = n.Nombre })
+                .ToList();
+            var elementosHmi = hojas.Where(n => n.Tipo == TipoNodo.ElementoHmi)
+                .Select(n => new ElementoHmiRef { Hmi = n.Dispositivo, Rama = n.Rama.Value, Grupos = n.Grupos, Nombre = n.Nombre })
                 .ToList();
 
-            string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta donde guardar los bloques exportados"), Contexto.Ajustes.UltimaCarpeta);
+            string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta donde guardar lo exportado"), Contexto.Ajustes.UltimaCarpeta);
             if (carpeta == null)
                 return;
             RecordarCarpeta(carpeta);
 
             await Contexto.Trabajar(L.T("Exportando…"), async () =>
             {
-                var resultado = await Contexto.Tia().ExportarAsync(bloques, carpeta, _progreso);
-                MostrarResultado(resultado, L.T("{0} bloque(s) exportado(s) a {1}.", resultado.Correctos, carpeta));
+                var resultado = await Contexto.Tia().ExportarAsync(bloques, elementosHmi, carpeta, _progreso);
+                MostrarResultado(resultado, L.T("{0} elemento(s) exportado(s) a {1}.", resultado.Correctos, carpeta));
             });
         }
 
         [RelayCommand(CanExecute = nameof(PuedeImportar))]
         private async Task ImportarArchivos()
         {
-            var rutas = await Contexto.Dialogos.ElegirArchivos(L.T("Bloques a importar"), Contexto.Ajustes.UltimaCarpeta, TipoArchivo.Xml);
+            var rutas = await Contexto.Dialogos.ElegirArchivos(L.T("Archivos a importar"), Contexto.Ajustes.UltimaCarpeta, TipoArchivo.Xml);
             if (rutas == null || rutas.Count == 0)
                 return;
             RecordarCarpeta(Path.GetDirectoryName(rutas[0]));
 
-            await Importar(ArchivosBloque.PrepararArchivos(rutas, out var descartados), descartados);
+            if (NodoSeleccionado.EsDeHmi)
+                await ImportarEnHmi(ArchivosHmi.PrepararArchivos(rutas, out var descartadosHmi), descartadosHmi);
+            else
+                await Importar(ArchivosBloque.PrepararArchivos(rutas, out var descartados), descartados);
         }
 
         [RelayCommand(CanExecute = nameof(PuedeImportar))]
         private async Task ImportarCarpeta()
         {
-            string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta con los bloques a importar (las subcarpetas se crean como carpetas)"), Contexto.Ajustes.UltimaCarpeta);
+            string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta con lo que se va a importar (las subcarpetas se crean como carpetas)"), Contexto.Ajustes.UltimaCarpeta);
             if (carpeta == null)
                 return;
             RecordarCarpeta(carpeta);
 
-            await Importar(ArchivosBloque.PrepararCarpeta(carpeta, out var descartados), descartados);
+            if (NodoSeleccionado.EsDeHmi)
+                await ImportarEnHmi(ArchivosHmi.PrepararCarpeta(carpeta, out var descartadosHmi), descartadosHmi);
+            else
+                await Importar(ArchivosBloque.PrepararCarpeta(carpeta, out var descartados), descartados);
         }
 
         private async Task Importar(List<ArchivoImportar> archivos, List<string> descartados)
@@ -127,15 +156,41 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
-                var resultado = await Contexto.Tia().ImportarAsync(destino.Plc, destino.Grupos, archivos, _progreso);
+                var resultado = await Contexto.Tia().ImportarAsync(destino.Dispositivo, destino.Grupos, archivos, _progreso);
                 // Se vuelve a leer el proyecto para que el árbol muestre lo importado.
-                MostrarPlcs(await Contexto.Tia().LeerArbolAsync());
+                MostrarArbol(await Contexto.Tia().LeerArbolAsync());
                 resultado.Fallos.InsertRange(0, noBloques);
                 MostrarResultado(resultado, L.T("{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
             });
         }
 
-        private void ContarMarcados() => Marcados = Plcs.Sum(p => p.BloquesMarcados().Count());
+        private async Task ImportarEnHmi(List<ArchivoHmi> archivos, List<string> descartados)
+        {
+            var noHmi = descartados.Select(r => L.T("{0}: no es un elemento de HMI exportado de TIA, no se importa", Path.GetFileName(r))).ToList();
+            if (archivos.Count == 0)
+            {
+                Contexto.PonerFallos(noHmi);
+                Contexto.MostrarEstado(L.T("No hay elementos de HMI que importar."), error: true);
+                return;
+            }
+
+            var destino = NodoSeleccionado;
+            bool aceptado = await Contexto.Dialogos.Confirmar(L.T("Importar en la HMI"),
+                L.T("Se van a importar {0} elemento(s) en la HMI {1}, cada uno en su rama.\n\nLo que ya exista con el mismo nombre se sobrescribe.", archivos.Count, destino.Dispositivo),
+                L.T("Importar"));
+            if (!aceptado)
+                return;
+
+            await Contexto.Trabajar(L.T("Importando…"), async () =>
+            {
+                var resultado = await Contexto.Tia().ImportarHmiAsync(destino.Dispositivo, destino.Rama, destino.Grupos, archivos, _progreso);
+                MostrarArbol(await Contexto.Tia().LeerArbolAsync());
+                resultado.Fallos.InsertRange(0, noHmi);
+                MostrarResultado(resultado, L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
+            });
+        }
+
+        private void ContarMarcados() => Marcados = Dispositivos.Sum(d => d.HojasMarcadas().Count());
 
         private void MostrarResultado(ResultadoOperacion resultado, string mensaje)
         {

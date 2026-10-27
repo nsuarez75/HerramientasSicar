@@ -9,6 +9,7 @@
   <ItemGroup>
     <!-- Solo la lógica sin TIA ni ventanas: así los tests no necesitan Openness ni Avalonia -->
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosHmi.cs" Link="Logica\ArchivosHmi.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />

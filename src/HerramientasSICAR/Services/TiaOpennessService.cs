@@ -1,6 +1,7 @@
 using HerramientasSICAR.Logica;
 using Siemens.Engineering;
 using Siemens.Engineering.Compiler;
+using Siemens.Engineering.Hmi;
 using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.SW;
@@ -38,8 +39,8 @@ namespace HerramientasSICAR.Services
             });
         }
 
-        /// <summary>Se engancha a la instancia de TIA que tiene abierto el proyecto y devuelve sus PLC con los bloques.</summary>
-        public Task<List<PlcInfo>> ConectarAsync(string rutaProyecto)
+        /// <summary>Se engancha a la instancia de TIA que tiene abierto el proyecto y devuelve sus PLC y HMI.</summary>
+        public Task<ArbolProyecto> ConectarAsync(string rutaProyecto)
         {
             return _hilo.Ejecutar(() =>
             {
@@ -60,15 +61,15 @@ namespace HerramientasSICAR.Services
                 if (_proyecto == null)
                     throw new InvalidOperationException(L.T("No se pudo acceder al proyecto abierto en TIA Portal."));
 
-                return LeerPlcs();
+                return LeerArbol();
             });
         }
 
-        /// <summary>Vuelve a leer los PLC y bloques del proyecto conectado.</summary>
-        public Task<List<PlcInfo>> LeerArbolAsync() => _hilo.Ejecutar(() =>
+        /// <summary>Vuelve a leer los PLC y HMI del proyecto conectado.</summary>
+        public Task<ArbolProyecto> LeerArbolAsync() => _hilo.Ejecutar(() =>
         {
             ComprobarConexion();
-            return LeerPlcs();
+            return LeerArbol();
         });
 
         /// <summary>Ejecuta un trabajo de una herramienta sobre el proyecto conectado, en el hilo de Openness.</summary>
@@ -81,39 +82,55 @@ namespace HerramientasSICAR.Services
         public Task EnProyecto(Action<ProyectoTia> trabajo) => EnProyecto(p => { trabajo(p); return true; });
 
         /// <summary>
-        /// Exporta los bloques a la carpeta, recreando los grupos de TIA como subcarpetas.
-        /// Si hay bloques de más de un PLC, cada PLC va en su propia subcarpeta.
+        /// Exporta los bloques y elementos de HMI marcados a la carpeta, respetando las carpetas de TIA.
+        /// Los elementos de HMI van en una subcarpeta por rama. Si hay más de un dispositivo, cada uno va en su propia subcarpeta.
         /// </summary>
-        public Task<ResultadoOperacion> ExportarAsync(IReadOnlyList<BloqueRef> bloques, string carpeta, IProgress<string> progreso)
+        public Task<ResultadoOperacion> ExportarAsync(IReadOnlyList<BloqueRef> bloques, IReadOnlyList<ElementoHmiRef> elementosHmi,
+            string carpeta, IProgress<string> progreso)
         {
             return _hilo.Ejecutar(() =>
             {
                 ComprobarConexion();
                 var proyecto = new ProyectoTia(_proyecto);
                 var resultado = new ResultadoOperacion();
-                bool variosPlc = bloques.Select(b => b.Plc).Distinct().Count() > 1;
+                bool variosDispositivos = bloques.Select(b => b.Plc).Concat(elementosHmi.Select(e => e.Hmi)).Distinct().Count() > 1;
+                int total = bloques.Count + elementosHmi.Count;
+                int n = 0;
 
-                for (int i = 0; i < bloques.Count; i++)
+                foreach (var referencia in bloques)
                 {
-                    var referencia = bloques[i];
-                    progreso.Report(L.T("Exportando {0}/{1}: {2}", i + 1, bloques.Count, referencia.Nombre));
-                    try
+                    progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, referencia.Nombre));
+                    bool seguir = Intentar(resultado, referencia.Nombre, total - n, () =>
                     {
                         var bloque = proyecto.BuscarGrupo(referencia.Plc, referencia.Grupos, crear: false)?.Blocks.Find(referencia.Nombre)
                             ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
 
                         var partes = new List<string> { carpeta };
-                        if (variosPlc)
+                        if (variosDispositivos)
                             partes.Add(ArchivosBloque.NombreSeguro(referencia.Plc));
                         partes.AddRange(referencia.Grupos.Select(ArchivosBloque.NombreSeguro));
 
                         ProyectoTia.Exportar(bloque, Path.Combine(partes.ToArray()));
-                        resultado.Correctos++;
-                    }
-                    catch (Exception ex)
+                    });
+                    if (!seguir)
+                        return resultado;
+                }
+
+                foreach (var referencia in elementosHmi)
+                {
+                    progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, referencia.Nombre));
+                    bool seguir = Intentar(resultado, referencia.Nombre, total - n, () =>
                     {
-                        resultado.Fallos.Add($"{referencia.Nombre}: {ex.Message}");
-                    }
+                        var partes = new List<string> { carpeta };
+                        if (variosDispositivos)
+                            partes.Add(ArchivosBloque.NombreSeguro(referencia.Hmi));
+                        partes.Add(ArchivosHmi.Nombre(referencia.Rama));
+                        partes.AddRange(referencia.Grupos.Select(ArchivosBloque.NombreSeguro));
+
+                        HmiTia.Exportar(proyecto.BuscarHmi(referencia.Hmi), referencia, Path.Combine(partes.ToArray()));
+                    });
+                    if (!seguir)
+                        break;
                 }
                 return resultado;
             });
@@ -137,23 +154,75 @@ namespace HerramientasSICAR.Services
                     var archivo = archivos[i];
                     string nombre = Path.GetFileName(archivo.Ruta);
                     progreso.Report(L.T("Importando {0}/{1}: {2}", i + 1, archivos.Count, nombre));
-                    try
+                    bool seguir = Intentar(resultado, nombre, archivos.Count - i - 1, () =>
                     {
                         var grupo = proyecto.BuscarGrupo(plc, gruposDestino.Concat(archivo.Grupos).ToList(), crear: true);
                         grupo.Blocks.Import(new FileInfo(archivo.Ruta), ImportOptions.Override);
-                        resultado.Correctos++;
-                    }
-                    catch (Exception ex)
-                    {
-                        resultado.Fallos.Add($"{nombre}: {ex.Message}");
-                    }
+                    });
+                    if (!seguir)
+                        break;
                 }
                 return resultado;
             });
         }
 
-        private List<PlcInfo> LeerPlcs() =>
-            new ProyectoTia(_proyecto).Plcs().Select(plc => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) }).ToList();
+        /// <summary>
+        /// Importa los XML en una HMI, cada uno en su rama. Si lo seleccionado en el árbol es de su misma rama
+        /// (<paramref name="rama"/> y <paramref name="grupos"/>), cuelga de ahí. Lo que ya existe con el mismo nombre se sobrescribe.
+        /// </summary>
+        public Task<ResultadoOperacion> ImportarHmiAsync(string hmi, RamaHmi? rama, IReadOnlyList<string> grupos,
+            IReadOnlyList<ArchivoHmi> archivos, IProgress<string> progreso)
+        {
+            return _hilo.Ejecutar(() =>
+            {
+                ComprobarConexion();
+                var destino = new ProyectoTia(_proyecto).BuscarHmi(hmi);
+                var resultado = new ResultadoOperacion();
+
+                for (int i = 0; i < archivos.Count; i++)
+                {
+                    var archivo = archivos[i];
+                    string nombre = Path.GetFileName(archivo.Ruta);
+                    progreso.Report(L.T("Importando {0}/{1}: {2}", i + 1, archivos.Count, nombre));
+                    if (!Intentar(resultado, nombre, archivos.Count - i - 1,
+                            () => HmiTia.Importar(destino, archivo, ArchivosHmi.CarpetasDestino(rama, grupos, archivo))))
+                        break;
+                }
+                return resultado;
+            });
+        }
+
+        /// <summary>
+        /// Hace el trabajo de un elemento y apunta si ha ido bien o el fallo. Devuelve false si TIA se ha cerrado
+        /// (o ya no tiene el proyecto): seguir solo llenaría la lista de fallos con el mismo error.
+        /// </summary>
+        private bool Intentar(ResultadoOperacion resultado, string nombre, int quedan, Action trabajo)
+        {
+            try
+            {
+                trabajo();
+                resultado.Correctos++;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                resultado.Fallos.Add($"{nombre}: {ex.Message}");
+                if (!(ex is EngineeringObjectDisposedException) || BuscarProyecto(_rutaProyecto) != null)
+                    return true;
+
+                resultado.Fallos.Add(L.T("TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer.", quedan));
+                return false;
+            }
+        }
+
+        private ArbolProyecto LeerArbol()
+        {
+            var proyecto = new ProyectoTia(_proyecto);
+            var arbol = new ArbolProyecto();
+            arbol.Plcs.AddRange(proyecto.Plcs().Select(plc => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) }));
+            arbol.Hmis.AddRange(proyecto.Hmis().Select(HmiTia.Leer));
+            return arbol;
+        }
 
         private static GrupoInfo LeerGrupo(PlcBlockGroup grupo)
         {
@@ -265,8 +334,12 @@ namespace HerramientasSICAR.Services
                     throw new InvalidOperationException(L.T("no compila; revisa sus errores en TIA"));
             }
 
+            string ruta = Path.Combine(carpeta, ArchivosBloque.NombreSeguro(bloque.Name) + ".xml");
+            if (ArchivosBloque.RutaDemasiadoLarga(ruta))
+                throw new InvalidOperationException(L.T("la ruta es demasiado larga para Windows ({0} caracteres); exporta a una carpeta con una ruta más corta", ruta.Length));
+
             Directory.CreateDirectory(carpeta);
-            var destino = new FileInfo(Path.Combine(carpeta, ArchivosBloque.NombreSeguro(bloque.Name) + ".xml"));
+            var destino = new FileInfo(ruta);
             if (destino.Exists)
                 destino.Delete();
 
@@ -274,7 +347,15 @@ namespace HerramientasSICAR.Services
             return destino.FullName;
         }
 
-        internal IEnumerable<PlcSoftware> Plcs()
+        internal IEnumerable<PlcSoftware> Plcs() => Software<PlcSoftware>();
+
+        /// <summary>HMI WinCC clásicas (paneles y estaciones PC). Las Unified no salen: su software es de otro tipo.</summary>
+        internal IEnumerable<HmiTarget> Hmis() => Software<HmiTarget>();
+
+        internal HmiTarget BuscarHmi(string nombreHmi) => Hmis().FirstOrDefault(h => h.Name == nombreHmi)
+            ?? throw new InvalidOperationException(L.T("no se encuentra la HMI '{0}'", nombreHmi));
+
+        private IEnumerable<T> Software<T>() where T : class
         {
             var dispositivos = new List<Device>(_proyecto.Devices);
             var pendientes = new Queue<DeviceUserGroup>(_proyecto.DeviceGroups);
@@ -287,8 +368,8 @@ namespace HerramientasSICAR.Services
             }
 
             foreach (var dispositivo in dispositivos)
-                foreach (var plc in BuscarSoftware(dispositivo.DeviceItems))
-                    yield return plc;
+                foreach (var software in BuscarSoftware<T>(dispositivo.DeviceItems))
+                    yield return software;
         }
 
         internal PlcBlockGroup BuscarGrupo(string nombrePlc, IReadOnlyList<string> grupos, bool crear)
@@ -333,14 +414,14 @@ namespace HerramientasSICAR.Services
             return null;
         }
 
-        private static IEnumerable<PlcSoftware> BuscarSoftware(DeviceItemComposition elementos)
+        private static IEnumerable<T> BuscarSoftware<T>(DeviceItemComposition elementos) where T : class
         {
             foreach (DeviceItem elemento in elementos)
             {
-                if (elemento.GetService<SoftwareContainer>()?.Software is PlcSoftware plc)
-                    yield return plc;
+                if (elemento.GetService<SoftwareContainer>()?.Software is T software)
+                    yield return software;
 
-                foreach (var interior in BuscarSoftware(elemento.DeviceItems))
+                foreach (var interior in BuscarSoftware<T>(elemento.DeviceItems))
                     yield return interior;
             }
         }

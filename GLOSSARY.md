@@ -63,3 +63,18 @@ Proyecto HMI estándar que suministra GESTAMP y que el Generador HMI rellena con
 Proyecto abierto en TIA Portal que se ha elegido en la barra superior. Las herramientas del grupo «Con TIA» trabajan
 sobre él; la app nunca lo abre, guarda ni cierra.
 _Evitar_: proyecto seleccionado, ruta del proyecto
+
+**Elemento**:
+Cualquier cosa que se marca en el árbol de Importar / Exportar y se guarda como un XML: un bloque de un PLC o un
+elemento de una **HMI** (pantalla, tabla de variables, lista de textos, script…).
+_Evitar_: objeto, ítem
+
+**Rama (de HMI)**:
+Cada apartado de una **HMI** en el árbol de Importar / Exportar: Pantallas, Plantillas, Pop-ups, Slide-ins, Variables
+HMI, Conexiones, Ciclos, Listas de textos, Listas de gráficos y Scripts VB, más los dos **elementos** únicos
+(Elementos globales y Vista general de pantallas). Al exportar, cada rama es una subcarpeta; al importar, cada archivo
+va a la suya.
+
+**HMI**:
+En Importar / Exportar, un panel o estación PC con WinCC clásico (Basic, Comfort o Advanced). Las HMI Unified no se
+muestran.

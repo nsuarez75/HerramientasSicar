@@ -102,6 +102,17 @@ namespace HerramientasSICAR.Tests
         }
 
         [Theory]
+        [InlineData(200, 50, false)]
+        [InlineData(200, 59, false)]
+        [InlineData(200, 60, true)]
+        [InlineData(248, 5, true)]
+        public void Detecta_las_rutas_demasiado_largas_para_windows(int carpeta, int archivo, bool esperado)
+        {
+            string ruta = "C:" + new string('a', carpeta - 2) + "\\" + new string('b', archivo - 1);
+            Assert.Equal(esperado, ArchivosBloque.RutaDemasiadoLarga(ruta));
+        }
+
+        [Theory]
         [InlineData("+A1+FB_Pinza", "+A1+FB_Pinza")]
         [InlineData("Datos/Motor", "Datos_Motor")]
         [InlineData("A:B*C?", "A_B_C_")]
