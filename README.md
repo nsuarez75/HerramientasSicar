@@ -24,10 +24,11 @@ La barra inferior dice qué está pasando; si algo falla en varios bloques, se d
 
 #### Importar / Exportar
 
-Saca bloques del proyecto a archivos XML y los mete de vuelta (en el mismo proyecto o en otro). A la izquierda está el árbol con cada PLC, sus carpetas y sus bloques; el cuadro de arriba filtra por nombre.
+Saca bloques y elementos de HMI del proyecto a archivos XML y los mete de vuelta (en el mismo proyecto o en otro). A la izquierda está el árbol con cada PLC (sus carpetas y bloques) y cada HMI WinCC clásica (sus ramas: pantallas, plantillas, pop-ups, variables, listas, scripts…); el cuadro de arriba filtra por nombre. Detalle de las HMI en [docs/importar-exportar-hmi.md](docs/importar-exportar-hmi.md).
 
 - **Exportar**: marca las casillas de los bloques (marcar una carpeta marca todo lo que tiene dentro; con el filtro puesto, solo lo que se ve) y pulsa **Exportar marcados…**. Cada bloque se guarda como `<nombre>.xml` y las carpetas de TIA se recrean como subcarpetas. Si los bloques son de varios PLC, cada PLC va en su subcarpeta. Los bloques sin compilar se compilan antes de exportar; los protegidos (know-how) no se pueden exportar.
 - **Importar**: selecciona en el árbol el PLC o la carpeta destino y pulsa **Importar archivos…** (uno o varios XML, directos a esa carpeta) o **Importar carpeta…** (todos los XML de una carpeta; sus subcarpetas se crean como carpetas en TIA). Los bloques que ya existen con el mismo nombre se sobrescriben (se pide confirmación). Se importan en orden FC → FB → DB → DB de instancia → OB.
+- **HMI**: se marcan y exportan igual que los bloques (cada rama va en su subcarpeta; las variables, por tablas enteras). Para importar, selecciona cualquier punto de la HMI destino: cada archivo va a su rama y, si lo seleccionado es una carpeta de esa rama, entra en ella. La tabla de variables estándar no se sobrescribe nunca. Los avisos, recetas y usuarios no se pueden exportar (Openness no lo permite) y las HMI Unified no se muestran. Si una ruta pasa del límite de Windows (260 caracteres), exporta a una carpeta más corta, como `C:\Export`.
 
 #### DiagExpected
 

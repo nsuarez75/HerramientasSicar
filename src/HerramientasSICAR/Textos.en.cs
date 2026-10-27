@@ -108,6 +108,7 @@ namespace HerramientasSICAR
                 "{0} item(s) will be imported into HMI {1}, each into its branch.\n\nAnything that already exists with the same name is overwritten.",
             ["{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos."] = "{0} item(s) imported. Save the project in TIA to keep them.",
             ["no se encuentra la HMI '{0}'"] = "HMI '{0}' not found",
+            ["es la tabla de variables estándar de la HMI; no se sobrescribe"] = "it is the HMI's default tag table; it is not overwritten",
             ["TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer."] =
                 "TIA Portal has closed or no longer has the project open: stopping here with {0} left to do.",
             ["la ruta es demasiado larga para Windows ({0} caracteres); exporta a una carpeta con una ruta más corta"] =

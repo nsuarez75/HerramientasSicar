@@ -58,6 +58,12 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void Lee_el_nombre_del_elemento()
+        {
+            Assert.Equal("Ejemplo", ArchivosHmi.LeerNombre(CrearXml("tabla.xml", "Hmi.Tag.TagTable")));
+        }
+
+        [Fact]
         public void Importa_primero_lo_que_usan_las_pantallas()
         {
             CrearXml("Inicio.xml", "Hmi.Screen.Screen");

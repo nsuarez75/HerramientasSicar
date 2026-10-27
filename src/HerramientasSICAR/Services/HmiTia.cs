@@ -164,7 +164,13 @@ namespace HerramientasSICAR.Services
                 case RamaHmi.Pantallas: CarpetaPantallas(hmi, carpetas, true).Screens.Import(xml, opciones); break;
                 case RamaHmi.Plantillas: CarpetaPlantillas(hmi, carpetas, true).ScreenTemplates.Import(xml, opciones); break;
                 case RamaHmi.PopUps: CarpetaPopUps(hmi, carpetas, true).ScreenPopups.Import(xml, opciones); break;
-                case RamaHmi.Variables: CarpetaVariables(hmi, carpetas, true).TagTables.Import(xml, opciones); break;
+                case RamaHmi.Variables:
+                    // Sobrescribir la tabla de variables estándar ha llegado a cerrar TIA: nunca se toca.
+                    string tabla = ArchivosHmi.LeerNombre(archivo.Ruta);
+                    if (tabla != null && tabla.Equals(hmi.TagFolder?.DefaultTagTable?.Name, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException(L.T("es la tabla de variables estándar de la HMI; no se sobrescribe"));
+                    CarpetaVariables(hmi, carpetas, true).TagTables.Import(xml, opciones);
+                    break;
                 case RamaHmi.Scripts: CarpetaScripts(hmi, carpetas, true).VBScripts.Import(xml, opciones); break;
                 case RamaHmi.SlideIns: SinRama(hmi.ScreenSlideinFolder).ScreenSlideins.Import(xml, opciones); break;
                 case RamaHmi.Conexiones: hmi.Connections.Import(xml, opciones); break;

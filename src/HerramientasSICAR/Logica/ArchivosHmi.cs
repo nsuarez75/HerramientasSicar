@@ -132,6 +132,32 @@ namespace HerramientasSICAR.Logica
             return null;
         }
 
+        /// <summary>Nombre del elemento que contiene el XML (su primer AttributeList/Name), o null si no lo tiene.</summary>
+        public static string LeerNombre(string rutaXml)
+        {
+            try
+            {
+                var ajustes = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, IgnoreComments = true };
+                using (var lector = XmlReader.Create(rutaXml, ajustes))
+                {
+                    bool enAtributos = false;
+                    while (lector.Read())
+                    {
+                        if (lector.NodeType != XmlNodeType.Element)
+                            continue;
+                        if (lector.LocalName == "AttributeList")
+                            enAtributos = true;
+                        else if (enAtributos && lector.LocalName == "Name")
+                            return lector.ReadElementContentAsString().Trim();
+                    }
+                }
+            }
+            catch (XmlException)
+            {
+            }
+            return null;
+        }
+
         /// <summary>
         /// Prepara los XML de una carpeta (y sus subcarpetas) para importarlos en una HMI.
         /// Si la ruta pasa por la carpeta de su rama (como la deja la exportación), cuenta lo que hay después;

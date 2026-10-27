@@ -36,6 +36,10 @@ elemento.
 - Orden de importación, para que nada quede con referencias rotas: conexiones, ciclos, listas de textos, listas de
   gráficos, variables, scripts, plantillas, elementos globales, pop-ups, slide-ins, pantallas y vista general.
 - Lo que ya existe con el mismo nombre **se sobrescribe**, tras confirmarlo, igual que con los bloques.
+- La **tabla de variables estándar** de la HMI destino no se sobrescribe nunca: sale en la lista de fallos. En la
+  primera prueba con un proyecto real, TIA se cerró al sobrescribirla (justo después de fallar otra tabla con una
+  variable enlazada a un tipo de datos del PLC).
+- Si TIA se cierra a mitad, la importación (o exportación) se para y dice cuántos elementos quedaban.
 - Los archivos que no encajan con el dispositivo seleccionado (un bloque con una HMI seleccionada, una pantalla con un
   PLC) **se descartan** y salen en la lista de fallos.
 
