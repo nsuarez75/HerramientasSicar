@@ -52,7 +52,7 @@ namespace HerramientasSICAR.Helpers
             using (var workbook = new XLWorkbook(inputPath))
             {
                 if (!workbook.Worksheets.TryGetWorksheet("User Texts", out var wsUser))
-                    throw new Exception("La hoja 'User Texts' no existe.");
+                    throw new Exception(L.T("La hoja 'User Texts' no existe."));
 
                 // Read User Texts into memory
                 foreach (var row in wsUser.RangeUsed().Rows())

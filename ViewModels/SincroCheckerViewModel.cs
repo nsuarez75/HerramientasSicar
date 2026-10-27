@@ -1,15 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
-using HerramientasSICAR.Services;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -73,29 +70,41 @@ namespace HerramientasSICAR.ViewModels
         public void Actualizar(IDictionary<string, bool> estado) => Cumple = _evaluar(estado);
     }
 
-    public partial class SincroCheckerViewModel : ObservableObject
+    public partial class SincroCheckerViewModel : Herramienta
     {
-        private readonly TiaOpennessService _tiaService;
         private List<PasoSecuencia> _pasos = new List<PasoSecuencia>();
         private SincroChecker _checker = new SincroChecker();
         private bool _cargandoSenales;
         private bool _cargandoBloque;
         private HashSet<string> _senalesDiferencia = new HashSet<string>();
 
+        public SincroCheckerViewModel(Contexto contexto) : base(contexto)
+        {
+        }
+
+        public override string Nombre => "Sincro Checker";
+        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, junto con PERM) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
+        public override string Icono => "git-compare";
+
+        // Puede abrir un XML ya exportado sin conexión; solo «Exportar desde TIA» necesita el proyecto.
+        public override bool UsaTia => false;
+
         [ObservableProperty]
         private string _rutaXml = "";
 
         [ObservableProperty]
-        private string _rutaProyecto = "";
-
-        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ExportarDesdeTiaCommand))]
         private string _nombreBloque = "";
 
+        /// <summary>Resultado de la comprobación del bloque abierto.</summary>
         [ObservableProperty]
-        private string _estado = "Abre un FB de secuencia para comprobar la sincronización";
+        private string _resumen = "";
 
         [ObservableProperty]
-        private bool _isProcessing = false;
+        private bool _hayResumen;
+
+        [ObservableProperty]
+        private bool _resumenConConflictos;
 
         [ObservableProperty]
         private bool _excluirHomeWork = true;
@@ -129,20 +138,21 @@ namespace HerramientasSICAR.ViewModels
         private string _resumenClave = "";
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SinDiferencias))]
         private bool _hayConflictoActivo;
+
+        public bool SinDiferencias => HayConflictoActivo && Diferencias.Count == 0;
+        public bool MostrarPrimerManual => HayResumen && !PedirPrimerManual;
 
         public ObservableCollection<ConflictoSincro> Conflictos { get; } = new ObservableCollection<ConflictoSincro>();
         public ObservableCollection<SeccionPaso> Secciones { get; } = new ObservableCollection<SeccionPaso>();
         public ObservableCollection<SenalSincro> Senales { get; } = new ObservableCollection<SenalSincro>();
         public ObservableCollection<GrupoDiferencias> Diferencias { get; } = new ObservableCollection<GrupoDiferencias>();
 
-        public SincroCheckerViewModel(TiaOpennessService tiaService)
-        {
-            _tiaService = tiaService;
-        }
-
         partial void OnExcluirHomeWorkChanged(bool value) => Comprobar();
         partial void OnExcluirValoresDecodificadosChanged(bool value) => Comprobar();
+        partial void OnHayResumenChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
+        partial void OnPedirPrimerManualChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
 
         partial void OnPrimerPasoManualChanged(string value)
         {
@@ -153,7 +163,7 @@ namespace HerramientasSICAR.ViewModels
             if (!LeerPrimerPasoManual(out _))
             {
                 // Keep the previous result until the value is valid
-                AvisoPrimerManual = "Formato no válido: usa el número de paso, p.ej. S100";
+                AvisoPrimerManual = L.T("Formato no válido: usa el número de paso, p.ej. S100");
                 return;
             }
 
@@ -162,17 +172,14 @@ namespace HerramientasSICAR.ViewModels
         }
         partial void OnConflictoSeleccionadoChanged(ConflictoSincro value) => CargarConflicto(value);
 
-        [RelayCommand]
-        private async Task BuscarXmlAsync()
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task AbrirXml()
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Bloque exportado (*.xml)|*.xml|Todos los archivos (*.*)|*.*";
-            ofd.Title = "Seleccionar FB de secuencia exportado";
-
-            if (ofd.ShowDialog() != true)
+            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("FB de secuencia exportado"),
+                string.IsNullOrEmpty(RutaXml) ? null : Path.GetDirectoryName(RutaXml), TipoArchivo.Xml);
+            if (ruta == null)
                 return;
 
-            string ruta = ofd.FileName;
             string tipo = null;
             try { tipo = LadSequenceAnalyzer.TipoObjetoRaiz(ruta); } catch { /* the analyzer reports invalid XML */ }
 
@@ -180,106 +187,55 @@ namespace HerramientasSICAR.ViewModels
             if (tipo != null && tipo != "SW.Blocks.FB")
             {
                 var fbs = LadSequenceAnalyzer.BuscarFbsSecuenciaAsociados(ruta);
-                string descripcion = "El archivo seleccionado es " + LadSequenceAnalyzer.DescribirTipo(tipo) + ", no un FB de secuencia.";
+                string descripcion = L.T("El archivo elegido es {0}, no un FB de secuencia.", LadSequenceAnalyzer.DescribirTipo(tipo));
 
                 if (fbs.Count == 1)
                 {
-                    if (MessageBox.Show(descripcion + "\n\nEn la misma carpeta está el FB de secuencia:\n" + Path.GetFileName(fbs[0]) + "\n\n¿Quieres abrirlo?",
-                            "Sincro Checker", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                    if (await Contexto.Dialogos.Confirmar("Sincro Checker",
+                            descripcion + "\n\n" + L.T("En la misma carpeta está el FB de secuencia:\n{0}\n\n¿Quieres abrirlo?", Path.GetFileName(fbs[0])),
+                            L.T("Abrir")))
                         ruta = fbs[0];
                 }
                 else if (fbs.Count > 1)
                 {
-                    MessageBox.Show(descripcion + "\n\nEsta estación tiene " + fbs.Count + " secuencias:\n" +
-                            string.Join("\n", fbs.Select(Path.GetFileName)) + "\n\nElige cuál abrir.",
-                        "Sincro Checker", MessageBoxButton.OK, MessageBoxImage.Information);
+                    await Contexto.Dialogos.Mensaje("Sincro Checker",
+                        descripcion + "\n\n" + L.T("Esta estación tiene {0} secuencias:\n{1}\n\nElige cuál abrir.",
+                            fbs.Count, string.Join("\n", fbs.Select(Path.GetFileName))));
 
                     string nombre = Path.GetFileNameWithoutExtension(ruta);
-                    OpenFileDialog elegir = new OpenFileDialog();
-                    elegir.Title = "Seleccionar secuencia de " + nombre;
-                    elegir.InitialDirectory = Path.GetDirectoryName(ruta);
-                    elegir.Filter = "Secuencias de " + nombre + "|FB*" + nombre + "*_FB.xml|Todos los XML (*.xml)|*.xml";
-                    if (elegir.ShowDialog() != true)
+                    ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Secuencia de {0}", nombre), Path.GetDirectoryName(ruta),
+                        new TipoArchivo(L.T("Secuencias de {0}", nombre), "FB*" + nombre + "*_FB.xml"), TipoArchivo.Xml);
+                    if (ruta == null)
                         return;
-                    ruta = elegir.FileName;
                 }
             }
 
-            RutaXml = ruta;
-            IsProcessing = true;
-            Estado = "Analizando bloque...";
-            await Task.Run(() => Analizar(RutaXml));
+            await Analizar(ruta);
         }
 
-        [RelayCommand]
-        private void BuscarProyecto()
+        [RelayCommand(CanExecute = nameof(PuedeExportar))]
+        private async Task ExportarDesdeTia()
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "TIA Portal Project (*.ap15;*.ap15_1;*.ap16;*.ap17;*.ap18;*.ap19)|*.ap15;*.ap15_1;*.ap16;*.ap17;*.ap18;*.ap19|Todos los archivos (*.*)|*.*";
-            ofd.Title = "Seleccionar proyecto TIA (.ap19)";
-
-            if (ofd.ShowDialog() == true)
-                RutaProyecto = ofd.FileName;
-        }
-
-        [RelayCommand]
-        private async Task ExportarDesdeTiaAsync()
-        {
-            if (string.IsNullOrWhiteSpace(RutaProyecto) || !File.Exists(RutaProyecto))
+            string bloque = NombreBloque.Trim();
+            string xml = null;
+            await Contexto.Trabajar(L.T("Exportando {0}…", bloque), async () =>
             {
-                MessageBox.Show("Selecciona un proyecto válido (.apXX)",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(NombreBloque))
-            {
-                MessageBox.Show("Introduce el nombre del bloque a exportar.",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // Detect TIA version automatically
-            if (!TiaVersionResolver.DetectarDesdeProyecto(RutaProyecto))
-            {
-                MessageBox.Show(
-                    "No se pudo detectar qué versión de TIA Portal corresponde a este proyecto.",
-                    "TIA no encontrado",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                return;
-            }
-
-            IsProcessing = true;
-            Estado = $"Cargando TIA Portal v{TiaVersionResolver.TiaVersionDetected}…";
-
-            await Task.Run(() =>
-            {
-                try
+                xml = await Contexto.Tia().EnProyecto(p =>
                 {
-                    string pathExportar = Path.GetDirectoryName(RutaProyecto);
-
-                    _tiaService.AbrirProyecto(RutaProyecto);
-
-                    Estado = "Compilando bloque...";
-                    _tiaService.CompilarBloque(NombreBloque);
-
-                    Estado = "Exportando bloque...";
-                    _tiaService.ExportarBloque(NombreBloque, pathExportar);
-
-                    RutaXml = Path.Combine(pathExportar, NombreBloque + ".xml");
-                }
-                catch (Exception ex)
-                {
-                    MostrarError(ex);
-                    Estado = "Listo";
-                    IsProcessing = false;
-                    return;
-                }
-
-                Estado = "Analizando bloque...";
-                Analizar(RutaXml);
+                    p.CompilarBloque(bloque);
+                    return p.ExportarBloque(bloque, p.Carpeta);
+                });
             });
+            if (xml != null)
+                await Analizar(xml);
+        }
+
+        private bool PuedeExportar() => PuedeUsarTia && !string.IsNullOrWhiteSpace(NombreBloque);
+
+        protected override void ActualizarComandos()
+        {
+            AbrirXmlCommand.NotifyCanExecuteChanged();
+            ExportarDesdeTiaCommand.NotifyCanExecuteChanged();
         }
 
         [RelayCommand]
@@ -293,37 +249,30 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand]
         private void RestaurarEstado() => CargarConflicto(ConflictoSeleccionado);
 
-        private void Analizar(string rutaXml)
+        private async Task Analizar(string rutaXml)
         {
-            try
+            RutaXml = rutaXml;
+            List<PasoSecuencia> pasos = null;
+            await Contexto.Trabajar(L.T("Analizando el bloque…"), async () =>
             {
-                var pasos = new LadSequenceAnalyzer().AnalizarBloque(rutaXml);
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    _pasos = pasos;
+                pasos = await Task.Run(() => new LadSequenceAnalyzer().AnalizarBloque(rutaXml));
+            });
+            if (pasos == null)
+                return;
 
-                    // From the first manual step onwards all steps are manual; ask when it cannot be detected
-                    var primerManual = SincroChecker.DetectarPrimerPasoManual(pasos);
-                    _cargandoBloque = true;
-                    PrimerPasoManual = primerManual.HasValue ? "S" + primerManual.Value.ToString("000") : "";
-                    _cargandoBloque = false;
-                    PedirPrimerManual = !primerManual.HasValue;
-                    AvisoPrimerManual = primerManual.HasValue
-                        ? "Detectado automáticamente"
-                        : "No se ha detectado ningún paso manual. Si la secuencia tiene pasos manuales, indica el primero; si no, déjalo vacío.";
+            _pasos = pasos;
 
-                    Comprobar();
-                });
-            }
-            catch (Exception ex)
-            {
-                MostrarError(ex);
-                Estado = "Listo";
-            }
-            finally
-            {
-                IsProcessing = false;
-            }
+            // From the first manual step onwards all steps are manual; ask when it cannot be detected
+            var primerManual = SincroChecker.DetectarPrimerPasoManual(pasos);
+            _cargandoBloque = true;
+            PrimerPasoManual = primerManual.HasValue ? "S" + primerManual.Value.ToString("000") : "";
+            _cargandoBloque = false;
+            PedirPrimerManual = !primerManual.HasValue;
+            AvisoPrimerManual = primerManual.HasValue
+                ? L.T("Detectado automáticamente")
+                : L.T("No se ha detectado ningún paso manual. Si la secuencia tiene pasos manuales, indica el primero; si no, déjalo vacío.");
+
+            Comprobar();
         }
 
         private void Comprobar()
@@ -346,12 +295,12 @@ namespace HerramientasSICAR.ViewModels
                 return;
 
             int nPasos = _checker.PasosAuto.Count;
-            if (nPasos == 0)
-                Estado = "El bloque no tiene pasos automáticos (S###)";
-            else if (conflictos.Count == 0)
-                Estado = $"✔ {nPasos} pasos automáticos: ningún par de pasos puede sincronizar a la vez";
-            else
-                Estado = $"✖ {nPasos} pasos automáticos: {conflictos.Count} pares de pasos pueden sincronizar a la vez";
+            Resumen = nPasos == 0 ? L.T("El bloque no tiene pasos automáticos (S###)")
+                : conflictos.Count == 0 ? L.T("{0} pasos automáticos: ningún par de pasos puede sincronizar a la vez", nPasos)
+                : L.T("{0} pasos automáticos: {1} pares de pasos pueden sincronizar a la vez", nPasos, conflictos.Count);
+            ResumenConConflictos = conflictos.Count > 0;
+            HayResumen = true;
+            Contexto.MostrarEstado(Path.GetFileName(RutaXml) + ": " + Resumen);
         }
 
         private void CargarConflicto(ConflictoSincro conflicto)
@@ -371,7 +320,7 @@ namespace HerramientasSICAR.ViewModels
 
             var perm = _checker.Perm;
             if (perm != null && (perm.ExpresionIlockAuto != null || perm.ExpresionIlockExtSync != null))
-                Secciones.Add(CrearSeccion(perm, "PERM", "Se ejecuta en cada ciclo junto al paso activo"));
+                Secciones.Add(CrearSeccion(perm, "PERM", L.T("Se ejecuta en cada ciclo junto al paso activo")));
             Secciones.Add(CrearSeccion(conflicto.PasoA, conflicto.PasoA.Paso, conflicto.PasoA.Titulo));
             Secciones.Add(CrearSeccion(conflicto.PasoB, conflicto.PasoB.Paso, conflicto.PasoB.Titulo));
 
@@ -393,13 +342,14 @@ namespace HerramientasSICAR.ViewModels
             {
                 Diferencias.Add(new GrupoDiferencias
                 {
-                    Titulo = g.Key.Exige + " siempre exige" + (g.Key.OtroLaComprueba
-                        ? " (" + g.Key.Otro + " también las usa, pero admite el valor contrario):"
-                        : " (" + g.Key.Otro + " no las comprueba):"),
+                    Titulo = g.Key.OtroLaComprueba
+                        ? L.T("{0} siempre exige ({1} también las usa, pero admite el valor contrario):", g.Key.Exige, g.Key.Otro)
+                        : L.T("{0} siempre exige ({1} no las comprueba):", g.Key.Exige, g.Key.Otro),
                     Senales = string.Join(", ", g.Select(d => d.Senal.Replace("\"", "") + "=" + (d.Valor ? "1" : "0")))
                 });
             }
 
+            OnPropertyChanged(nameof(SinDiferencias));
             ActualizarEstado();
         }
 
@@ -409,7 +359,7 @@ namespace HerramientasSICAR.ViewModels
             // A step that does not write ilockAuto leaves it at 1
             segmentos.Add(paso.ExpresionIlockAuto != null
                 ? new SegmentoLad { Bobina = "ilockAuto", Expresion = paso.ExpresionIlockAuto }
-                : new SegmentoLad { Bobina = "ilockAuto (no escrito → 1)", Expresion = ExpresionLogica.True });
+                : new SegmentoLad { Bobina = L.T("ilockAuto (no escrito → 1)"), Expresion = ExpresionLogica.True });
             if (paso.ExpresionIlockExtSync != null)
                 segmentos.Add(new SegmentoLad { Bobina = "ilockExtSync", Expresion = paso.ExpresionIlockExtSync });
 
@@ -436,10 +386,10 @@ namespace HerramientasSICAR.ViewModels
             var condicionB = _checker.CondicionSincro(c.PasoB);
             bool a = condicionA.Evaluar(estado);
             bool b = condicionB.Evaluar(estado);
-            ResultadoSincro = a && b ? $"Con este estado sincronizan {c.PasoA.Paso} y {c.PasoB.Paso} a la vez → error de sincronización"
-                : a ? $"Con este estado solo sincroniza {c.PasoA.Paso}"
-                : b ? $"Con este estado solo sincroniza {c.PasoB.Paso}"
-                : "Con este estado no sincroniza ninguno de los dos pasos";
+            ResultadoSincro = a && b ? L.T("Con este estado sincronizan {0} y {1} a la vez → error de sincronización", c.PasoA.Paso, c.PasoB.Paso)
+                : a ? L.T("Con este estado solo sincroniza {0}", c.PasoA.Paso)
+                : b ? L.T("Con este estado solo sincroniza {0}", c.PasoB.Paso)
+                : L.T("Con este estado no sincroniza ninguno de los dos pasos");
 
             // Key signals: flipping only that one changes whether both steps synchronize at once
             bool ambos = a && b;
@@ -470,23 +420,23 @@ namespace HerramientasSICAR.ViewModels
             if (clave.Count == 0)
             {
                 ResumenClave = ambos
-                    ? "Ninguna señal por sí sola evita la coincidencia: hay que cambiar varias a la vez."
-                    : "Ninguna señal por sí sola provoca la coincidencia.";
+                    ? L.T("Ninguna señal por sí sola evita la coincidencia: hay que cambiar varias a la vez.")
+                    : L.T("Ninguna señal por sí sola provoca la coincidencia.");
             }
             else if (ambos)
             {
                 var lineas = new List<string>();
                 if (comunes.Count > 0)
-                    lineas.Add("Las exigen los dos pasos: " + Listar(comunes));
+                    lineas.Add(L.T("Las exigen los dos pasos: {0}", Listar(comunes)));
                 if (soloA.Count > 0)
-                    lineas.Add("Solo las exige " + c.PasoA.Paso + ": " + Listar(soloA));
+                    lineas.Add(L.T("Solo las exige {0}: {1}", c.PasoA.Paso, Listar(soloA)));
                 if (soloB.Count > 0)
-                    lineas.Add("Solo las exige " + c.PasoB.Paso + ": " + Listar(soloB));
+                    lineas.Add(L.T("Solo las exige {0}: {1}", c.PasoB.Paso, Listar(soloB)));
                 ResumenClave = string.Join("\n", lineas);
             }
             else
             {
-                ResumenClave = "Cambiando una sola de estas señales coincidirían: " + Listar(soloA.Concat(soloB).Concat(comunes));
+                ResumenClave = L.T("Cambiando una sola de estas señales coincidirían: {0}", Listar(soloA.Concat(soloB).Concat(comunes)));
             }
         }
 
@@ -504,15 +454,6 @@ namespace HerramientasSICAR.ViewModels
                 return false;
             numero = n;
             return true;
-        }
-
-        private static void MostrarError(Exception ex)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                MessageBox.Show("Error: " + ex.Message, "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            });
         }
     }
 }

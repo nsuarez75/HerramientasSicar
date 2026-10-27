@@ -2,35 +2,65 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- Openness de TIA Portal V19 solo funciona en .NET Framework: por eso Avalonia 11.3 y no la 12 -->
     <TargetFramework>net48</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
     <LangVersion>latest</LangVersion>
     <AssemblyName>HerramientasSICAR</AssemblyName>
     <RootNamespace>HerramientasSICAR</RootNamespace>
-    <ApplicationIcon>Resources\Images\alomatek.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\alomatek.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="ClosedXML" Version="0.102.2" />
-    <PackageReference Include="Costura.Fody" Version="5.7.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="2.16.0" />
-    <PackageReference Include="Fody" Version="6.8.2">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="GTranslate" Version="2.3.1" />
-    <PackageReference Include="MaterialDesignThemes" Version="4.9.0" />
-    <PackageReference Include="MaterialDesignColors" Version="2.1.4" />
-    <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
-    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.1" />
+    <!-- Los tests son otro proyecto dentro de esta carpeta -->
+    <Compile Remove="HerramientasSICAR.Tests\**" />
+    <None Remove="HerramientasSICAR.Tests\**" />
+    <AvaloniaResource Include="Assets\alomatek.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.16.0" />
+    <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+    <PackageReference Include="GTranslate" Version="2.3.1" />
+    <!-- Un único .exe con las librerías dentro -->
+    <PackageReference Include="Costura.Fody" Version="5.7.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.8.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Costura no mete solas las nativas de SkiaSharp y HarfBuzz (dibujo y texto de Avalonia):
+       se embeben como nativas de 64 bits para que el .exe funcione sin nada al lado -->
+  <Target Name="EmbeberNativas" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <_Nativa Include="@(None)" Condition="'%(None.Link)' == 'x64\libSkiaSharp.dll' Or '%(None.Link)' == 'x64\libHarfBuzzSharp.dll'" />
+      <_Nativa Include="@(Content)" Condition="'%(Content.Link)' == 'x64\libSkiaSharp.dll' Or '%(Content.Link)' == 'x64\libHarfBuzzSharp.dll'" />
+    </ItemGroup>
+    <RemoveDuplicates Inputs="@(_Nativa)">
+      <Output TaskParameter="Filtered" ItemName="_NativaUnica" />
+    </RemoveDuplicates>
+    <ItemGroup>
+      <EmbeddedResource Include="@(_NativaUnica)" LogicalName="costura64.%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
     <Reference Include="Siemens.Engineering">
+      <!-- No se copia junto al programa: al arrancar se carga de la instalación de TIA V19 (ver Program.cs) -->
       <HintPath>C:\Program Files\Siemens\Automation\Portal V19\PublicAPI\V19\Siemens.Engineering.dll</HintPath>
       <Private>False</Private>
       <EmbedInteropTypes>False</EmbedInteropTypes>

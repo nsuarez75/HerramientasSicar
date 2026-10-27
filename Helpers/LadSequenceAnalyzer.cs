@@ -51,7 +51,7 @@ namespace HerramientasSICAR.Helpers
         public List<PasoSecuencia> AnalizarBloque(string rutaXml)
         {
             if (!File.Exists(rutaXml))
-                throw new FileNotFoundException("El archivo XML exportado no existe.", rutaXml);
+                throw new FileNotFoundException(L.T("El archivo XML exportado no existe."), rutaXml);
 
             XDocument doc = XDocument.Load(rutaXml);
 
@@ -61,8 +61,7 @@ namespace HerramientasSICAR.Helpers
             {
                 string tipo = TipoObjetoRaiz(rutaXml) ?? "desconocido";
                 throw new InvalidDataException(
-                    "El archivo no es un bloque de programa sino " + DescribirTipo(tipo) + ".\n\n" +
-                    "Abre el FB de secuencia exportado (p.ej. FB####_<estación>_FB.xml).");
+                    L.T("El archivo no es un bloque de programa sino {0}.\n\nAbre el FB de secuencia exportado (p.ej. FB####_<estación>_FB.xml).", DescribirTipo(tipo)));
             }
 
             string lenguajeBloque = Atributo(bloque, "ProgrammingLanguage") ?? "";
@@ -145,15 +144,15 @@ namespace HerramientasSICAR.Helpers
         {
             switch (tipo)
             {
-                case "SW.Tags.PlcTagTable": return "una tabla de variables";
+                case "SW.Tags.PlcTagTable": return L.T("una tabla de variables");
                 case "SW.Blocks.GlobalDB":
                 case "SW.Blocks.InstanceDB":
-                case "SW.Blocks.ArrayDB": return "un DB";
-                case "SW.Types.PlcStruct": return "un tipo de datos (UDT)";
-                case "SW.Blocks.FB": return "un FB";
-                case "SW.Blocks.FC": return "una FC";
-                case "SW.Blocks.OB": return "un OB";
-                default: return "un objeto de tipo " + tipo;
+                case "SW.Blocks.ArrayDB": return L.T("un DB");
+                case "SW.Types.PlcStruct": return L.T("un tipo de datos (UDT)");
+                case "SW.Blocks.FB": return L.T("un FB");
+                case "SW.Blocks.FC": return L.T("una FC");
+                case "SW.Blocks.OB": return L.T("un OB");
+                default: return L.T("un objeto de tipo {0}", tipo);
             }
         }
 
