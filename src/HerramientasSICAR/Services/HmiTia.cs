@@ -23,14 +23,23 @@ namespace HerramientasSICAR.Services
         public static HmiInfo Leer(HmiTarget hmi)
         {
             var info = new HmiInfo { Nombre = hmi.Name };
-            foreach (var rama in ArchivosHmi.OrdenArbol)
+            info.Ramas.AddRange(LeerRamas(hmi, ArchivosHmi.OrdenArbol));
+            return info;
+        }
+
+        /// <summary>Las ramas pedidas, en el orden del árbol.</summary>
+        public static List<RamaInfo> LeerRamas(HmiTarget hmi, IEnumerable<RamaHmi> ramas)
+        {
+            var pedidas = new HashSet<RamaHmi>(ramas);
+            var leidas = new List<RamaInfo>();
+            foreach (var rama in ArchivosHmi.OrdenArbol.Where(pedidas.Contains))
             {
                 // Algunos paneles no tienen todas las ramas (p. ej. sin vista general): esas no se muestran.
                 var raiz = LeerRama(hmi, rama);
                 if (raiz != null)
-                    info.Ramas.Add(new RamaInfo { Rama = rama, Raiz = raiz });
+                    leidas.Add(new RamaInfo { Rama = rama, Raiz = raiz });
             }
-            return info;
+            return leidas;
         }
 
         private static CarpetaHmiInfo LeerRama(HmiTarget hmi, RamaHmi rama)

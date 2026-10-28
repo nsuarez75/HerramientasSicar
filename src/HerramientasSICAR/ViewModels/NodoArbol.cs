@@ -101,18 +101,102 @@ namespace HerramientasSICAR.ViewModels
         {
             var nodo = new NodoArbol(TipoNodo.Hmi, hmi.Nombre, null, new string[0], hmi.Nombre, null, null, alCambiarMarcas) { IsExpanded = true };
             foreach (var rama in hmi.Ramas)
-            {
-                string nombre = L.T(ArchivosHmi.Nombre(rama.Rama));
-                if (ArchivosHmi.EsUnica(rama.Rama))
-                {
-                    nodo.Hijos.Add(new NodoArbol(TipoNodo.ElementoHmi, hmi.Nombre, rama.Rama, new string[0], nombre, null, nodo, alCambiarMarcas));
-                    continue;
-                }
-                var hijo = new NodoArbol(TipoNodo.Rama, hmi.Nombre, rama.Rama, new string[0], nombre, null, nodo, alCambiarMarcas);
-                hijo.AñadirContenido(rama.Raiz);
-                nodo.Hijos.Add(hijo);
-            }
+                nodo.Hijos.Add(nodo.NodoDeRama(rama));
             return nodo;
+        }
+
+        /// <summary>El PLC o la HMI del que cuelga este nodo.</summary>
+        public NodoArbol Raiz => Padre?.Raiz ?? this;
+
+        /// <summary>
+        /// Cambia los bloques de este PLC por los recién leídos. Lo que ya estaba conserva sus marcas y sus carpetas abiertas.
+        /// </summary>
+        public void ReemplazarContenido(GrupoInfo raiz)
+        {
+            var anteriores = Hijos.ToList();
+            Hijos.Clear();
+            AñadirContenido(raiz);
+            CopiarEstadoHijos(anteriores);
+            AjustarMarca();
+        }
+
+        /// <summary>
+        /// Cambia esas ramas de esta HMI por las recién leídas (<paramref name="leidas"/>: las que el panel tiene).
+        /// Las demás ramas no se tocan; lo que ya estaba conserva sus marcas y sus carpetas abiertas.
+        /// </summary>
+        public void ReemplazarRamas(IEnumerable<RamaHmi> ramas, IReadOnlyList<RamaInfo> leidas)
+        {
+            foreach (var rama in ramas)
+            {
+                var anterior = Hijos.FirstOrDefault(h => h.Rama == rama);
+                if (anterior != null)
+                    Hijos.Remove(anterior);
+
+                var info = leidas.FirstOrDefault(r => r.Rama == rama);
+                if (info == null)
+                    continue;
+                var nuevo = NodoDeRama(info);
+                if (anterior != null)
+                    CopiarEstado(anterior, nuevo);
+
+                int orden = Orden(rama);
+                int posicion = Hijos.Count(h => Orden(h.Rama.Value) < orden);
+                Hijos.Insert(posicion, nuevo);
+            }
+            AjustarMarca();
+        }
+
+        /// <summary>El nodo de este árbol que está donde estaba <paramref name="modelo"/> (mismo tipo, rama, carpetas y nombre).</summary>
+        public NodoArbol Buscar(NodoArbol modelo)
+        {
+            if (Tipo == modelo.Tipo && Dispositivo == modelo.Dispositivo && Rama == modelo.Rama && Nombre == modelo.Nombre
+                && Grupos.SequenceEqual(modelo.Grupos))
+                return this;
+            return Hijos.Select(h => h.Buscar(modelo)).FirstOrDefault(n => n != null);
+        }
+
+        private static int Orden(RamaHmi rama)
+        {
+            for (int i = 0; i < ArchivosHmi.OrdenArbol.Count; i++)
+                if (ArchivosHmi.OrdenArbol[i] == rama)
+                    return i;
+            return ArchivosHmi.OrdenArbol.Count;
+        }
+
+        private NodoArbol NodoDeRama(RamaInfo rama)
+        {
+            string nombre = L.T(ArchivosHmi.Nombre(rama.Rama));
+            if (ArchivosHmi.EsUnica(rama.Rama))
+                return new NodoArbol(TipoNodo.ElementoHmi, Dispositivo, rama.Rama, new string[0], nombre, null, this, _alCambiarMarcas);
+
+            var hijo = new NodoArbol(TipoNodo.Rama, Dispositivo, rama.Rama, new string[0], nombre, null, this, _alCambiarMarcas);
+            hijo.AñadirContenido(rama.Raiz);
+            return hijo;
+        }
+
+        /// <summary>Pasa al nodo recién leído si estaba abierto y marcado, y lo mismo a lo que tiene dentro.</summary>
+        private static void CopiarEstado(NodoArbol anterior, NodoArbol nuevo)
+        {
+            nuevo.IsExpanded = anterior.IsExpanded;
+            if (nuevo.EsHoja)
+            {
+                nuevo._propagando = true;
+                nuevo.IsChecked = anterior.IsChecked;
+                nuevo._propagando = false;
+                return;
+            }
+            nuevo.CopiarEstadoHijos(anterior.Hijos);
+            nuevo.AjustarMarca();
+        }
+
+        private void CopiarEstadoHijos(IEnumerable<NodoArbol> anteriores)
+        {
+            foreach (var hijo in Hijos)
+            {
+                var anterior = anteriores.FirstOrDefault(a => a.Tipo == hijo.Tipo && a.Nombre == hijo.Nombre);
+                if (anterior != null)
+                    CopiarEstado(anterior, hijo);
+            }
         }
 
         private void AñadirContenido(GrupoInfo grupo)
@@ -166,6 +250,13 @@ namespace HerramientasSICAR.ViewModels
 
         private void RecalcularMarca()
         {
+            AjustarMarca();
+            Padre?.RecalcularMarca();
+        }
+
+        /// <summary>Pone la marca de este nodo según la de sus hijos, sin avisar ni tocar a los demás.</summary>
+        private void AjustarMarca()
+        {
             bool? marca = Hijos.Count == 0 ? IsChecked
                 : Hijos.All(h => h.IsChecked == true) ? true
                 : Hijos.All(h => h.IsChecked == false) ? false
@@ -174,7 +265,6 @@ namespace HerramientasSICAR.ViewModels
             _propagando = true;
             IsChecked = marca;
             _propagando = false;
-            Padre?.RecalcularMarca();
         }
 
         /// <summary>Bloques y elementos de HMI marcados de este nodo hacia abajo.</summary>

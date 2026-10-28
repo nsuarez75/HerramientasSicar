@@ -157,8 +157,11 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
                 var resultado = await Contexto.Tia().ImportarAsync(destino.Dispositivo, destino.Grupos, archivos, _progreso);
-                // Se vuelve a leer el proyecto para que el árbol muestre lo importado.
-                MostrarArbol(await Contexto.Tia().LeerArbolAsync());
+                // Solo se vuelve a leer el PLC destino: leer el proyecto entero tarda minutos en uno grande.
+                _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                var plc = await Contexto.Tia().LeerPlcAsync(destino.Dispositivo);
+                destino.Raiz.ReemplazarContenido(plc.Raiz);
+                ArbolReleido(destino);
                 resultado.Fallos.InsertRange(0, noBloques);
                 MostrarResultado(resultado, L.T("{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
             });
@@ -184,10 +187,26 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
                 var resultado = await Contexto.Tia().ImportarHmiAsync(destino.Dispositivo, destino.Rama, destino.Grupos, archivos, _progreso);
-                MostrarArbol(await Contexto.Tia().LeerArbolAsync());
+                // Solo se vuelven a leer las ramas de la HMI donde se ha importado algo.
+                _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                var ramas = archivos.Select(a => a.Rama).Distinct().ToList();
+                var leidas = await Contexto.Tia().LeerRamasHmiAsync(destino.Dispositivo, ramas);
+                destino.Raiz.ReemplazarRamas(ramas, leidas);
+                ArbolReleido(destino);
                 resultado.Fallos.InsertRange(0, noHmi);
                 MostrarResultado(resultado, L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
             });
+        }
+
+        /// <summary>
+        /// Tras releer parte del árbol: vuelve a seleccionar el destino (sus nodos pueden ser otros) y
+        /// aplica el filtro y la cuenta de marcados a lo nuevo.
+        /// </summary>
+        private void ArbolReleido(NodoArbol destino)
+        {
+            NodoSeleccionado = destino.Raiz.Buscar(destino);
+            OnFiltroChanged(Filtro);
+            ContarMarcados();
         }
 
         private void ContarMarcados() => Marcados = Dispositivos.Sum(d => d.HojasMarcadas().Count());
