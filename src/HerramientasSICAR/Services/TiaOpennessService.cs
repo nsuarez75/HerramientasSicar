@@ -65,11 +65,18 @@ namespace HerramientasSICAR.Services
             });
         }
 
-        /// <summary>Vuelve a leer los PLC y HMI del proyecto conectado.</summary>
-        public Task<ArbolProyecto> LeerArbolAsync() => _hilo.Ejecutar(() =>
+        /// <summary>Vuelve a leer los bloques de un PLC del proyecto conectado.</summary>
+        public Task<PlcInfo> LeerPlcAsync(string plc) => _hilo.Ejecutar(() =>
         {
             ComprobarConexion();
-            return LeerArbol();
+            return LeerPlc(new ProyectoTia(_proyecto).BuscarPlc(plc));
+        });
+
+        /// <summary>Vuelve a leer algunas ramas de una HMI del proyecto conectado; las que el panel no tiene no salen.</summary>
+        public Task<List<RamaInfo>> LeerRamasHmiAsync(string hmi, IEnumerable<RamaHmi> ramas) => _hilo.Ejecutar(() =>
+        {
+            ComprobarConexion();
+            return HmiTia.LeerRamas(new ProyectoTia(_proyecto).BuscarHmi(hmi), ramas);
         });
 
         /// <summary>Ejecuta un trabajo de una herramienta sobre el proyecto conectado, en el hilo de Openness.</summary>
@@ -219,10 +226,12 @@ namespace HerramientasSICAR.Services
         {
             var proyecto = new ProyectoTia(_proyecto);
             var arbol = new ArbolProyecto();
-            arbol.Plcs.AddRange(proyecto.Plcs().Select(plc => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) }));
+            arbol.Plcs.AddRange(proyecto.Plcs().Select(LeerPlc));
             arbol.Hmis.AddRange(proyecto.Hmis().Select(HmiTia.Leer));
             return arbol;
         }
+
+        private static PlcInfo LeerPlc(PlcSoftware plc) => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) };
 
         private static GrupoInfo LeerGrupo(PlcBlockGroup grupo)
         {
@@ -372,12 +381,12 @@ namespace HerramientasSICAR.Services
                     yield return software;
         }
 
+        internal PlcSoftware BuscarPlc(string nombrePlc) => Plcs().FirstOrDefault(p => p.Name == nombrePlc)
+            ?? throw new InvalidOperationException(L.T("no se encuentra el PLC '{0}'", nombrePlc));
+
         internal PlcBlockGroup BuscarGrupo(string nombrePlc, IReadOnlyList<string> grupos, bool crear)
         {
-            var plc = Plcs().FirstOrDefault(p => p.Name == nombrePlc)
-                ?? throw new InvalidOperationException(L.T("no se encuentra el PLC '{0}'", nombrePlc));
-
-            PlcBlockGroup grupo = plc.BlockGroup;
+            PlcBlockGroup grupo = BuscarPlc(nombrePlc).BlockGroup;
             foreach (string nombre in grupos)
             {
                 PlcBlockGroup siguiente = grupo.Groups.Find(nombre);

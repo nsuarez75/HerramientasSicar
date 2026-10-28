@@ -90,6 +90,7 @@ namespace HerramientasSICAR
             ["Importando…"] = "Importing…",
             ["Exportando {0}/{1}: {2}"] = "Exporting {0}/{1}: {2}",
             ["Importando {0}/{1}: {2}"] = "Importing {0}/{1}: {2}",
+            ["Leyendo de nuevo lo importado en {0}…"] = "Reading again what was imported into {0}…",
             ["{0} elemento(s) exportado(s) a {1}."] = "{0} item(s) exported to {1}.",
             ["{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos."] = "{0} block(s) imported. Save the project in TIA to keep them.",
             ["{0} con error (ver abajo)."] = "{0} with errors (see below).",
