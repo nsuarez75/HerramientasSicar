@@ -20,20 +20,22 @@ namespace HerramientasSICAR.Services
         private const string ArchivoElementosGlobales = "ElementosGlobales";
         private const string ArchivoVistaGeneral = "VistaGeneral";
 
-        public static HmiInfo Leer(HmiTarget hmi)
+        /// <summary>Todas las ramas de la HMI. <paramref name="alLeerRama"/> se llama antes de leer cada una.</summary>
+        public static HmiInfo Leer(HmiTarget hmi, Action<RamaHmi> alLeerRama = null)
         {
             var info = new HmiInfo { Nombre = hmi.Name };
-            info.Ramas.AddRange(LeerRamas(hmi, ArchivosHmi.OrdenArbol));
+            info.Ramas.AddRange(LeerRamas(hmi, ArchivosHmi.OrdenArbol, alLeerRama));
             return info;
         }
 
         /// <summary>Las ramas pedidas, en el orden del árbol.</summary>
-        public static List<RamaInfo> LeerRamas(HmiTarget hmi, IEnumerable<RamaHmi> ramas)
+        public static List<RamaInfo> LeerRamas(HmiTarget hmi, IEnumerable<RamaHmi> ramas, Action<RamaHmi> alLeerRama = null)
         {
             var pedidas = new HashSet<RamaHmi>(ramas);
             var leidas = new List<RamaInfo>();
             foreach (var rama in ArchivosHmi.OrdenArbol.Where(pedidas.Contains))
             {
+                alLeerRama?.Invoke(rama);
                 // Algunos paneles no tienen todas las ramas (p. ej. sin vista general): esas no se muestran.
                 var raiz = LeerRama(hmi, rama);
                 if (raiz != null)

@@ -44,6 +44,9 @@ namespace HerramientasSICAR.Views
 
         public Task<bool> Confirmar(string titulo, string texto, string aceptar) => DialogWindow.Confirmar(this, titulo, texto, aceptar);
 
+        public Task<IReadOnlyList<int>> ElegirVarios(string titulo, string texto, IReadOnlyList<string> opciones, IReadOnlyList<bool> marcadas,
+            string aceptar, string cancelar) => DialogWindow.ElegirVarios(this, titulo, texto, opciones, marcadas, aceptar, cancelar);
+
         public async Task<string> ElegirCarpeta(string titulo, string inicial)
         {
             var carpetas = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
@@ -17,6 +18,9 @@ namespace HerramientasSICAR
         public string Idioma { get; set; }
 
         public string UltimaCarpeta { get; set; }
+
+        /// <summary>Por ruta de proyecto, los PLC y HMI que se eligieron leer al conectar la última vez.</summary>
+        public Dictionary<string, List<string>> DispositivosLeidos { get; set; } = new Dictionary<string, List<string>>();
 
         private static string Ruta => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HerramientasSICAR", "ajustes.json");

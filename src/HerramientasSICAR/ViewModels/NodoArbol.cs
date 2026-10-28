@@ -55,8 +55,14 @@ namespace HerramientasSICAR.ViewModels
         public IReadOnlyList<string> Grupos { get; }
 
         public string Nombre { get; }
-        public string Detalle { get; }
         public NodoArbol Padre { get; }
+
+        [ObservableProperty]
+        private string _detalle;
+
+        /// <summary>False en un PLC o una HMI cuyo contenido no se ha leído de TIA (se eligió no leerlo al conectar).</summary>
+        [ObservableProperty]
+        private bool _leido = true;
         public bool EsHoja => Tipo == TipoNodo.Bloque || Tipo == TipoNodo.ElementoHmi;
         public bool EsDeHmi => Tipo == TipoNodo.Hmi || Rama != null;
         public ObservableCollection<NodoArbol> Hijos { get; } = new ObservableCollection<NodoArbol>();
@@ -105,6 +111,11 @@ namespace HerramientasSICAR.ViewModels
             return nodo;
         }
 
+        /// <summary>Un PLC o una HMI sin su contenido, que se lee después con <see cref="ReemplazarContenido"/> o <see cref="ReemplazarRamas"/>.</summary>
+        public static NodoArbol SinLeer(DispositivoInfo dispositivo, Action alCambiarMarcas) =>
+            new NodoArbol(dispositivo.EsHmi ? TipoNodo.Hmi : TipoNodo.Plc, dispositivo.Nombre, null, new string[0], dispositivo.Nombre,
+                L.T("sin leer"), null, alCambiarMarcas) { Leido = false };
+
         /// <summary>El PLC o la HMI del que cuelga este nodo.</summary>
         public NodoArbol Raiz => Padre?.Raiz ?? this;
 
@@ -118,6 +129,7 @@ namespace HerramientasSICAR.ViewModels
             AñadirContenido(raiz);
             CopiarEstadoHijos(anteriores);
             AjustarMarca();
+            YaLeido();
         }
 
         /// <summary>
@@ -144,6 +156,16 @@ namespace HerramientasSICAR.ViewModels
                 Hijos.Insert(posicion, nuevo);
             }
             AjustarMarca();
+            YaLeido();
+        }
+
+        private void YaLeido()
+        {
+            if (Leido)
+                return;
+            Leido = true;
+            Detalle = null;
+            IsExpanded = true;
         }
 
         /// <summary>El nodo de este árbol que está donde estaba <paramref name="modelo"/> (mismo tipo, rama, carpetas y nombre).</summary>

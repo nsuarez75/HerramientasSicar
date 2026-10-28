@@ -11,7 +11,7 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 ## Uso
 
 1. Abre el proyecto en TIA Portal V19.
-2. Abre la aplicación: busca sola los proyectos abiertos (botón ↻ de la barra superior para volver a buscar). Elige uno y pulsa **Conectar**. La primera vez TIA pregunta si deja entrar a la aplicación: hay que aceptarlo.
+2. Abre la aplicación: busca sola los proyectos abiertos (botón ↻ de la barra superior para volver a buscar). Elige uno y pulsa **Conectar**. La primera vez TIA pregunta si deja entrar a la aplicación: hay que aceptarlo. Si el proyecto tiene varios PLC o HMI, la aplicación pregunta de cuáles leer el árbol (en proyectos grandes lleva minutos) y recuerda la elección; los demás salen «sin leer» y se leen después con el botón **Leer** de Importar / Exportar.
 3. Elige la herramienta en el lateral. Las del grupo **Con TIA** trabajan sobre el proyecto conectado; sin conexión muestran un aviso y sus botones están desactivados. Las del grupo **Con archivos** no necesitan TIA.
 
 La aplicación nunca abre, guarda ni cierra proyectos en TIA: después de una herramienta que cambia bloques, guarda el proyecto en TIA. Si cierras el proyecto en TIA, vuelve a conectar.

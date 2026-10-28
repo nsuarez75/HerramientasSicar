@@ -86,6 +86,37 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void Una_hmi_sin_leer_queda_leida_al_traer_sus_ramas()
+        {
+            var hmi = NodoArbol.SinLeer(new DispositivoInfo { Nombre = "HMI_3", EsHmi = true }, null);
+            Assert.Equal(TipoNodo.Hmi, hmi.Tipo);
+            Assert.False(hmi.Leido);
+            Assert.NotNull(hmi.Detalle);
+            Assert.Empty(hmi.Hijos);
+
+            hmi.ReemplazarRamas(ArchivosHmi.OrdenArbol, Hmi().Ramas);
+
+            Assert.True(hmi.Leido);
+            Assert.Null(hmi.Detalle);
+            Assert.True(hmi.IsExpanded);
+            Assert.Equal(new RamaHmi?[] { RamaHmi.Pantallas, RamaHmi.Variables, RamaHmi.Ciclos }, hmi.Hijos.Select(h => h.Rama));
+        }
+
+        [Fact]
+        public void Un_plc_sin_leer_queda_leido_al_traer_sus_bloques()
+        {
+            var plc = NodoArbol.SinLeer(new DispositivoInfo { Nombre = "PLC_1" }, null);
+            var raiz = new GrupoInfo { Nombre = "Bloques de programa" };
+            raiz.Bloques.Add(new BloqueInfo { Nombre = "Main", Tipo = "OB", Numero = 1 });
+
+            plc.ReemplazarContenido(raiz);
+
+            Assert.Equal(TipoNodo.Plc, plc.Tipo);
+            Assert.True(plc.Leido);
+            Assert.Equal(new[] { "Main" }, plc.Hijos.Select(h => h.Nombre));
+        }
+
+        [Fact]
         public void Buscar_encuentra_el_destino_en_el_arbol_releido()
         {
             var hmi = NodoArbol.DesdeHmi(Hmi(), null);

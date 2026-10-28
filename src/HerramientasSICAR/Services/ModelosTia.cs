@@ -34,6 +34,13 @@ namespace HerramientasSICAR.Services
         public string Nombre { get; set; }
     }
 
+    /// <summary>Un PLC o una HMI del proyecto, sin lo que tiene dentro.</summary>
+    public class DispositivoInfo
+    {
+        public string Nombre { get; set; }
+        public bool EsHmi { get; set; }
+    }
+
     /// <summary>PLC y HMI del proyecto conectado.</summary>
     public class ArbolProyecto
     {

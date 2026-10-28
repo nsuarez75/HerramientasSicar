@@ -39,8 +39,11 @@ namespace HerramientasSICAR.Services
             });
         }
 
-        /// <summary>Se engancha a la instancia de TIA que tiene abierto el proyecto y devuelve sus PLC y HMI.</summary>
-        public Task<ArbolProyecto> ConectarAsync(string rutaProyecto)
+        /// <summary>
+        /// Se engancha a la instancia de TIA que tiene abierto el proyecto y devuelve sus PLC y HMI,
+        /// sin leer lo que tienen dentro (eso es lo que tarda: <see cref="LeerArbolAsync"/>).
+        /// </summary>
+        public Task<List<DispositivoInfo>> ConectarAsync(string rutaProyecto)
         {
             return _hilo.Ejecutar(() =>
             {
@@ -61,9 +64,37 @@ namespace HerramientasSICAR.Services
                 if (_proyecto == null)
                     throw new InvalidOperationException(L.T("No se pudo acceder al proyecto abierto en TIA Portal."));
 
-                return LeerArbol();
+                var proyecto = new ProyectoTia(_proyecto);
+                return proyecto.Plcs().Select(p => new DispositivoInfo { Nombre = p.Name })
+                    .Concat(proyecto.Hmis().Select(h => new DispositivoInfo { Nombre = h.Name, EsHmi = true }))
+                    .ToList();
             });
         }
+
+        /// <summary>Lee el árbol de los PLC y HMI indicados, avisando por cuál va (y, en las HMI, por qué rama).</summary>
+        public Task<ArbolProyecto> LeerArbolAsync(IReadOnlyCollection<DispositivoInfo> dispositivos, IProgress<string> progreso) => _hilo.Ejecutar(() =>
+        {
+            ComprobarConexion();
+            var proyecto = new ProyectoTia(_proyecto);
+            var plcs = proyecto.Plcs().Where(p => dispositivos.Any(d => !d.EsHmi && d.Nombre == p.Name)).ToList();
+            var hmis = proyecto.Hmis().Where(h => dispositivos.Any(d => d.EsHmi && d.Nombre == h.Name)).ToList();
+            int total = plcs.Count + hmis.Count;
+            int n = 0;
+
+            var arbol = new ArbolProyecto();
+            foreach (var plc in plcs)
+            {
+                progreso.Report(L.T("Leyendo el árbol del proyecto: {0} ({1}/{2})…", plc.Name, ++n, total));
+                arbol.Plcs.Add(LeerPlc(plc));
+            }
+            foreach (var hmi in hmis)
+            {
+                n++;
+                arbol.Hmis.Add(HmiTia.Leer(hmi, rama => progreso.Report(
+                    L.T("Leyendo el árbol del proyecto: {0} › {1} ({2}/{3})…", hmi.Name, L.T(ArchivosHmi.Nombre(rama)), n, total))));
+            }
+            return arbol;
+        });
 
         /// <summary>Vuelve a leer los bloques de un PLC del proyecto conectado.</summary>
         public Task<PlcInfo> LeerPlcAsync(string plc) => _hilo.Ejecutar(() =>
@@ -220,15 +251,6 @@ namespace HerramientasSICAR.Services
                 resultado.Fallos.Add(L.T("TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer.", quedan));
                 return false;
             }
-        }
-
-        private ArbolProyecto LeerArbol()
-        {
-            var proyecto = new ProyectoTia(_proyecto);
-            var arbol = new ArbolProyecto();
-            arbol.Plcs.AddRange(proyecto.Plcs().Select(LeerPlc));
-            arbol.Hmis.AddRange(proyecto.Hmis().Select(HmiTia.Leer));
-            return arbol;
         }
 
         private static PlcInfo LeerPlc(PlcSoftware plc) => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) };
