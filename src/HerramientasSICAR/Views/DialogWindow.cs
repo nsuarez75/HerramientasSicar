@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HerramientasSICAR.Views
@@ -72,6 +74,30 @@ namespace HerramientasSICAR.Views
             var dialogo = new DialogWindow(dueño, titulo, new ScrollViewer { Content = Texto(texto), MaxHeight = 480 }, 520);
             dialogo.AñadirBoton(aceptar, () => { resultado = true; dialogo.Close(); }, principal: true);
             dialogo.AñadirBoton(L.T("Cancelar"), dialogo.Close, cancelar: true);
+            await dialogo.ShowDialog(dueño);
+            return resultado;
+        }
+
+        public static async Task<IReadOnlyList<int>> ElegirVarios(Window dueño, string titulo, string texto, IReadOnlyList<string> opciones,
+            IReadOnlyList<bool> marcadas, string aceptar, string cancelar)
+        {
+            IReadOnlyList<int> resultado = null;
+            var casillas = opciones.Select((opcion, i) => new CheckBox { Content = opcion, IsChecked = marcadas[i] }).ToList();
+            var lista = new StackPanel { Spacing = 2 };
+            foreach (var casilla in casillas)
+                lista.Children.Add(casilla);
+
+            var panel = new StackPanel { Spacing = 12 };
+            panel.Children.Add(Texto(texto));
+            panel.Children.Add(new ScrollViewer { Content = lista, MaxHeight = 360 });
+
+            var dialogo = new DialogWindow(dueño, titulo, panel, 480);
+            dialogo.AñadirBoton(aceptar, () =>
+            {
+                resultado = Enumerable.Range(0, casillas.Count).Where(i => casillas[i].IsChecked == true).ToList();
+                dialogo.Close();
+            }, principal: true);
+            dialogo.AñadirBoton(cancelar, dialogo.Close, cancelar: true);
             await dialogo.ShowDialog(dueño);
             return resultado;
         }

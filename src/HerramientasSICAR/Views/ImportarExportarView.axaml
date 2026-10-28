@@ -21,6 +21,14 @@
                         <c:Icon Kind="search" Width="14" Height="14" Margin="10,0,0,0" Foreground="{DynamicResource App.TextMuted}" />
                     </TextBox.InnerLeftContent>
                 </TextBox>
+                <Button DockPanel.Dock="Top" Margin="4,0,4,8" HorizontalAlignment="Stretch" Command="{Binding LeerCommand}"
+                        IsVisible="{Binding Contexto.Conectado}"
+                        ToolTip.Tip="{l:T 'Trae de TIA el árbol del PLC o la HMI seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA'}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:Icon Kind="refresh" />
+                        <TextBlock Text="{Binding TextoLeer}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Button>
                 <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="10,4" FontSize="12" IsVisible="{Binding Contexto.SinConectar}"
                            Text="{l:T 'Conecta con un proyecto para ver sus PLC y HMI con todo lo que tienen dentro.'}" />
                 <TreeView ItemsSource="{Binding Dispositivos}" SelectedItem="{Binding NodoSeleccionado}">

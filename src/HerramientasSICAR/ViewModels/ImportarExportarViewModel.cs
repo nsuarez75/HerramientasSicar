@@ -35,8 +35,8 @@ namespace HerramientasSICAR.ViewModels
         private string _filtro;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(Destino), nameof(HayDestino))]
-        [NotifyCanExecuteChangedFor(nameof(ImportarArchivosCommand), nameof(ImportarCarpetaCommand))]
+        [NotifyPropertyChangedFor(nameof(Destino), nameof(HayDestino), nameof(TextoLeer))]
+        [NotifyCanExecuteChangedFor(nameof(ImportarArchivosCommand), nameof(ImportarCarpetaCommand), nameof(LeerCommand))]
         private NodoArbol _nodoSeleccionado;
 
         [ObservableProperty]
@@ -47,6 +47,11 @@ namespace HerramientasSICAR.ViewModels
         public bool HayMarcados => Marcados > 0;
         public bool HayDestino => NodoSeleccionado != null;
         public string TextoMarcados => Marcados == 0 ? L.T("Ningún elemento marcado") : L.T("{0} elemento(s) marcado(s)", Marcados);
+
+        /// <summary>Botón para leer (o volver a leer) de TIA el PLC o la HMI de lo seleccionado.</summary>
+        public string TextoLeer => NodoSeleccionado == null ? L.T("Selecciona un PLC o una HMI para leerlo")
+            : NodoSeleccionado.Raiz.Leido ? L.T("Leer de nuevo {0}", NodoSeleccionado.Raiz.Nombre)
+            : L.T("Leer {0}", NodoSeleccionado.Raiz.Nombre);
 
         /// <summary>
         /// Dónde se importará: la carpeta seleccionada en el árbol (o la de un bloque seleccionado).
@@ -67,17 +72,44 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        /// <summary>Árbol del proyecto recién conectado (o vacío si se desconecta).</summary>
-        public void MostrarArbol(ArbolProyecto arbol)
+        /// <summary>
+        /// PLC y HMI del proyecto recién conectado (o ninguno si se desconecta), con el árbol de los que se han leído;
+        /// los demás salen «sin leer».
+        /// </summary>
+        public void MostrarArbol(IReadOnlyList<DispositivoInfo> dispositivos, ArbolProyecto arbol)
         {
             Dispositivos.Clear();
             NodoSeleccionado = null;
-            foreach (var plc in arbol.Plcs)
-                Dispositivos.Add(NodoArbol.DesdePlc(plc, ContarMarcados));
-            foreach (var hmi in arbol.Hmis)
-                Dispositivos.Add(NodoArbol.DesdeHmi(hmi, ContarMarcados));
+            foreach (var dispositivo in dispositivos)
+            {
+                var plc = dispositivo.EsHmi ? null : arbol.Plcs.FirstOrDefault(p => p.Nombre == dispositivo.Nombre);
+                var hmi = dispositivo.EsHmi ? arbol.Hmis.FirstOrDefault(h => h.Nombre == dispositivo.Nombre) : null;
+                Dispositivos.Add(plc != null ? NodoArbol.DesdePlc(plc, ContarMarcados)
+                    : hmi != null ? NodoArbol.DesdeHmi(hmi, ContarMarcados)
+                    : NodoArbol.SinLeer(dispositivo, ContarMarcados));
+            }
             OnFiltroChanged(Filtro);
             ContarMarcados();
+        }
+
+        /// <summary>Lee de TIA el PLC o la HMI de lo seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA.</summary>
+        [RelayCommand(CanExecute = nameof(PuedeLeer))]
+        private async Task Leer()
+        {
+            var destino = NodoSeleccionado;
+            var dispositivo = destino.Raiz;
+            var info = new DispositivoInfo { Nombre = dispositivo.Nombre, EsHmi = dispositivo.Tipo == TipoNodo.Hmi };
+
+            await Contexto.Trabajar(L.T("Leyendo el árbol del proyecto…"), async () =>
+            {
+                var arbol = await Contexto.Tia().LeerArbolAsync(new[] { info }, _progreso);
+                if (info.EsHmi)
+                    dispositivo.ReemplazarRamas(ArchivosHmi.OrdenArbol, arbol.Hmis.Single().Ramas);
+                else
+                    dispositivo.ReemplazarContenido(arbol.Plcs.Single().Raiz);
+                ArbolReleido(destino);
+                Contexto.MostrarEstado(L.T("Árbol de {0} leído.", dispositivo.Nombre));
+            });
         }
 
         partial void OnFiltroChanged(string value)
@@ -157,11 +189,15 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
                 var resultado = await Contexto.Tia().ImportarAsync(destino.Dispositivo, destino.Grupos, archivos, _progreso);
-                // Solo se vuelve a leer el PLC destino: leer el proyecto entero tarda minutos en uno grande.
-                _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
-                var plc = await Contexto.Tia().LeerPlcAsync(destino.Dispositivo);
-                destino.Raiz.ReemplazarContenido(plc.Raiz);
-                ArbolReleido(destino);
+                // Solo se vuelve a leer el PLC destino (leer el proyecto entero tarda minutos en uno grande),
+                // y nada si no se había leído.
+                if (destino.Raiz.Leido)
+                {
+                    _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                    var plc = await Contexto.Tia().LeerPlcAsync(destino.Dispositivo);
+                    destino.Raiz.ReemplazarContenido(plc.Raiz);
+                    ArbolReleido(destino);
+                }
                 resultado.Fallos.InsertRange(0, noBloques);
                 MostrarResultado(resultado, L.T("{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
             });
@@ -187,12 +223,15 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
                 var resultado = await Contexto.Tia().ImportarHmiAsync(destino.Dispositivo, destino.Rama, destino.Grupos, archivos, _progreso);
-                // Solo se vuelven a leer las ramas de la HMI donde se ha importado algo.
-                _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
-                var ramas = archivos.Select(a => a.Rama).Distinct().ToList();
-                var leidas = await Contexto.Tia().LeerRamasHmiAsync(destino.Dispositivo, ramas);
-                destino.Raiz.ReemplazarRamas(ramas, leidas);
-                ArbolReleido(destino);
+                // Solo se vuelven a leer las ramas de la HMI donde se ha importado algo, y nada si no se había leído.
+                if (destino.Raiz.Leido)
+                {
+                    _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                    var ramas = archivos.Select(a => a.Rama).Distinct().ToList();
+                    var leidas = await Contexto.Tia().LeerRamasHmiAsync(destino.Dispositivo, ramas);
+                    destino.Raiz.ReemplazarRamas(ramas, leidas);
+                    ArbolReleido(destino);
+                }
                 resultado.Fallos.InsertRange(0, noHmi);
                 MostrarResultado(resultado, L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
             });
@@ -205,6 +244,7 @@ namespace HerramientasSICAR.ViewModels
         private void ArbolReleido(NodoArbol destino)
         {
             NodoSeleccionado = destino.Raiz.Buscar(destino);
+            OnPropertyChanged(nameof(TextoLeer));
             OnFiltroChanged(Filtro);
             ContarMarcados();
         }
@@ -226,12 +266,14 @@ namespace HerramientasSICAR.ViewModels
 
         private bool PuedeExportar() => PuedeUsarTia && Marcados > 0;
         private bool PuedeImportar() => PuedeUsarTia && NodoSeleccionado != null;
+        private bool PuedeLeer() => PuedeUsarTia && NodoSeleccionado != null;
 
         protected override void ActualizarComandos()
         {
             ExportarCommand.NotifyCanExecuteChanged();
             ImportarArchivosCommand.NotifyCanExecuteChanged();
             ImportarCarpetaCommand.NotifyCanExecuteChanged();
+            LeerCommand.NotifyCanExecuteChanged();
         }
     }
 }

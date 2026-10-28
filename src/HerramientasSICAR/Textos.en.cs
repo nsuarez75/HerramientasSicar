@@ -91,6 +91,23 @@ namespace HerramientasSICAR
             ["Exportando {0}/{1}: {2}"] = "Exporting {0}/{1}: {2}",
             ["Importando {0}/{1}: {2}"] = "Importing {0}/{1}: {2}",
             ["Leyendo de nuevo lo importado en {0}…"] = "Reading again what was imported into {0}…",
+            ["Leyendo el árbol del proyecto…"] = "Reading the project tree…",
+            ["Leyendo el árbol del proyecto: {0} ({1}/{2})…"] = "Reading the project tree: {0} ({1}/{2})…",
+            ["Leyendo el árbol del proyecto: {0} › {1} ({2}/{3})…"] = "Reading the project tree: {0} › {1} ({2}/{3})…",
+            ["sin leer"] = "not read",
+            ["Selecciona un PLC o una HMI para leerlo"] = "Select a PLC or HMI to read it",
+            ["Leer {0}"] = "Read {0}",
+            ["Leer de nuevo {0}"] = "Read {0} again",
+            ["Árbol de {0} leído."] = "{0} tree read.",
+            ["Trae de TIA el árbol del PLC o la HMI seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA"] =
+                "Reads the tree of the selected PLC or HMI from TIA: if it was not read when connecting, or to see changes made in TIA",
+            ["Conectado con {0}. {1} PLC o HMI sin leer: selecciónalo en el árbol y pulsa Leer."] =
+                "Connected to {0}. {1} PLC or HMI not read: select it in the tree and press Read.",
+            ["¿Qué quieres leer del proyecto?"] = "What do you want to read from the project?",
+            ["Leer el árbol de cada PLC o HMI lleva un rato en proyectos grandes. Los que no marques salen en el árbol sin leer; luego puedes leerlos seleccionándolos y pulsando Leer."] =
+                "Reading the tree of each PLC or HMI takes a while in large projects. The ones you leave unchecked appear in the tree as not read; you can read them later by selecting them and pressing Read.",
+            ["Leer"] = "Read",
+            ["No leer ninguno"] = "Read none",
             ["{0} elemento(s) exportado(s) a {1}."] = "{0} item(s) exported to {1}.",
             ["{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos."] = "{0} block(s) imported. Save the project in TIA to keep them.",
             ["{0} con error (ver abajo)."] = "{0} with errors (see below).",

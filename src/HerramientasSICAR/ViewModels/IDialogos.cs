@@ -27,6 +27,10 @@ namespace HerramientasSICAR.ViewModels
         Task<bool> Confirmar(string titulo, string texto, string aceptar);
         Task<string> ElegirCarpeta(string titulo, string inicial);
 
+        /// <summary>Casillas para elegir varias opciones: las posiciones marcadas, o null si se cancela.</summary>
+        Task<IReadOnlyList<int>> ElegirVarios(string titulo, string texto, IReadOnlyList<string> opciones, IReadOnlyList<bool> marcadas,
+            string aceptar, string cancelar);
+
         /// <summary>Un archivo para abrir, o null si se cancela.</summary>
         Task<string> ElegirArchivo(string titulo, string inicial, params TipoArchivo[] tipos);
 
