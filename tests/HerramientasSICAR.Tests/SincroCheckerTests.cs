@@ -31,6 +31,31 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void Un_paso_con_transAuto_a_1_no_es_candidato_a_sincronizar()
+        {
+            // S001 avanza con Servicio; S002 solo sincroniza con Servicio: nunca coinciden
+            var espera = Paso("S001", V("\"Est-Codigo=1\""));
+            espera.ExpresionTransAuto = V("\"Est-Servicio\"");
+            var servicio = Paso("S002", V("\"Est-Servicio\""));
+
+            var conflictos = new SincroChecker().Comprobar(new[] { espera, servicio });
+
+            Assert.Empty(conflictos);
+        }
+
+        [Fact]
+        public void Con_transAuto_a_0_el_paso_sigue_siendo_candidato()
+        {
+            var espera = Paso("S001", V("\"Est-Codigo=1\""));
+            espera.ExpresionTransAuto = V("\"Est-Marcha\"");
+            var servicio = Paso("S002", V("\"Est-Servicio\""));
+
+            var conflicto = Assert.Single(new SincroChecker().Comprobar(new[] { espera, servicio }));
+
+            Assert.False(conflicto.Estado.TryGetValue("\"Est-Marcha\"", out bool marcha) && marcha);
+        }
+
+        [Fact]
         public void La_condicion_de_un_paso_es_solo_la_suya()
         {
             var checker = new SincroChecker();

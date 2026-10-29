@@ -41,8 +41,8 @@ namespace HerramientasSICAR.Helpers
 
     /// <summary>
     /// When switching from manual to automatic, the SICAR sequence engine jumps to the step whose
-    /// ilocks are fulfilled and faults if several steps are fulfilled at once. The conditions of PERM
-    /// do not take part in the synchronization: only the step's own ilocks count.
+    /// ilocks are fulfilled and faults if several steps are fulfilled at once. A step whose transAuto
+    /// is true is not proposed, because it can advance. The conditions of PERM do not take part.
     /// This checker looks, for every pair of steps, for a signal state that fulfills both.
     /// </summary>
     public class SincroChecker
@@ -94,14 +94,16 @@ namespace HerramientasSICAR.Helpers
         }
 
         /// <summary>
-        /// step.ilockAuto AND step.ilockExtSync (PERM does not count).
-        /// A network that does not write an ilock leaves it at 1 (engine default).
+        /// step.ilockAuto AND step.ilockExtSync AND NOT step.transAuto (PERM does not count).
+        /// A network that does not write an ilock leaves it at 1 (engine default); one that does not
+        /// write transAuto never advances.
         /// </summary>
         public ExpresionLogica CondicionSincro(PasoSecuencia paso)
         {
             return ExpresionLogica.And(
                 paso.ExpresionIlockAuto ?? ExpresionLogica.True,
-                paso.ExpresionIlockExtSync ?? ExpresionLogica.True);
+                paso.ExpresionIlockExtSync ?? ExpresionLogica.True,
+                ExpresionLogica.Not(paso.ExpresionTransAuto ?? ExpresionLogica.False));
         }
 
         /// <summary>First step recognised as manual, or null when none can be detected.</summary>
@@ -184,6 +186,7 @@ namespace HerramientasSICAR.Helpers
             var senales = new HashSet<string>();
             paso.ExpresionIlockAuto?.RecogerVariables(senales);
             paso.ExpresionIlockExtSync?.RecogerVariables(senales);
+            paso.ExpresionTransAuto?.RecogerVariables(senales);
             return senales;
         }
 

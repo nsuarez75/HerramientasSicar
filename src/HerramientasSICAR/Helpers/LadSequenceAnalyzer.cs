@@ -38,6 +38,9 @@ namespace HerramientasSICAR.Helpers
 
         /// <summary>Logic of the ilockExtSync coil; null when the network does not write it.</summary>
         public ExpresionLogica ExpresionIlockExtSync { get; set; }
+
+        /// <summary>Logic of the transAuto coil; null when the network does not write it.</summary>
+        public ExpresionLogica ExpresionTransAuto { get; set; }
     }
 
     /// <summary>
@@ -117,6 +120,7 @@ namespace HerramientasSICAR.Helpers
                 // SICAR sync markers: the last plain coil wins, as in the PLC scan
                 paso.ExpresionIlockAuto = UltimaBobina(paso.Asignaciones, "ilockAuto");
                 paso.ExpresionIlockExtSync = UltimaBobina(paso.Asignaciones, "ilockExtSync");
+                paso.ExpresionTransAuto = UltimaBobina(paso.Asignaciones, "transAuto");
                 paso.IlockAuto = paso.ExpresionIlockAuto?.ToString() ?? "";
                 paso.IlockExtSync = paso.ExpresionIlockExtSync?.ToString() ?? "";
 

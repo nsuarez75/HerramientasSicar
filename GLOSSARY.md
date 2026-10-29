@@ -33,6 +33,10 @@ Condición que debe cumplirse para que un **paso** sea válido. `ilockAuto` e `i
 automático; si un paso no los escribe, valen 1.
 _Evitar_: enclavamiento, interlock
 
+**transAuto**:
+Condición de transición de un **paso** en automático: a 1, el paso avanza. Un paso con `transAuto` a 1 no se propone
+para sincronizar aunque cumpla sus **ilocks**.
+
 **Actuador**:
 Elemento que se mueve en la estación (cilindro, pinza…), con dos posiciones: `-H` (reposo) y `-W` (trabajo). Nunca
 está en las dos a la vez.

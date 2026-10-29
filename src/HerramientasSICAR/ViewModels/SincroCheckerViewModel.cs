@@ -83,7 +83,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => "Sincro Checker";
-        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
+        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, con transAuto a 0) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
         public override string Icono => "git-compare";
 
         // Puede abrir un XML ya exportado sin conexión; solo «Exportar desde TIA» necesita el proyecto.
@@ -359,10 +359,11 @@ namespace HerramientasSICAR.ViewModels
                 : new SegmentoLad { Bobina = L.T("ilockAuto (no escrito → 1)"), Expresion = ExpresionLogica.True });
             if (paso.ExpresionIlockExtSync != null)
                 segmentos.Add(new SegmentoLad { Bobina = "ilockExtSync", Expresion = paso.ExpresionIlockExtSync });
+            // With transAuto at 1 the step can advance, so it is not proposed for synchronization
+            if (paso.ExpresionTransAuto != null)
+                segmentos.Add(new SegmentoLad { Bobina = L.T("transAuto (a 1 no sincroniza)"), Expresion = paso.ExpresionTransAuto });
 
-            return new SeccionPaso(titulo, subtitulo, segmentos, estado =>
-                (paso.ExpresionIlockAuto ?? ExpresionLogica.True).Evaluar(estado) &&
-                (paso.ExpresionIlockExtSync ?? ExpresionLogica.True).Evaluar(estado));
+            return new SeccionPaso(titulo, subtitulo, segmentos, estado => _checker.CondicionSincro(paso).Evaluar(estado));
         }
 
         private void ActualizarEstado()
