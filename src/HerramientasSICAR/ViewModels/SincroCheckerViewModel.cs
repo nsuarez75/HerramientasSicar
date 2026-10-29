@@ -47,7 +47,7 @@ namespace HerramientasSICAR.ViewModels
         public ExpresionLogica Expresion { get; set; }
     }
 
-    /// <summary>PERM or one of the two conflicting steps, with its ilock rungs.</summary>
+    /// <summary>One of the two conflicting steps, with its ilock rungs.</summary>
     public partial class SeccionPaso : ObservableObject
     {
         private readonly Func<IDictionary<string, bool>, bool> _evaluar;
@@ -83,7 +83,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => "Sincro Checker";
-        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, junto con PERM) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
+        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
         public override string Icono => "git-compare";
 
         // Puede abrir un XML ya exportado sin conexión; solo «Exportar desde TIA» necesita el proyecto.
@@ -318,9 +318,6 @@ namespace HerramientasSICAR.ViewModels
                 return;
             }
 
-            var perm = _checker.Perm;
-            if (perm != null && (perm.ExpresionIlockAuto != null || perm.ExpresionIlockExtSync != null))
-                Secciones.Add(CrearSeccion(perm, "PERM", L.T("Se ejecuta en cada ciclo junto al paso activo")));
             Secciones.Add(CrearSeccion(conflicto.PasoA, conflicto.PasoA.Paso, conflicto.PasoA.Titulo));
             Secciones.Add(CrearSeccion(conflicto.PasoB, conflicto.PasoB.Paso, conflicto.PasoB.Titulo));
 

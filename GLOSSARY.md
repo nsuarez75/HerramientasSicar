@@ -20,7 +20,8 @@ _Evitar_: estado, etapa
 **Paso** que solo se usa en modo manual. En un FB de secuencia van todos al final, a partir del primero.
 
 **PERM**:
-Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo.
+Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo. Sus condiciones no
+intervienen en la sincronización.
 
 **Segmento**:
 Cada bloque de lógica de un FB en TIA Portal. En un **FB de secuencia**, cada **paso** ocupa un segmento cuyo título

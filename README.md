@@ -52,10 +52,10 @@ Sincro Checker detecta esa situación al programar: abre un FB de secuencia (LAD
 
 - Se puede abrir un XML ya exportado (no necesita conexión) o exportar el bloque desde el proyecto conectado.
 - Se comprueban todos los pasos automáticos `S###`, cualquier combinación de dos (si tres pasos pudieran coincidir, también lo haría cada par).
-- Condición de cada paso: `ilockAuto` e `ilockExtSync` del paso, junto con los de PERM (que se ejecuta en cada ciclo con el paso activo). Un ilock que la network no escribe vale 1.
+- Condición de cada paso: `ilockAuto` e `ilockExtSync` del paso. Las condiciones de PERM no afectan a la sincronización y no se tienen en cuenta. Un ilock que la network no escribe vale 1.
 - Los pasos manuales se omiten: desde el primer paso manual en adelante todos se consideran manuales. Se detecta como el primer paso que solo escribe `ilockManual`/`limitManual`; si no se detecta, la herramienta pide indicarlo (vacío = no hay pasos manuales).
 - Reglas físicas opcionales: un actuador no puede estar en `-H` y `-W` a la vez, y solo un valor puede estar activo en señales decodificadas (`ProcessCode=N`, comparaciones `x == N`).
-- Cada coincidencia se muestra en una vista LAD interactiva con PERM y los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
+- Cada coincidencia se muestra en una vista LAD interactiva con los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
 - Para cada coincidencia muestra las diferencias entre los dos pasos: señales que un paso exige siempre y el otro no comprueba (o admite con el valor contrario). Son hechos sobre los ilocks, no propuestas: qué señal usar para separarlos depende del proceso. Esas señales se resaltan en el LAD.
 
 ### Con archivos

@@ -108,7 +108,7 @@
                                    Foreground="{DynamicResource App.AccentText}" />
                     </DockPanel>
 
-                    <!-- LAD de PERM y de los dos pasos -->
+                    <!-- LAD de los dos pasos -->
                     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Secciones}">
                             <ItemsControl.ItemTemplate>

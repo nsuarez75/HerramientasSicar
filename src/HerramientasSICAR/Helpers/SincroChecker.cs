@@ -41,8 +41,8 @@ namespace HerramientasSICAR.Helpers
 
     /// <summary>
     /// When switching from manual to automatic, the SICAR sequence engine jumps to the step whose
-    /// ilocks are fulfilled and faults if several steps are fulfilled at once. PERM runs every scan
-    /// before the active step, so the ilocks of a step are PERM's AND the step's own ones.
+    /// ilocks are fulfilled and faults if several steps are fulfilled at once. The conditions of PERM
+    /// do not take part in the synchronization: only the step's own ilocks count.
     /// This checker looks, for every pair of steps, for a signal state that fulfills both.
     /// </summary>
     public class SincroChecker
@@ -65,15 +65,11 @@ namespace HerramientasSICAR.Helpers
         /// <summary>Number of the first manual step; this step and all the following ones are manual. Null = none.</summary>
         public int? PrimerPasoManual { get; set; }
 
-        public PasoSecuencia Perm { get; private set; }
-
         public List<PasoSecuencia> PasosAuto { get; private set; } = new List<PasoSecuencia>();
 
         public List<ConflictoSincro> Comprobar(IEnumerable<PasoSecuencia> pasos)
         {
-            var lista = pasos.ToList();
-            Perm = lista.FirstOrDefault(p => p.Paso.Equals("PERM", StringComparison.OrdinalIgnoreCase));
-            PasosAuto = lista
+            PasosAuto = pasos
                 .Where(p => _regPaso.IsMatch(p.Paso) &&
                             (PrimerPasoManual == null || NumeroPaso(p) < PrimerPasoManual))
                 .ToList();
@@ -98,14 +94,12 @@ namespace HerramientasSICAR.Helpers
         }
 
         /// <summary>
-        /// PERM.ilockAuto AND PERM.ilockExtSync AND step.ilockAuto AND step.ilockExtSync.
+        /// step.ilockAuto AND step.ilockExtSync (PERM does not count).
         /// A network that does not write an ilock leaves it at 1 (engine default).
         /// </summary>
         public ExpresionLogica CondicionSincro(PasoSecuencia paso)
         {
             return ExpresionLogica.And(
-                Perm?.ExpresionIlockAuto ?? ExpresionLogica.True,
-                Perm?.ExpresionIlockExtSync ?? ExpresionLogica.True,
                 paso.ExpresionIlockAuto ?? ExpresionLogica.True,
                 paso.ExpresionIlockExtSync ?? ExpresionLogica.True);
         }
@@ -137,7 +131,7 @@ namespace HerramientasSICAR.Helpers
         /// <summary>
         /// Signals that one step always requires and the other step does not (it can synchronize
         /// with the opposite value). Only signals each step checks in its own ilocks are listed:
-        /// values deduced from the physical rules (-H/-W) or coming from PERM would repeat them.
+        /// values deduced from the physical rules (-H/-W) would repeat them.
         /// </summary>
         public List<DiferenciaSincro> Diferencias(ConflictoSincro conflicto)
         {
