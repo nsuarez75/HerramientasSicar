@@ -231,13 +231,14 @@ namespace HerramientasSICAR
             ["Traduciendo las funciones de usuario…"] = "Translating the user functions…",
 
             // ---- Sincro Checker
-            ["Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, junto con PERM) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización."] =
-                "Finds pairs of steps in a sequence FB (LAD) whose ilocks (ilockAuto and ilockExtSync, together with PERM) can be met at the same time when switching from manual to automatic, which causes a synchronisation error.",
+            ["Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, sin transAuto ni salto activos) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización."] =
+                "Finds pairs of steps in a sequence FB (LAD) whose ilocks (ilockAuto and ilockExtSync, with no active transAuto or jump) can be met at the same time when switching from manual to automatic, which causes a synchronisation error.",
             ["Abrir FB exportado…"] = "Open exported FB…",
             ["o exporta del proyecto conectado:"] = "or export from the connected project:",
             ["Nombre del FB de secuencia"] = "Sequence FB name",
             ["Exportar y comprobar"] = "Export and check",
             ["Un actuador no puede estar en -H y -W a la vez"] = "An actuator cannot be in -H and -W at the same time",
+            ["Secuencia de robot (no se comprueban S223–S227)"] = "Robot sequence (S223–S227 are not checked)",
             ["Solo un valor activo por señal decodificada (ProcessCode=N, x == N)"] = "Only one active value per decoded signal (ProcessCode=N, x == N)",
             ["Ninguno"] = "None",
             ["Primer paso manual:"] = "First manual step:",
@@ -266,10 +267,11 @@ namespace HerramientasSICAR
             ["El bloque no tiene pasos automáticos (S###)"] = "The block has no automatic steps (S###)",
             ["{0} pasos automáticos: ningún par de pasos puede sincronizar a la vez"] = "{0} automatic steps: no pair of steps can synchronise at the same time",
             ["{0} pasos automáticos: {1} pares de pasos pueden sincronizar a la vez"] = "{0} automatic steps: {1} pairs of steps can synchronise at the same time",
-            ["Se ejecuta en cada ciclo junto al paso activo"] = "Runs every cycle together with the active step",
             ["{0} siempre exige ({1} también las usa, pero admite el valor contrario):"] = "{0} always requires ({1} also uses them, but accepts the opposite value):",
             ["{0} siempre exige ({1} no las comprueba):"] = "{0} always requires ({1} does not check them):",
             ["ilockAuto (no escrito → 1)"] = "ilockAuto (not written → 1)",
+            ["transAuto (a 1 no sincroniza)"] = "transAuto (at 1 it does not synchronise)",
+            ["Salto a {0} (a 1 no sincroniza)"] = "Jump to {0} (at 1 it does not synchronise)",
             ["Con este estado sincronizan {0} y {1} a la vez → error de sincronización"] = "With this state {0} and {1} synchronise at the same time → synchronisation error",
             ["Con este estado solo sincroniza {0}"] = "With this state only {0} synchronises",
             ["Con este estado no sincroniza ninguno de los dos pasos"] = "With this state neither step synchronises",

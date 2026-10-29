@@ -41,8 +41,10 @@ namespace HerramientasSICAR.Helpers
 
     /// <summary>
     /// When switching from manual to automatic, the SICAR sequence engine jumps to the step whose
-    /// ilocks are fulfilled and faults if several steps are fulfilled at once. PERM runs every scan
-    /// before the active step, so the ilocks of a step are PERM's AND the step's own ones.
+    /// ilocks are fulfilled and faults if several steps are fulfilled at once. A step whose transAuto
+    /// or one of its jumps (#Sequence.stepNplus1) is true is not proposed, because it can advance.
+    /// The sync runs during one scan with #Sequence.pos_Pulse_OM_Sync at 1, which usually blocks
+    /// the jumps. The conditions of PERM do not take part.
     /// This checker looks, for every pair of steps, for a signal state that fulfills both.
     /// </summary>
     public class SincroChecker
@@ -65,17 +67,23 @@ namespace HerramientasSICAR.Helpers
         /// <summary>Number of the first manual step; this step and all the following ones are manual. Null = none.</summary>
         public int? PrimerPasoManual { get; set; }
 
-        public PasoSecuencia Perm { get; private set; }
+        /// <summary>
+        /// Robot sequence: steps S223–S227 (service routines, return home…) are not checked, because
+        /// the robot cannot meet them together with the others due to how it works internally.
+        /// </summary>
+        public bool EsRobot { get; set; }
+
+        public const int PrimerPasoServicioRobot = 223;
+        public const int UltimoPasoServicioRobot = 227;
 
         public List<PasoSecuencia> PasosAuto { get; private set; } = new List<PasoSecuencia>();
 
         public List<ConflictoSincro> Comprobar(IEnumerable<PasoSecuencia> pasos)
         {
-            var lista = pasos.ToList();
-            Perm = lista.FirstOrDefault(p => p.Paso.Equals("PERM", StringComparison.OrdinalIgnoreCase));
-            PasosAuto = lista
+            PasosAuto = pasos
                 .Where(p => _regPaso.IsMatch(p.Paso) &&
-                            (PrimerPasoManual == null || NumeroPaso(p) < PrimerPasoManual))
+                            (PrimerPasoManual == null || NumeroPaso(p) < PrimerPasoManual) &&
+                            !(EsRobot && NumeroPaso(p) >= PrimerPasoServicioRobot && NumeroPaso(p) <= UltimoPasoServicioRobot))
                 .ToList();
 
             var conflictos = new List<ConflictoSincro>();
@@ -98,16 +106,32 @@ namespace HerramientasSICAR.Helpers
         }
 
         /// <summary>
-        /// PERM.ilockAuto AND PERM.ilockExtSync AND step.ilockAuto AND step.ilockExtSync.
-        /// A network that does not write an ilock leaves it at 1 (engine default).
+        /// step.ilockAuto AND step.ilockExtSync AND NOT (step.transAuto OR any jump of the step),
+        /// in the sync scan (pos_Pulse_OM_Sync = 1). PERM does not count.
+        /// A network that does not write an ilock leaves it at 1 (engine default); one that does not
+        /// write transAuto never advances.
         /// </summary>
         public ExpresionLogica CondicionSincro(PasoSecuencia paso)
         {
-            return ExpresionLogica.And(
-                Perm?.ExpresionIlockAuto ?? ExpresionLogica.True,
-                Perm?.ExpresionIlockExtSync ?? ExpresionLogica.True,
+            var avanza = ExpresionLogica.Or(
+                new[] { paso.ExpresionTransAuto ?? ExpresionLogica.False }.Concat(paso.Saltos.Select(s => s.Condicion)));
+            return FijarConstantes(ExpresionLogica.And(
                 paso.ExpresionIlockAuto ?? ExpresionLogica.True,
-                paso.ExpresionIlockExtSync ?? ExpresionLogica.True);
+                paso.ExpresionIlockExtSync ?? ExpresionLogica.True,
+                ExpresionLogica.Not(avanza)));
+        }
+
+        /// <summary>Value of a signal that is not free during the sync scan, or null when it is free.</summary>
+        public static bool? ValorFijo(string variable)
+        {
+            string nombre = variable.Trim('"', '#');
+            if (nombre.Equals("alwaysTrue", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (nombre.Equals("alwaysFalse", StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (nombre.Equals("Sequence.pos_Pulse_OM_Sync", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return null;
         }
 
         /// <summary>First step recognised as manual, or null when none can be detected.</summary>
@@ -137,7 +161,7 @@ namespace HerramientasSICAR.Helpers
         /// <summary>
         /// Signals that one step always requires and the other step does not (it can synchronize
         /// with the opposite value). Only signals each step checks in its own ilocks are listed:
-        /// values deduced from the physical rules (-H/-W) or coming from PERM would repeat them.
+        /// values deduced from the physical rules (-H/-W) would repeat them.
         /// </summary>
         public List<DiferenciaSincro> Diferencias(ConflictoSincro conflicto)
         {
@@ -190,21 +214,23 @@ namespace HerramientasSICAR.Helpers
             var senales = new HashSet<string>();
             paso.ExpresionIlockAuto?.RecogerVariables(senales);
             paso.ExpresionIlockExtSync?.RecogerVariables(senales);
+            paso.ExpresionTransAuto?.RecogerVariables(senales);
+            foreach (var salto in paso.Saltos)
+                salto.Condicion.RecogerVariables(senales);
+            senales.RemoveWhere(s => ValorFijo(s).HasValue);
             return senales;
         }
 
-        /// <summary>alwaysTrue / alwaysFalse tags are constants, not free signals.</summary>
+        /// <summary>alwaysTrue / alwaysFalse and the sync pulse are constants, not free signals.</summary>
         private static ExpresionLogica FijarConstantes(ExpresionLogica e)
         {
             var variables = new HashSet<string>();
             e.RecogerVariables(variables);
             foreach (var v in variables)
             {
-                string nombre = v.Trim('"', '#');
-                if (nombre.Equals("alwaysTrue", StringComparison.OrdinalIgnoreCase))
-                    e = e.Asignar(v, true);
-                else if (nombre.Equals("alwaysFalse", StringComparison.OrdinalIgnoreCase))
-                    e = e.Asignar(v, false);
+                bool? valor = ValorFijo(v);
+                if (valor.HasValue)
+                    e = e.Asignar(v, valor.Value);
             }
             return e;
         }

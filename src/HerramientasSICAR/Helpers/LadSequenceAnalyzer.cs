@@ -38,6 +38,12 @@ namespace HerramientasSICAR.Helpers
 
         /// <summary>Logic of the ilockExtSync coil; null when the network does not write it.</summary>
         public ExpresionLogica ExpresionIlockExtSync { get; set; }
+
+        /// <summary>Logic of the transAuto coil; null when the network does not write it.</summary>
+        public ExpresionLogica ExpresionTransAuto { get; set; }
+
+        /// <summary>Jumps: MOVE of a step number to #Sequence.stepNplus1, each with its condition.</summary>
+        public List<AsignacionLad> Saltos { get; } = new List<AsignacionLad>();
     }
 
     /// <summary>
@@ -117,6 +123,9 @@ namespace HerramientasSICAR.Helpers
                 // SICAR sync markers: the last plain coil wins, as in the PLC scan
                 paso.ExpresionIlockAuto = UltimaBobina(paso.Asignaciones, "ilockAuto");
                 paso.ExpresionIlockExtSync = UltimaBobina(paso.Asignaciones, "ilockExtSync");
+                paso.ExpresionTransAuto = UltimaBobina(paso.Asignaciones, "transAuto");
+                paso.Saltos.AddRange(paso.Asignaciones.Where(a =>
+                    a.Tipo == "MOVE" && a.Condicion != null && a.NombreCorto.Equals("stepNplus1", StringComparison.OrdinalIgnoreCase)));
                 paso.IlockAuto = paso.ExpresionIlockAuto?.ToString() ?? "";
                 paso.IlockExtSync = paso.ExpresionIlockExtSync?.ToString() ?? "";
 

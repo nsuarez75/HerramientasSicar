@@ -47,7 +47,7 @@ namespace HerramientasSICAR.ViewModels
         public ExpresionLogica Expresion { get; set; }
     }
 
-    /// <summary>PERM or one of the two conflicting steps, with its ilock rungs.</summary>
+    /// <summary>One of the two conflicting steps, with its ilock rungs.</summary>
     public partial class SeccionPaso : ObservableObject
     {
         private readonly Func<IDictionary<string, bool>, bool> _evaluar;
@@ -83,7 +83,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => "Sincro Checker";
-        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, junto con PERM) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
+        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, sin transAuto ni salto activos) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
         public override string Icono => "git-compare";
 
         // Puede abrir un XML ya exportado sin conexión; solo «Exportar desde TIA» necesita el proyecto.
@@ -111,6 +111,10 @@ namespace HerramientasSICAR.ViewModels
 
         [ObservableProperty]
         private bool _excluirValoresDecodificados = true;
+
+        /// <summary>Robot sequence: S223–S227 are not checked.</summary>
+        [ObservableProperty]
+        private bool _esRobot;
 
         /// <summary>First manual step ("S100"); from it onwards all steps are manual. Empty = none.</summary>
         [ObservableProperty]
@@ -151,6 +155,7 @@ namespace HerramientasSICAR.ViewModels
 
         partial void OnExcluirHomeWorkChanged(bool value) => Comprobar();
         partial void OnExcluirValoresDecodificadosChanged(bool value) => Comprobar();
+        partial void OnEsRobotChanged(bool value) => Comprobar();
         partial void OnHayResumenChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
         partial void OnPedirPrimerManualChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
 
@@ -282,6 +287,7 @@ namespace HerramientasSICAR.ViewModels
             {
                 ExcluirHomeWork = ExcluirHomeWork,
                 ExcluirValoresDecodificados = ExcluirValoresDecodificados,
+                EsRobot = EsRobot,
                 PrimerPasoManual = primerManual
             };
             var conflictos = _checker.Comprobar(_pasos);
@@ -318,9 +324,6 @@ namespace HerramientasSICAR.ViewModels
                 return;
             }
 
-            var perm = _checker.Perm;
-            if (perm != null && (perm.ExpresionIlockAuto != null || perm.ExpresionIlockExtSync != null))
-                Secciones.Add(CrearSeccion(perm, "PERM", L.T("Se ejecuta en cada ciclo junto al paso activo")));
             Secciones.Add(CrearSeccion(conflicto.PasoA, conflicto.PasoA.Paso, conflicto.PasoA.Titulo));
             Secciones.Add(CrearSeccion(conflicto.PasoB, conflicto.PasoB.Paso, conflicto.PasoB.Titulo));
 
@@ -362,10 +365,17 @@ namespace HerramientasSICAR.ViewModels
                 : new SegmentoLad { Bobina = L.T("ilockAuto (no escrito → 1)"), Expresion = ExpresionLogica.True });
             if (paso.ExpresionIlockExtSync != null)
                 segmentos.Add(new SegmentoLad { Bobina = "ilockExtSync", Expresion = paso.ExpresionIlockExtSync });
+            // With transAuto at 1 the step can advance, so it is not proposed for synchronization
+            if (paso.ExpresionTransAuto != null)
+                segmentos.Add(new SegmentoLad { Bobina = L.T("transAuto (a 1 no sincroniza)"), Expresion = paso.ExpresionTransAuto });
+            // Same for a jump to another step (MOVE to #Sequence.stepNplus1)
+            foreach (var salto in paso.Saltos)
+            {
+                string destino = int.TryParse(salto.Valor, out int n) ? "S" + n.ToString("000") : salto.Valor;
+                segmentos.Add(new SegmentoLad { Bobina = L.T("Salto a {0} (a 1 no sincroniza)", destino), Expresion = salto.Condicion });
+            }
 
-            return new SeccionPaso(titulo, subtitulo, segmentos, estado =>
-                (paso.ExpresionIlockAuto ?? ExpresionLogica.True).Evaluar(estado) &&
-                (paso.ExpresionIlockExtSync ?? ExpresionLogica.True).Evaluar(estado));
+            return new SeccionPaso(titulo, subtitulo, segmentos, estado => _checker.CondicionSincro(paso).Evaluar(estado));
         }
 
         private void ActualizarEstado()
@@ -374,6 +384,16 @@ namespace HerramientasSICAR.ViewModels
                 return;
 
             var estado = Senales.ToDictionary(s => s.Nombre, s => s.Valor);
+            // Constants (pos_Pulse_OM_Sync = 1 in the sync scan...) are not editable, but the LAD shows their value
+            var variables = new HashSet<string>();
+            foreach (var segmento in Secciones.SelectMany(s => s.Segmentos))
+                segmento.Expresion.RecogerVariables(variables);
+            foreach (var v in variables)
+            {
+                bool? fijo = SincroChecker.ValorFijo(v);
+                if (fijo.HasValue)
+                    estado[v] = fijo.Value;
+            }
             EstadoSenales = estado;
             foreach (var s in Secciones)
                 s.Actualizar(estado);

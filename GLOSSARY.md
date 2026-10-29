@@ -20,7 +20,8 @@ _Evitar_: estado, etapa
 **Paso** que solo se usa en modo manual. En un FB de secuencia van todos al final, a partir del primero.
 
 **PERM**:
-Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo.
+Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo. Sus condiciones no
+intervienen en la sincronización.
 
 **Segmento**:
 Cada bloque de lógica de un FB en TIA Portal. En un **FB de secuencia**, cada **paso** ocupa un segmento cuyo título
@@ -31,6 +32,18 @@ _Evitar_: network (salvo en la interfaz de TIA en inglés)
 Condición que debe cumplirse para que un **paso** sea válido. `ilockAuto` e `ilockExtSync` son los del modo
 automático; si un paso no los escribe, valen 1.
 _Evitar_: enclavamiento, interlock
+
+**transAuto**:
+Condición de transición de un **paso** en automático: a 1, el paso avanza. Un paso con `transAuto` a 1 no se propone
+para sincronizar aunque cumpla sus **ilocks**.
+
+**Salto**:
+Escritura de un número de **paso** en `#Sequence.stepNplus1`: si se cumple su condición, la secuencia va a ese paso.
+Como con `transAuto`, un paso con un salto cumplido no se propone para sincronizar.
+
+**Pulso de sincronización**:
+`#Sequence.pos_Pulse_OM_Sync`, que vale 1 durante el scan en que se sincroniza. Se suele poner negado en las
+condiciones de **salto** para que no salten durante la sincronización.
 
 **Actuador**:
 Elemento que se mueve en la estación (cilindro, pinza…), con dos posiciones: `-H` (reposo) y `-W` (trabajo). Nunca
