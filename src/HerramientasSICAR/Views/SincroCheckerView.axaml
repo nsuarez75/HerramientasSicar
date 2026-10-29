@@ -45,8 +45,10 @@
                 <WrapPanel>
                     <CheckBox IsChecked="{Binding ExcluirHomeWork}" Margin="0,0,24,0"
                               Content="{l:T 'Un actuador no puede estar en -H y -W a la vez'}" />
-                    <CheckBox IsChecked="{Binding ExcluirValoresDecodificados}"
+                    <CheckBox IsChecked="{Binding ExcluirValoresDecodificados}" Margin="0,0,24,0"
                               Content="{l:T 'Solo un valor activo por señal decodificada (ProcessCode=N, x == N)'}" />
+                    <CheckBox IsChecked="{Binding EsRobot}"
+                              Content="{l:T 'Secuencia de robot (no se comprueban S223–S227)'}" />
                 </WrapPanel>
             </StackPanel>
         </Border>

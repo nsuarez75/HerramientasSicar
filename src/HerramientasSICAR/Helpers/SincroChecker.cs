@@ -67,13 +67,23 @@ namespace HerramientasSICAR.Helpers
         /// <summary>Number of the first manual step; this step and all the following ones are manual. Null = none.</summary>
         public int? PrimerPasoManual { get; set; }
 
+        /// <summary>
+        /// Robot sequence: steps S223–S227 (service routines, return home…) are not checked, because
+        /// the robot cannot meet them together with the others due to how it works internally.
+        /// </summary>
+        public bool EsRobot { get; set; }
+
+        public const int PrimerPasoServicioRobot = 223;
+        public const int UltimoPasoServicioRobot = 227;
+
         public List<PasoSecuencia> PasosAuto { get; private set; } = new List<PasoSecuencia>();
 
         public List<ConflictoSincro> Comprobar(IEnumerable<PasoSecuencia> pasos)
         {
             PasosAuto = pasos
                 .Where(p => _regPaso.IsMatch(p.Paso) &&
-                            (PrimerPasoManual == null || NumeroPaso(p) < PrimerPasoManual))
+                            (PrimerPasoManual == null || NumeroPaso(p) < PrimerPasoManual) &&
+                            !(EsRobot && NumeroPaso(p) >= PrimerPasoServicioRobot && NumeroPaso(p) <= UltimoPasoServicioRobot))
                 .ToList();
 
             var conflictos = new List<ConflictoSincro>();

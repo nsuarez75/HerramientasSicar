@@ -238,6 +238,7 @@ namespace HerramientasSICAR
             ["Nombre del FB de secuencia"] = "Sequence FB name",
             ["Exportar y comprobar"] = "Export and check",
             ["Un actuador no puede estar en -H y -W a la vez"] = "An actuator cannot be in -H and -W at the same time",
+            ["Secuencia de robot (no se comprueban S223–S227)"] = "Robot sequence (S223–S227 are not checked)",
             ["Solo un valor activo por señal decodificada (ProcessCode=N, x == N)"] = "Only one active value per decoded signal (ProcessCode=N, x == N)",
             ["Ninguno"] = "None",
             ["Primer paso manual:"] = "First manual step:",

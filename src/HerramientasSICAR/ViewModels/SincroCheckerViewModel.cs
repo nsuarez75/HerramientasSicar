@@ -112,6 +112,10 @@ namespace HerramientasSICAR.ViewModels
         [ObservableProperty]
         private bool _excluirValoresDecodificados = true;
 
+        /// <summary>Robot sequence: S223–S227 are not checked.</summary>
+        [ObservableProperty]
+        private bool _esRobot;
+
         /// <summary>First manual step ("S100"); from it onwards all steps are manual. Empty = none.</summary>
         [ObservableProperty]
         private string _primerPasoManual = "";
@@ -151,6 +155,7 @@ namespace HerramientasSICAR.ViewModels
 
         partial void OnExcluirHomeWorkChanged(bool value) => Comprobar();
         partial void OnExcluirValoresDecodificadosChanged(bool value) => Comprobar();
+        partial void OnEsRobotChanged(bool value) => Comprobar();
         partial void OnHayResumenChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
         partial void OnPedirPrimerManualChanged(bool value) => OnPropertyChanged(nameof(MostrarPrimerManual));
 
@@ -282,6 +287,7 @@ namespace HerramientasSICAR.ViewModels
             {
                 ExcluirHomeWork = ExcluirHomeWork,
                 ExcluirValoresDecodificados = ExcluirValoresDecodificados,
+                EsRobot = EsRobot,
                 PrimerPasoManual = primerManual
             };
             var conflictos = _checker.Comprobar(_pasos);

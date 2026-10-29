@@ -83,6 +83,27 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void En_una_secuencia_de_robot_no_se_comprueban_S223_a_S227()
+        {
+            var pasos = new[]
+            {
+                Paso("S001", V("\"Est-Codigo=1\"")),
+                Paso("S222", V("\"Est-Pieza\"")),
+                Paso("S223", V("\"Est-Servicio\"")),
+                Paso("S227", V("\"Est-Servicio\"")),
+                Paso("S228", V("\"Est-Servicio\"")),
+            };
+
+            var utillaje = new SincroChecker().Comprobar(pasos);
+            var robot = new SincroChecker { EsRobot = true };
+            var conflictosRobot = robot.Comprobar(pasos);
+
+            Assert.Equal(10, utillaje.Count);
+            Assert.Equal(new[] { "S001", "S222", "S228" }, robot.PasosAuto.ConvertAll(p => p.Paso));
+            Assert.Equal(3, conflictosRobot.Count);
+        }
+
+        [Fact]
         public void La_condicion_de_un_paso_es_solo_la_suya()
         {
             var checker = new SincroChecker();
