@@ -37,6 +37,14 @@ _Evitar_: enclavamiento, interlock
 Condición de transición de un **paso** en automático: a 1, el paso avanza. Un paso con `transAuto` a 1 no se propone
 para sincronizar aunque cumpla sus **ilocks**.
 
+**Salto**:
+Escritura de un número de **paso** en `#Sequence.stepNplus1`: si se cumple su condición, la secuencia va a ese paso.
+Como con `transAuto`, un paso con un salto cumplido no se propone para sincronizar.
+
+**Pulso de sincronización**:
+`#Sequence.pos_Pulse_OM_Sync`, que vale 1 durante el scan en que se sincroniza. Se suele poner negado en las
+condiciones de **salto** para que no salten durante la sincronización.
+
 **Actuador**:
 Elemento que se mueve en la estación (cilindro, pinza…), con dos posiciones: `-H` (reposo) y `-W` (trabajo). Nunca
 está en las dos a la vez.

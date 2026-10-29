@@ -42,7 +42,9 @@ namespace HerramientasSICAR.Helpers
     /// <summary>
     /// When switching from manual to automatic, the SICAR sequence engine jumps to the step whose
     /// ilocks are fulfilled and faults if several steps are fulfilled at once. A step whose transAuto
-    /// is true is not proposed, because it can advance. The conditions of PERM do not take part.
+    /// or one of its jumps (#Sequence.stepNplus1) is true is not proposed, because it can advance.
+    /// The sync runs during one scan with #Sequence.pos_Pulse_OM_Sync at 1, which usually blocks
+    /// the jumps. The conditions of PERM do not take part.
     /// This checker looks, for every pair of steps, for a signal state that fulfills both.
     /// </summary>
     public class SincroChecker
@@ -94,16 +96,32 @@ namespace HerramientasSICAR.Helpers
         }
 
         /// <summary>
-        /// step.ilockAuto AND step.ilockExtSync AND NOT step.transAuto (PERM does not count).
+        /// step.ilockAuto AND step.ilockExtSync AND NOT (step.transAuto OR any jump of the step),
+        /// in the sync scan (pos_Pulse_OM_Sync = 1). PERM does not count.
         /// A network that does not write an ilock leaves it at 1 (engine default); one that does not
         /// write transAuto never advances.
         /// </summary>
         public ExpresionLogica CondicionSincro(PasoSecuencia paso)
         {
-            return ExpresionLogica.And(
+            var avanza = ExpresionLogica.Or(
+                new[] { paso.ExpresionTransAuto ?? ExpresionLogica.False }.Concat(paso.Saltos.Select(s => s.Condicion)));
+            return FijarConstantes(ExpresionLogica.And(
                 paso.ExpresionIlockAuto ?? ExpresionLogica.True,
                 paso.ExpresionIlockExtSync ?? ExpresionLogica.True,
-                ExpresionLogica.Not(paso.ExpresionTransAuto ?? ExpresionLogica.False));
+                ExpresionLogica.Not(avanza)));
+        }
+
+        /// <summary>Value of a signal that is not free during the sync scan, or null when it is free.</summary>
+        public static bool? ValorFijo(string variable)
+        {
+            string nombre = variable.Trim('"', '#');
+            if (nombre.Equals("alwaysTrue", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (nombre.Equals("alwaysFalse", StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (nombre.Equals("Sequence.pos_Pulse_OM_Sync", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return null;
         }
 
         /// <summary>First step recognised as manual, or null when none can be detected.</summary>
@@ -187,21 +205,22 @@ namespace HerramientasSICAR.Helpers
             paso.ExpresionIlockAuto?.RecogerVariables(senales);
             paso.ExpresionIlockExtSync?.RecogerVariables(senales);
             paso.ExpresionTransAuto?.RecogerVariables(senales);
+            foreach (var salto in paso.Saltos)
+                salto.Condicion.RecogerVariables(senales);
+            senales.RemoveWhere(s => ValorFijo(s).HasValue);
             return senales;
         }
 
-        /// <summary>alwaysTrue / alwaysFalse tags are constants, not free signals.</summary>
+        /// <summary>alwaysTrue / alwaysFalse and the sync pulse are constants, not free signals.</summary>
         private static ExpresionLogica FijarConstantes(ExpresionLogica e)
         {
             var variables = new HashSet<string>();
             e.RecogerVariables(variables);
             foreach (var v in variables)
             {
-                string nombre = v.Trim('"', '#');
-                if (nombre.Equals("alwaysTrue", StringComparison.OrdinalIgnoreCase))
-                    e = e.Asignar(v, true);
-                else if (nombre.Equals("alwaysFalse", StringComparison.OrdinalIgnoreCase))
-                    e = e.Asignar(v, false);
+                bool? valor = ValorFijo(v);
+                if (valor.HasValue)
+                    e = e.Asignar(v, valor.Value);
             }
             return e;
         }

@@ -231,8 +231,8 @@ namespace HerramientasSICAR
             ["Traduciendo las funciones de usuario…"] = "Translating the user functions…",
 
             // ---- Sincro Checker
-            ["Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, con transAuto a 0) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización."] =
-                "Finds pairs of steps in a sequence FB (LAD) whose ilocks (ilockAuto and ilockExtSync, with transAuto at 0) can be met at the same time when switching from manual to automatic, which causes a synchronisation error.",
+            ["Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, sin transAuto ni salto activos) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización."] =
+                "Finds pairs of steps in a sequence FB (LAD) whose ilocks (ilockAuto and ilockExtSync, with no active transAuto or jump) can be met at the same time when switching from manual to automatic, which causes a synchronisation error.",
             ["Abrir FB exportado…"] = "Open exported FB…",
             ["o exporta del proyecto conectado:"] = "or export from the connected project:",
             ["Nombre del FB de secuencia"] = "Sequence FB name",
@@ -270,6 +270,7 @@ namespace HerramientasSICAR
             ["{0} siempre exige ({1} no las comprueba):"] = "{0} always requires ({1} does not check them):",
             ["ilockAuto (no escrito → 1)"] = "ilockAuto (not written → 1)",
             ["transAuto (a 1 no sincroniza)"] = "transAuto (at 1 it does not synchronise)",
+            ["Salto a {0} (a 1 no sincroniza)"] = "Jump to {0} (at 1 it does not synchronise)",
             ["Con este estado sincronizan {0} y {1} a la vez → error de sincronización"] = "With this state {0} and {1} synchronise at the same time → synchronisation error",
             ["Con este estado solo sincroniza {0}"] = "With this state only {0} synchronises",
             ["Con este estado no sincroniza ninguno de los dos pasos"] = "With this state neither step synchronises",

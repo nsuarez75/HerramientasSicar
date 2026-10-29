@@ -55,6 +55,33 @@ namespace HerramientasSICAR.Tests
             Assert.False(conflicto.Estado.TryGetValue("\"Est-Marcha\"", out bool marcha) && marcha);
         }
 
+        private static AsignacionLad Salto(int destino, ExpresionLogica condicion) =>
+            new AsignacionLad { Destino = "#Sequence.stepNplus1", NombreCorto = "stepNplus1", Tipo = "MOVE", Valor = destino.ToString(), Condicion = condicion };
+
+        private static readonly ExpresionLogica PulsoSincro = ExpresionLogica.Literal("#Sequence.pos_Pulse_OM_Sync");
+
+        [Fact]
+        public void Un_paso_con_un_salto_cumplido_no_es_candidato_a_sincronizar()
+        {
+            var espera = Paso("S001", V("\"Est-Codigo=1\""));
+            espera.Saltos.Add(Salto(2, V("\"Est-Servicio\"")));
+            var servicio = Paso("S002", V("\"Est-Servicio\""));
+
+            Assert.Empty(new SincroChecker().Comprobar(new[] { espera, servicio }));
+        }
+
+        [Fact]
+        public void Un_salto_con_el_pulso_de_sincronizacion_negado_no_cuenta()
+        {
+            var espera = Paso("S001", V("\"Est-Codigo=1\""));
+            espera.Saltos.Add(Salto(2, ExpresionLogica.And(ExpresionLogica.Not(PulsoSincro), V("\"Est-Servicio\""))));
+            var servicio = Paso("S002", V("\"Est-Servicio\""));
+
+            var conflicto = Assert.Single(new SincroChecker().Comprobar(new[] { espera, servicio }));
+
+            Assert.False(conflicto.Estado.ContainsKey("#Sequence.pos_Pulse_OM_Sync"));
+        }
+
         [Fact]
         public void La_condicion_de_un_paso_es_solo_la_suya()
         {

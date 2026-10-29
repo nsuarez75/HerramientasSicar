@@ -83,7 +83,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => "Sincro Checker";
-        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, con transAuto a 0) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
+        public override string Descripcion => L.T("Detecta pares de pasos de un FB de secuencia (LAD) cuyos ilocks (ilockAuto e ilockExtSync, sin transAuto ni salto activos) pueden cumplirse a la vez al pasar de manual a automático, lo que da error de sincronización.");
         public override string Icono => "git-compare";
 
         // Puede abrir un XML ya exportado sin conexión; solo «Exportar desde TIA» necesita el proyecto.
@@ -362,6 +362,12 @@ namespace HerramientasSICAR.ViewModels
             // With transAuto at 1 the step can advance, so it is not proposed for synchronization
             if (paso.ExpresionTransAuto != null)
                 segmentos.Add(new SegmentoLad { Bobina = L.T("transAuto (a 1 no sincroniza)"), Expresion = paso.ExpresionTransAuto });
+            // Same for a jump to another step (MOVE to #Sequence.stepNplus1)
+            foreach (var salto in paso.Saltos)
+            {
+                string destino = int.TryParse(salto.Valor, out int n) ? "S" + n.ToString("000") : salto.Valor;
+                segmentos.Add(new SegmentoLad { Bobina = L.T("Salto a {0} (a 1 no sincroniza)", destino), Expresion = salto.Condicion });
+            }
 
             return new SeccionPaso(titulo, subtitulo, segmentos, estado => _checker.CondicionSincro(paso).Evaluar(estado));
         }
@@ -372,6 +378,16 @@ namespace HerramientasSICAR.ViewModels
                 return;
 
             var estado = Senales.ToDictionary(s => s.Nombre, s => s.Valor);
+            // Constants (pos_Pulse_OM_Sync = 1 in the sync scan...) are not editable, but the LAD shows their value
+            var variables = new HashSet<string>();
+            foreach (var segmento in Secciones.SelectMany(s => s.Segmentos))
+                segmento.Expresion.RecogerVariables(variables);
+            foreach (var v in variables)
+            {
+                bool? fijo = SincroChecker.ValorFijo(v);
+                if (fijo.HasValue)
+                    estado[v] = fijo.Value;
+            }
             EstadoSenales = estado;
             foreach (var s in Secciones)
                 s.Actualizar(estado);
