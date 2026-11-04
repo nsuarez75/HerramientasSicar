@@ -6,7 +6,7 @@ Acordada con el usuario el 27/10/2026 (issue #6): pasar la interfaz al estándar
 
 - **Conexión común con TIA.** En la barra superior se elige un proyecto ya abierto en TIA Portal V19 y se pulsa Conectar. DiagExpected, Numerador, Renumerar Array, Sincro Checker e Importar / Exportar trabajan sobre ese proyecto: ya no piden el `.ap19`.
 - **La app nunca abre, guarda ni cierra proyectos.** Solo aparecen los proyectos que ya están abiertos en TIA.
-- **Sin conexión**, cada herramienta con TIA muestra el aviso «Conecta con un proyecto de TIA en la barra superior» y sus botones están desactivados. Sincro Checker sigue pudiendo abrir un XML ya exportado.
+- **Sin conexión**, cada herramienta con TIA muestra el aviso «Conecta con un proyecto de TIA en la barra superior» y sus botones están desactivados. Sincro Checker sigue pudiendo abrir una carpeta ya exportada.
 - **Lateral en dos grupos**: «Con TIA» (Importar / Exportar, DiagExpected, Numerador, Renumerar Array, Sincro Checker) y «Con archivos» (Comentador, Generador HMI).
 - **Importar / Exportar**: el árbol de bloques va dentro de su pantalla, no en el lateral. Funciona igual que ImportExportTIA.
 - **Barra superior**: «Herramientas SICAR» con el subtítulo «Utilidades para proyectos SICAR@GST en TIA Portal»; idioma, tema y Acerca de a la derecha.

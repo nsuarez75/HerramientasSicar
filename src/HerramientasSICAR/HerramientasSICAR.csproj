@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>HerramientasSICAR</AssemblyName>
     <RootNamespace>HerramientasSICAR</RootNamespace>
-    <Version>2.3.0</Version>
+    <Version>2.4.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\alomatek.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -30,6 +30,11 @@
     <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageReference Include="GTranslate" Version="2.3.1" />
+    <!-- El núcleo (Nucleo/) viene de GST-Diag, escrito para .NET 10: PolySharp añade lo que le falta a .NET Framework -->
+    <PackageReference Include="PolySharp" Version="1.16.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <!-- Un único .exe con las librerías dentro -->
     <PackageReference Include="Costura.Fody" Version="5.7.0">
       <PrivateAssets>all</PrivateAssets>
