@@ -17,11 +17,12 @@ Cada etapa de un **FB de secuencia**. Los automáticos se llaman `S###` (de S001
 _Evitar_: estado, etapa
 
 **Paso manual**:
-**Paso** que solo se usa en modo manual. En un FB de secuencia van todos al final, a partir del primero.
+**Paso** que solo se usa en modo manual. En un FB de secuencia van todos al final, a partir del primero. Como no
+programa `ilockAuto`, nunca es candidato al sincronizar.
 
 **PERM**:
-Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo. Sus condiciones no
-intervienen en la sincronización.
+Parte del **FB de secuencia** que se ejecuta en cada ciclo junto con el **paso** activo. Sus `ilockAuto` e
+`ilockExtSync` se suman con Y a los de cada paso al sincronizar (manual SICAR 2.2.5); lo que no programa vale 1.
 
 **Segmento**:
 Cada bloque de lógica de un FB en TIA Portal. En un **FB de secuencia**, cada **paso** ocupa un segmento cuyo título
@@ -30,20 +31,24 @@ _Evitar_: network (salvo en la interfaz de TIA en inglés)
 
 **Ilock**:
 Condición que debe cumplirse para que un **paso** sea válido. `ilockAuto` e `ilockExtSync` son los del modo
-automático; si un paso no los escribe, valen 1.
+automático. Si un paso no los programa, `ilockAuto` vale 0 e `ilockExtSync` vale 1 (manual SICAR 2.3).
 _Evitar_: enclavamiento, interlock
 
 **transAuto**:
 Condición de transición de un **paso** en automático: a 1, el paso avanza. Un paso con `transAuto` a 1 no se propone
-para sincronizar aunque cumpla sus **ilocks**.
+para sincronizar aunque cumpla sus **ilocks**; sin programar vale 0.
 
 **Salto**:
 Escritura de un número de **paso** en `#Sequence.stepNplus1`: si se cumple su condición, la secuencia va a ese paso.
-Como con `transAuto`, un paso con un salto cumplido no se propone para sincronizar.
+Al sincronizar, no se prueban los pasos que se salta un salto cumplido de un paso anterior (manual SICAR 2.9).
 
 **Pulso de sincronización**:
 `#Sequence.pos_Pulse_OM_Sync`, que vale 1 durante el scan en que se sincroniza. Se suele poner negado en las
 condiciones de **salto** para que no salten durante la sincronización.
+
+**Condiciones de activación**:
+Lo que hace valer 1 a una señal que el programa calcula con una sola bobina. Al sincronizar, la señal vale sus
+condiciones de activación (hasta 10 niveles hacia atrás); las que tienen SET/RESET o se escriben en varios sitios no.
 
 **Actuador**:
 Elemento que se mueve en la estación (cilindro, pinza…), con dos posiciones: `-H` (reposo) y `-W` (trabajo). Nunca
@@ -66,8 +71,12 @@ varios a la vez, da error de sincronización.
 
 **Coincidencia**:
 Par de **pasos** para los que existe un estado de señales que cumple los **ilocks** de los dos: es un posible
-**error de sincronización**, que detecta Sincro Checker.
+**error de sincronización**, que detecta Sincro Checker. Se calcula igual que la doble sincronización de GST-Diag.
 _Evitar_: conflicto, solape
+
+**Señales excluyentes**:
+Señales que el usuario marca porque nunca están a 1 a la vez (por ejemplo, las prioridades que elige un bloque
+llamado). Sincro Checker las tiene en cuenta y las guarda en `sincro.json` junto al programa exportado.
 
 **Plantilla HMI**:
 Proyecto HMI estándar que suministra GESTAMP y que el Generador HMI rellena con los menús de cada estación.

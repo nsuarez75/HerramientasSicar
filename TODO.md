@@ -5,7 +5,6 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 ## Versión 2.0 (issue #6)
 
 - Probar con TIA cada herramienta del grupo «Con TIA» sobre el **proyecto conectado**: DiagExpected, Numerador, Renumerar Array y Sincro Checker (exportar desde TIA).
-- Probar Sincro Checker con un FB de secuencia real: la vista LAD se ha redibujado para Avalonia.
 - Los botones que solo llevan icono no tienen nombre accesible (lectores de pantalla, automatización):
   ponerles `AutomationProperties.Name`.
 
@@ -17,12 +16,10 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
   tabla estándar. Ahora la tabla estándar no se sobrescribe nunca; falta ver si con eso basta.
 - Exportar una HMI entera tarda (unos 6 minutos con ~1000 elementos).
 
-## Sincro Checker
+## Sincro Checker (issue #21)
 
-- Revisar con el usuario qué **coincidencias** son reales en un proyecto de verdad y si hacen falta más reglas
-  físicas para robots.
-- Limitaciones conocidas:
-  - Los **segmentos** en STL o SCL no se interpretan; solo LAD.
-  - Las bobinas S/R sobre `ilockAuto` no se modelan: cuenta la última bobina `=`.
-  - Los contactos que leen variables escritas antes en el mismo ciclo se tratan como señales libres, igual que
-    temporizadores, comparadores y flancos.
+- Usa la comprobación de GST-Diag, copiada en `Nucleo/`. Probado con un programa real: los mismos pares por
+  secuencia que GST-Diag. Falta probar desde la app «Exportar el PLC desde TIA y comprobar» con el proyecto
+  conectado, y marcar y borrar señales excluyentes.
+- Cuando cambie la doble sincronización en GST-Diag, volver a copiar su núcleo (ver README, Estructura).
+- Límites (los mismos que GST-Diag): las señales de fuera del PLC son libres y las redes en STL y SCL no se leen.

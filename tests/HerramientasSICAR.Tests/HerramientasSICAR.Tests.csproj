@@ -11,13 +11,12 @@
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosHmi.cs" Link="Logica\ArchivosHmi.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Helpers\ExpresionLogica.cs" Link="Helpers\ExpresionLogica.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Helpers\LadSequenceAnalyzer.cs" Link="Helpers\LadSequenceAnalyzer.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Helpers\SincroChecker.cs" Link="Helpers\SincroChecker.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivoSincro.cs" Link="Logica\ArchivoSincro.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Services\ModelosTia.cs" Link="Services\ModelosTia.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\ViewModels\NodoArbol.cs" Link="ViewModels\NodoArbol.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Nucleo\**\*.cs" LinkBase="Nucleo" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
@@ -27,6 +26,10 @@
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="PolySharp" Version="1.16.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

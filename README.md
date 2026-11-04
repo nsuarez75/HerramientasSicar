@@ -48,16 +48,14 @@ Si la variable pertenece a un DB global, no hace falta indicar el nombre del DB,
 #### Sincro Checker
 
 Al pasar de manual a automático, el motor de secuencia SICAR busca el paso cuyos ilocks se cumplen y salta a él; si se cumplen en varios pasos a la vez, da error de sincronización.
-Sincro Checker detecta esa situación al programar: abre un FB de secuencia (LAD) y comprueba, para cada par de pasos, si existe algún estado de señales que cumpla los ilocks de ambos.
+Sincro Checker detecta esa situación al programar, con la misma comprobación que GST-Diag: con el mismo programa salen los mismos pares en las dos apps. Lee el programa entero de un PLC y busca, en cada secuencia, pares de pasos que puedan ser candidatos a la vez.
 
-- Se puede abrir un XML ya exportado (no necesita conexión) o exportar el bloque desde el proyecto conectado.
-- Se comprueban todos los pasos automáticos `S###`, cualquier combinación de dos (si tres pasos pudieran coincidir, también lo haría cada par).
-- Condición de cada paso: `ilockAuto` e `ilockExtSync` del paso, con `transAuto` y sus saltos a 0. Un paso con `transAuto` a 1, o con la condición de un salto cumplida (MOVE de un número de paso a `#Sequence.stepNplus1`), no se propone para sincronizar aunque cumpla sus ilocks, porque puede avanzar. Todo se evalúa en el scan de sincronización, con `#Sequence.pos_Pulse_OM_Sync` a 1 (los saltos que lo llevan negado no cuentan). Las condiciones de PERM no afectan a la sincronización y no se tienen en cuenta. Un ilock que la network no escribe vale 1; un `transAuto` que no escribe, 0.
-- Los pasos manuales se omiten: desde el primer paso manual en adelante todos se consideran manuales. Se detecta como el primer paso que solo escribe `ilockManual`/`limitManual`; si no se detecta, la herramienta pide indicarlo (vacío = no hay pasos manuales).
-- Casilla «Secuencia de robot»: en las secuencias de robot no se comprueban los pasos S223 a S227 (rutinas de servicio, vuelta a casa…), que por cómo funciona el robot no pueden coincidir con los demás. En las de utillaje se deja sin marcar.
-- Reglas físicas opcionales: un actuador no puede estar en `-H` y `-W` a la vez, y solo un valor puede estar activo en señales decodificadas (`ProcessCode=N`, comparaciones `x == N`).
-- Cada coincidencia se muestra en una vista LAD interactiva con los dos pasos, cargada con un estado de ejemplo que provoca el error. Al hacer clic en un contacto se cambia su señal y se ve en vivo qué pasos sincronizan.
-- Para cada coincidencia muestra las diferencias entre los dos pasos: señales que un paso exige siempre y el otro no comprueba (o admite con el valor contrario). Son hechos sobre los ilocks, no propuestas: qué señal usar para separarlos depende del proceso. Esas señales se resaltan en el LAD.
+- «Exportar el PLC desde TIA y comprobar» exporta del proyecto conectado los bloques, las tablas de variables y los tipos del PLC a `<carpeta del proyecto>\HerramientasSICAR\Sincro\<PLC>`. No compila nada: los bloques protegidos o sin compilar se saltan y se avisa abajo (sus señales cuentan como libres). «Abrir una carpeta exportada…» lee una exportación ya hecha, también la de GST-Diag, sin conexión.
+- Reglas (manual SICAR 3.4.1): al sincronizar se prueban todos los pasos que no se salta un salto; un paso es ejecutable con `ilockAuto` = 1, `ilockExtSync` = 1 y `transAuto` = 0. Las condiciones de PERM se suman con Y a las del paso (en PERM, lo no programado vale 1). En un paso, `ilockAuto` y `transAuto` sin programar valen 0 (un paso manual nunca es ejecutable) e `ilockExtSync` vale 1. `ilockNoSync` e `ilockExtInt` no participan. Durante la sincronización `#Sequence.pos_Pulse_OM_Sync` vale 1.
+- Además: una señal que el programa calcula con una sola bobina vale sus condiciones de activación (hasta 10 niveles); un actuador no está en `-H` y `-W` a la vez; una señal no tiene dos valores (`…=200` y `…=210`, `x == 200` y `x == 210`); en las secuencias de robot (las que tienen pasos S223–S227) esos pasos no se comprueban; `alwaysTrue` y `alwaysFalse` son constantes.
+- Para cada par se proponen las señales que un paso exige a 1 y el otro no. Si quien conoce la máquina sabe que nunca están a 1 a la vez, las marca como excluyentes y la app recalcula. Las decisiones se guardan en `sincro.json`, junto al programa exportado, y se pueden borrar.
+- Límites: las señales que vienen de fuera del PLC (entradas, robot, otros PLC) son libres, y las redes en STL y SCL todavía no se leen. Por eso en los robots salen muchos pares.
+- El código de la comprobación es el de GST-Diag, copiado en `Nucleo/` (ver Estructura).
 
 ### Con archivos
 
@@ -92,8 +90,9 @@ Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR
 El código de la app está en `src/HerramientasSICAR/` y los tests en `tests/HerramientasSICAR.Tests/`. Dentro de `src/HerramientasSICAR/`:
 
 - `Services/TiaOpennessService.cs`: todo lo que habla con TIA (proyectos abiertos, conexión, árbol de bloques, exportar e importar, y las operaciones de cada herramienta en `ProyectoTia`). Va siempre por `HiloOpenness`, un único hilo para las llamadas a Openness.
-- `Helpers/`: la lógica de cada herramienta (análisis LAD de Sincro Checker, Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque y comprobación de versión.
-- `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide); `Controls/LadRungView.cs`, el dibujo LAD de Sincro Checker.
+- `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque, `sincro.json` de Sincro Checker y comprobación de versión.
+- `Nucleo/`: copia del núcleo de GST-Diag (`src/GstDiag.Core`: Lad, Logic, SimaticMl, Sicar, Symbols, Programs y `Diagnostics/ValueSource.cs`) con lo que lee el programa exportado y comprueba la doble sincronización. Es el mismo código con el espacio de nombres `HerramientasSICAR.Nucleo` y los cambios mínimos para .NET Framework 4.8: `GeneratedRegex` pasa a `Regex` normal, unos pocos métodos que 4.8 no tiene (`Compat.cs`) y PolySharp para lo que le falta al lenguaje. Sus tests son los de GST-Diag (`tests/HerramientasSICAR.Tests/Nucleo/`). Si se cambia la sincro en GST-Diag, se vuelve a copiar.
+- `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide).
 - `L.cs` y `Textos.en.cs`: los textos se escriben en castellano y se traducen al inglés con `L.T`. Al añadir un texto, añadir su traducción (el test lo comprueba).
 
 ## Licencia

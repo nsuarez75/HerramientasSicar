@@ -6,6 +6,8 @@ using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
+using Siemens.Engineering.SW.Tags;
+using Siemens.Engineering.SW.Types;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -350,6 +352,107 @@ namespace HerramientasSICAR.Services
             if (!archivo.Exists)
                 throw new FileNotFoundException(L.T("Archivo XML de importación no encontrado."), rutaXml);
             grupo.Blocks.Import(archivo, ImportOptions.Override);
+        }
+
+        /// <summary>Nombres de los PLC del proyecto.</summary>
+        public List<string> NombresPlc() => Plcs().Select(p => p.Name).ToList();
+
+        /// <summary>Idioma de edición del proyecto (en-US…), con el que se leen los nombres de los pasos.</summary>
+        public string IdiomaEdicion => _proyecto.LanguageSettings.EditingLanguage?.Culture?.Name ?? "";
+
+        /// <summary>
+        /// Exporta el programa entero de un PLC (bloques, tablas de variables y tipos) a Bloques, Variables y Tipos
+        /// dentro de la carpeta, como el exportador de GST-Diag: no compila nada; los bloques protegidos o sin compilar
+        /// se saltan y se apuntan en <paramref name="saltados"/>. Devuelve cuántos objetos se han exportado.
+        /// </summary>
+        public int ExportarPrograma(string nombrePlc, string carpeta, IProgress<string> progreso, List<string> saltados)
+        {
+            var plc = BuscarPlc(nombrePlc);
+            var bloques = new List<PlcBlock>();
+            Recoger(plc.BlockGroup, bloques);
+            var tablas = new List<PlcTagTable>();
+            Recoger(plc.TagTableGroup, tablas);
+            var tipos = new List<PlcType>();
+            Recoger(plc.TypeGroup, tipos);
+
+            string raiz = Path.GetFullPath(carpeta);
+            foreach (string sub in new[] { "Bloques", "Variables", "Tipos" })
+            {
+                string dir = Path.Combine(raiz, sub);
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, true);
+                Directory.CreateDirectory(dir);
+            }
+
+            int total = bloques.Count + tablas.Count + tipos.Count;
+            int n = 0;
+            int exportados = 0;
+            foreach (var bloque in bloques)
+            {
+                progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, bloque.Name));
+                if (bloque.IsKnowHowProtected)
+                    saltados.Add(L.T("{0}: protegido con contraseña", bloque.Name));
+                else if (!bloque.IsConsistent)
+                    saltados.Add(L.T("{0}: sin compilar", bloque.Name));
+                else
+                    exportados += IntentarExportar(bloque.Name, saltados, () => bloque.Export(Destino(raiz, "Bloques", bloque.Name), ExportOptions.WithDefaults));
+            }
+            foreach (var tabla in tablas)
+            {
+                progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, tabla.Name));
+                exportados += IntentarExportar(tabla.Name, saltados, () => tabla.Export(Destino(raiz, "Variables", tabla.Name), ExportOptions.WithDefaults));
+            }
+            foreach (var tipo in tipos)
+            {
+                progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, tipo.Name));
+                exportados += IntentarExportar(tipo.Name, saltados, () => tipo.Export(Destino(raiz, "Tipos", tipo.Name), ExportOptions.WithDefaults));
+            }
+            return exportados;
+        }
+
+        private static int IntentarExportar(string nombre, List<string> saltados, Action exportar)
+        {
+            try
+            {
+                exportar();
+                return 1;
+            }
+            catch (Exception e)
+            {
+                saltados.Add($"{nombre}: {e.Message}");
+                return 0;
+            }
+        }
+
+        // Nombre que Windows admite; si ya existe (dos objetos con el mismo nombre en carpetas distintas), se numera.
+        private static FileInfo Destino(string raiz, string sub, string nombre)
+        {
+            string seguro = string.Concat(nombre.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+            string ruta = Path.Combine(raiz, sub, seguro + ".xml");
+            for (int i = 2; File.Exists(ruta); i++)
+                ruta = Path.Combine(raiz, sub, $"{seguro}_{i}.xml");
+            return new FileInfo(ruta);
+        }
+
+        private static void Recoger(PlcBlockGroup grupo, List<PlcBlock> bloques)
+        {
+            bloques.AddRange(grupo.Blocks);
+            foreach (PlcBlockGroup sub in grupo.Groups)
+                Recoger(sub, bloques);
+        }
+
+        private static void Recoger(PlcTagTableGroup grupo, List<PlcTagTable> tablas)
+        {
+            tablas.AddRange(grupo.TagTables);
+            foreach (PlcTagTableUserGroup sub in grupo.Groups)
+                Recoger(sub, tablas);
+        }
+
+        private static void Recoger(PlcTypeGroup grupo, List<PlcType> tipos)
+        {
+            tipos.AddRange(grupo.Types);
+            foreach (PlcTypeUserGroup sub in grupo.Groups)
+                Recoger(sub, tipos);
         }
 
         internal static string Exportar(PlcBlock bloque, string carpeta)
