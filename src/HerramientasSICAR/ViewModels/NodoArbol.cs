@@ -94,10 +94,14 @@ namespace HerramientasSICAR.ViewModels
         [ObservableProperty]
         private bool _visible = true;
 
-        /// <summary>Árbol de un PLC. <paramref name="alCambiarMarcas"/> se llama cada vez que el usuario marca o desmarca algo.</summary>
-        public static NodoArbol DesdePlc(PlcInfo plc, Action alCambiarMarcas)
+        /// <summary>
+        /// Árbol de un PLC. <paramref name="alCambiarMarcas"/> se llama cada vez que el usuario marca o desmarca algo.
+        /// Con <paramref name="gruposRaiz"/>, <see cref="PlcInfo.Raiz"/> es esa carpeta del PLC y no la raíz de bloques
+        /// (los selectores de las herramientas que empiezan en la carpeta de secuencias).
+        /// </summary>
+        public static NodoArbol DesdePlc(PlcInfo plc, Action alCambiarMarcas, IReadOnlyList<string> gruposRaiz = null)
         {
-            var nodo = new NodoArbol(TipoNodo.Plc, plc.Nombre, null, new string[0], plc.Nombre, null, null, alCambiarMarcas) { IsExpanded = true };
+            var nodo = new NodoArbol(TipoNodo.Plc, plc.Nombre, null, gruposRaiz ?? new string[0], plc.Nombre, null, null, alCambiarMarcas) { IsExpanded = true };
             nodo.AñadirContenido(plc.Raiz);
             return nodo;
         }

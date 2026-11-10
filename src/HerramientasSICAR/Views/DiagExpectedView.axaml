@@ -1,40 +1,38 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:v="using:HerramientasSICAR.Views"
              xmlns:c="using:HerramientasSICAR.Controls"
              xmlns:l="using:HerramientasSICAR"
              x:Class="HerramientasSICAR.Views.DiagExpectedView"
              x:DataType="vm:DiagExpectedViewModel">
-    <ScrollViewer>
-        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
-        <Grid Margin="24,0,24,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MaxWidth="760" />
-            </Grid.ColumnDefinitions>
-        <StackPanel Spacing="16">
+    <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
+        <!-- ░░ FB de secuencia, por OM ░░ -->
+        <v:SelectorBloquesView DataContext="{Binding Selector}" />
+        <GridSplitter Grid.Column="1" Width="12" ResizeDirection="Columns" Background="Transparent" />
+
+        <StackPanel Grid.Column="2" Spacing="16" MaxWidth="660" HorizontalAlignment="Left">
             <Border Classes="card">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="{l:T 'FB de secuencia'}" Classes="h2" />
-                    <TextBlock Text="{l:T 'Nombre del bloque en el proyecto conectado.'}" Classes="muted" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBox Text="{Binding NombreBloque}" Watermark="{l:T 'Ej.: FB1040_ST10_FB'}" />
-                        <Button Grid.Column="1" Classes="accent" Command="{Binding GenerarCommand}" IsDefault="True">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <c:Icon Kind="file-sheet" />
-                                <TextBlock Text="{l:T 'Exportar y generar Excel'}" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </StackPanel>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{l:T 'FB de secuencia'}" Classes="label" />
+                        <TextBlock Text="{Binding NombreBloque}" Classes="h2" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="accent" Command="{Binding GenerarCommand}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="file-sheet" />
+                            <TextBlock Text="{l:T 'Exportar y generar Excel'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
             </Border>
             <Border Classes="tip">
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
-                    <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="660"
+                    <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="600" TextWrapping="Wrap"
                                Text="{l:T 'El bloque se compila y se exporta a la carpeta del proyecto (junto al .ap19), y el Excel se guarda allí como «bloque»_DIAG.xlsx.'}" />
                 </StackPanel>
             </Border>
         </StackPanel>
-        </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

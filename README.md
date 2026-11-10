@@ -12,7 +12,7 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 
 1. Abre el proyecto en TIA Portal V19.
 2. Abre la aplicación: busca sola los proyectos abiertos (botón ↻ de la barra superior para volver a buscar). Elige uno y pulsa **Conectar**. La primera vez TIA pregunta si deja entrar a la aplicación: hay que aceptarlo. Si el proyecto tiene varios PLC o HMI, la aplicación pregunta de cuáles leer el árbol (en proyectos grandes lleva minutos) y recuerda la elección; los demás salen «sin leer» y se leen después con el botón **Leer** de Importar / Exportar.
-3. Elige la herramienta en el lateral. Las del grupo **Con TIA** trabajan sobre el proyecto conectado; sin conexión muestran un aviso y sus botones están desactivados. Las del grupo **Con archivos** no necesitan TIA.
+3. Elige la herramienta en el lateral. Las que trabajan con bloques (DiagExpected, Renumerar Array, Comentador) enseñan el mismo árbol del proyecto que Importar / Exportar, con solo los bloques que les valen; un PLC sin leer se lee desde cualquiera de ellas. Las del grupo **Con TIA** trabajan sobre el proyecto conectado; sin conexión muestran un aviso y sus botones están desactivados. Las del grupo **Con archivos** no necesitan TIA.
 
 La aplicación nunca abre, guarda ni cierra proyectos en TIA: después de una herramienta que cambia bloques, guarda el proyecto en TIA. Si cierras el proyecto en TIA, vuelve a conectar.
 
@@ -32,7 +32,7 @@ Saca bloques y elementos de HMI del proyecto a archivos XML y los mete de vuelta
 
 #### DiagExpected
 
-Dado un FB de secuencia, genera un Excel con el estado necesario en cada paso de actuadores y sensores. El bloque se compila y se exporta a la carpeta del proyecto, y el Excel se guarda allí como `<bloque>_DIAG.xlsx`.
+Dado un FB de secuencia, genera un Excel con el estado necesario en cada paso de actuadores y sensores. El FB se elige en el árbol del proyecto, que solo enseña los FB de secuencia de las estaciones, plegables por OM. El bloque se compila y se exporta a la carpeta del proyecto, y el Excel se guarda allí como `<bloque>_DIAG.xlsx`.
 Es necesario revisar el contenido generado, ya que no funciona de manera perfecta: sirve para sacar una primera plantilla sobre la que trabajar.
 
 #### Numerador
@@ -41,9 +41,9 @@ Renumera de 1 a X los mensajes de los FB de mensajes del proyecto (`GeneralMessa
 
 #### Renumerar Array
 
-No es específica del estándar SICAR@GST. Coge una variable Array, del tipo que sea, en un FB/FC dado y renumera todas sus apariciones de menor a mayor.
+No es específica del estándar SICAR@GST. Renumera 1, 2, 3… los usos con índice fijo de un array dentro de un FB o FC, en el orden en que aparecen.
 Útil cuando tienes un array de flancos, por ejemplo, y necesitas intercalar un segmento nuevo sin calcular el último usado ni reordenarlos todos.
-Si la variable pertenece a un DB global, no hace falta indicar el nombre del DB, solo el de la variable.
+El bloque se elige en el árbol del proyecto (solo FB y FC). Al elegirlo se leen los arrays que su código usa con índice fijo, con sus usos e índices actuales; se elige uno y se pulsa **Renumerar**. Los usos con índice variable no se tocan.
 
 #### Sincro Checker
 
@@ -69,7 +69,7 @@ Title_deutsch …
 Title_espanol …
 ```
 
-- **Buscar FB de secuencia** lista los bloques `_FB` de la carpeta `10_Sequence & Messageblocks` y sus subcarpetas (si hay varios PLC, pregunta cuál). Salen marcados los de secuencia de cada estación (bajo `OM1` a `OM8`), sin Summary, Messages ni `50_Safety`; se pueden marcar o desmarcar a mano.
+- El árbol del proyecto enseña los bloques `_FB` de la carpeta `10_Sequence & Messageblocks` de cada PLC, plegables por OM, con casillas. Salen marcados los de secuencia de cada estación (bajo `OM1` a `OM8`), sin Summary, Messages ni `50_Safety`; se pueden marcar o desmarcar a mano.
 - **Los títulos están en**: el idioma en que están escritos los títulos (el proyecto está siempre en inglés, pero el texto puede estar en castellano). Esa línea lleva el título tal cual y las otras dos, traducidas desde ese idioma con un traductor en línea (Google Translate y otros), o el mismo texto si no se marca **Traducir**. Los nombres de equipo (con `++`) no se traducen.
 - **Comentar** exporta los FB marcados a una carpeta temporal, escribe el comentario en en-US de cada segmento con título (sin el `S###`; los separadores como `==== SEQUENCE ====` no), sobrescribiendo el que hubiera, los importa en TIA sobrescribiéndolos, los compila y borra la carpeta. Guarda antes el proyecto y cierra los FB que vayas a comentar.
 

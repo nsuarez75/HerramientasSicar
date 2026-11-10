@@ -187,6 +187,24 @@ namespace HerramientasSICAR
             ["{0}: {1} uso(s) de {2} renumerados. Guarda el proyecto en TIA para conservarlos."] = "{0}: {1} use(s) of {2} renumbered. Save the project in TIA to keep them.",
             ["No se encontró el array '{0}' en el bloque."] = "Array '{0}' was not found in the block.",
 
+            // ---- Selector de bloques, Renumerar Array, DiagExpected
+            ["{0} FB marcados"] = "{0} FBs checked",
+            ["Se exportan {0} FB, se reescribe el comentario de cada segmento y se importan en TIA sobrescribiéndolos. Guarda antes el proyecto y cierra en TIA los FB que vayas a comentar. ¿Seguir?"] = "{0} FBs are exported, the comment of each network is rewritten and they are imported back into TIA, overwriting them. Save the project first and close in TIA the FBs you are going to comment. Continue?",
+            ["Elige en el árbol el FB de secuencia."] = "Choose the sequence FB in the tree.",
+            ["{0} usos"] = "{0} uses",
+            ["Elige en el árbol el FB o FC."] = "Choose the FB or FC in the tree.",
+            ["Leyendo {0}…"] = "Reading {0}…",
+            ["{0} no usa ningún array con índice fijo."] = "{0} does not use any array with a fixed index.",
+            ["Elige el array que quieres renumerar."] = "Choose the array you want to renumber.",
+            ["{0}: {1} array(s) con índice fijo."] = "{0}: {1} array(s) with a fixed index.",
+            ["Selecciona un PLC para leerlo"] = "Select a PLC to read it",
+            ["sin la carpeta {0}"] = "without the {0} folder",
+            ["ningún bloque"] = "no blocks",
+            ["BLOQUES DEL PROYECTO"] = "PROJECT BLOCKS",
+            ["Conecta con un proyecto para ver sus bloques."] = "Connect to a project to see its blocks.",
+            ["Trae de TIA el árbol del PLC seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA"] = "Gets the tree of the selected PLC from TIA: if it was not read when connecting, or to see changes made in TIA",
+            ["Se cambian solo los usos con índice fijo, en el orden en que aparecen en el bloque. El bloque se exporta, se renumera y se importa encima del original. Al terminar, guarda el proyecto en TIA."] = "Only the uses with a fixed index are changed, in the order they appear in the block. The block is exported, renumbered and imported over the original. When done, save the project in TIA.",
+
             // ---- Comentador
             ["sin compilar"] = "not compiled",
             ["Buscando {0}…"] = "Looking for {0}…",

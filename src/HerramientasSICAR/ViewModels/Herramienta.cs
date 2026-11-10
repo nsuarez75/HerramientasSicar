@@ -73,27 +73,6 @@ namespace HerramientasSICAR.ViewModels
             return elegidos == null || elegidos.Count == 0 ? null : plcs[elegidos[0]];
         }
 
-        /// <summary>
-        /// El bloque con ese nombre en el proyecto. Si está en varios PLC, se pregunta en cuál; null si no está o se cancela.
-        /// </summary>
-        protected async Task<BloqueRef> ElegirBloque(string nombreBloque, string titulo)
-        {
-            List<BloqueRef> encontrados = null;
-            await Contexto.Trabajar(L.T("Buscando {0}…", nombreBloque), async () =>
-            {
-                encontrados = await Contexto.Tia().EnProyecto(p => p.BuscarPorNombre(nombreBloque));
-            });
-            if (encontrados == null)
-                return null;
-            if (encontrados.Count == 0)
-            {
-                Contexto.MostrarEstado(L.T("No se encontró el bloque '{0}' en el proyecto.", nombreBloque), error: true);
-                return null;
-            }
-            string plc = await ElegirPlc(titulo, L.T("Aceptar"), encontrados.Select(b => b.Plc).Distinct().ToList());
-            return plc == null ? null : encontrados.First(b => b.Plc == plc);
-        }
-
         /// <summary>Vuelve a evaluar si los botones de la herramienta se pueden pulsar.</summary>
         protected abstract void ActualizarComandos();
 
