@@ -22,9 +22,10 @@
                     <Button Classes="ghost" Command="{Binding GuardarComoCommand}" ToolTip.Tip="{l:T 'Guardar como… (exportar la configuración)'}">
                         <TextBlock Text="{l:T 'Guardar como…'}" />
                     </Button>
-                    <TextBlock Text="{Binding NombreArchivo}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"
-                               TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding RutaProyecto}" />
                 </StackPanel>
+                <!-- El nombre ocupa lo que sobra y se recorta: así no empuja los botones de la derecha fuera de la tarjeta -->
+                <TextBlock Grid.Column="1" Text="{Binding NombreArchivo}" FontWeight="SemiBold" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding RutaProyecto}" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{l:T 'Editar'}" Classes="label" VerticalAlignment="Center" />
                     <ComboBox ItemsSource="{Binding Idiomas}" SelectedIndex="{Binding IdiomaIndice}" MinWidth="200" />
