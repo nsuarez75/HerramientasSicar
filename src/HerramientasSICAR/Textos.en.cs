@@ -342,6 +342,7 @@ namespace HerramientasSICAR
             ["Exportar"] = "Export",
             ["Cancelar"] = "Cancel",
             ["Exportando el programa de {0}…"] = "Exporting the program of {0}…",
+            ["{0} · {1} (exportado de TIA)"] = "{0} · {1} (exported from TIA)",
             ["{0}. {1} objeto(s) no se han exportado (ver abajo): sus señales cuentan como libres."] =
                 "{0}. {1} object(s) were not exported (see below): their signals count as free.",
             ["Leyendo el programa exportado…"] = "Reading the exported program…",

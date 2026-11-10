@@ -4,6 +4,7 @@ using HerramientasSICAR.Logica;
 using HerramientasSICAR.Nucleo.Lad;
 using HerramientasSICAR.Nucleo.Programs;
 using HerramientasSICAR.Nucleo.Sicar;
+using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -86,8 +87,9 @@ namespace HerramientasSICAR.ViewModels
 
     /// <summary>
     /// Doble sincronización de un PLC, con la misma comprobación que GST-Diag (Nucleo/Sicar/SyncChecker.cs): pares de
-    /// pasos que pueden sincronizar a la vez y decisiones del usuario sobre señales excluyentes, que se guardan en
-    /// sincro.json junto al programa exportado.
+    /// pasos que pueden sincronizar a la vez y decisiones del usuario sobre señales excluyentes. Al exportar desde TIA,
+    /// el programa va a %TEMP% y las decisiones a AppData (<see cref="ArchivoSincro.EnAppData"/>); al abrir una carpeta
+    /// exportada a mano, al sincro.json de esa carpeta.
     /// </summary>
     public partial class SincroCheckerViewModel : Herramienta
     {
@@ -143,10 +145,18 @@ namespace HerramientasSICAR.ViewModels
         private async Task AbrirCarpeta()
         {
             string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta con el programa exportado del PLC"),
-                string.IsNullOrEmpty(Carpeta) ? null : Carpeta);
-            if (carpeta != null)
-                await Cargar(carpeta, null);
+                string.IsNullOrEmpty(_carpetaAbierta) ? null : _carpetaAbierta);
+            if (carpeta == null)
+                return;
+            _carpetaAbierta = carpeta;
+            await Cargar(carpeta, carpeta, ArchivoSincro.EnCarpeta(carpeta), null);
         }
+
+        // Última carpeta abierta a mano, para empezar ahí el diálogo.
+        private string _carpetaAbierta;
+
+        // Dónde se guardan las decisiones del programa cargado.
+        private string _rutaArchivo;
 
         [RelayCommand(CanExecute = nameof(PuedeUsarTia))]
         private async Task ExportarDesdeTia()
@@ -155,38 +165,64 @@ namespace HerramientasSICAR.ViewModels
             if (plc == null)
                 return;
 
-            string carpeta = null;
-            string idioma = null;
-            var saltados = new List<string>();
-            await Contexto.Trabajar(L.T("Exportando el programa de {0}…", plc), async () =>
+            // Se exporta a %TEMP% y se borra en cuanto se ha leído: en la carpeta del proyecto no queda nada.
+            using (var temporal = new CarpetaTemporal())
             {
-                var progreso = ProgresoEnEstado();
-                var resultado = await Contexto.Tia().EnProyecto(p =>
+                string idioma = null;
+                string proyecto = null;
+                string anterior = null;
+                var saltados = new List<string>();
+                await Contexto.Trabajar(L.T("Exportando el programa de {0}…", plc), async () =>
                 {
-                    string destino = Path.Combine(p.Carpeta, "HerramientasSICAR", "Sincro", ArchivosBloque.NombreSeguro(plc));
-                    p.ExportarPrograma(plc, destino, progreso, saltados);
-                    return (Carpeta: destino, Idioma: p.IdiomaEdicion);
+                    var progreso = ProgresoEnEstado();
+                    var resultado = await Contexto.Tia().EnProyecto(p =>
+                    {
+                        p.ExportarPrograma(plc, temporal.Ruta, progreso, saltados);
+                        // Antes la exportación y el sincro.json se dejaban en la carpeta del proyecto.
+                        string viejo = ArchivoSincro.EnCarpeta(Path.Combine(p.Carpeta, "HerramientasSICAR", "Sincro", ArchivosBloque.NombreSeguro(plc)));
+                        return (Proyecto: p.Nombre, Idioma: p.IdiomaEdicion, Anterior: viejo);
+                    });
+                    proyecto = resultado.Proyecto;
+                    idioma = resultado.Idioma;
+                    anterior = resultado.Anterior;
                 });
-                carpeta = resultado.Carpeta;
-                idioma = resultado.Idioma;
-            });
-            if (carpeta == null)
-                return;
+                if (proyecto == null)
+                    return;
 
-            await Cargar(carpeta, idioma);
-            if (saltados.Count > 0 && HayPrograma)
-            {
-                Contexto.PonerFallos(saltados.Concat(_programa.Warnings));
-                Contexto.MostrarEstado(L.T("{0}. {1} objeto(s) no se han exportado (ver abajo): sus señales cuentan como libres.", Resumen, saltados.Count), error: true);
+                string ruta = ArchivoSincro.EnAppData(proyecto, plc);
+                TraerExcluyentesAnteriores(anterior, ruta);
+                await Cargar(temporal.Ruta, L.T("{0} · {1} (exportado de TIA)", proyecto, plc), ruta, idioma);
+                if (saltados.Count > 0 && HayPrograma)
+                {
+                    Contexto.PonerFallos(saltados.Concat(_programa.Warnings));
+                    Contexto.MostrarEstado(L.T("{0}. {1} objeto(s) no se han exportado (ver abajo): sus señales cuentan como libres.", Resumen, saltados.Count), error: true);
+                }
             }
         }
 
-        // Lee el programa y calcula los pares. El idioma de edición viene de TIA al exportar; al abrir una carpeta,
-        // del sincro.json que se dejó entonces.
-        private async Task Cargar(string carpeta, string idiomaEdicion)
+        // Las excluyentes del sincro.json que dejaban las versiones anteriores en la carpeta del proyecto, si aún no hay
+        // archivo en AppData.
+        private static void TraerExcluyentesAnteriores(string anterior, string ruta)
+        {
+            try
+            {
+                if (File.Exists(ruta) || !File.Exists(anterior))
+                    return;
+                ArchivoSincro.Cargar(anterior).Guardar(ruta);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Se empieza sin decisiones.
+            }
+        }
+
+        // Lee el programa de la carpeta y calcula los pares; las decisiones se leen y se guardan en rutaArchivo. El idioma
+        // de edición viene de TIA al exportar; al abrir una carpeta, del sincro.json que se dejó entonces.
+        private async Task Cargar(string carpeta, string origen, string rutaArchivo, string idiomaEdicion)
         {
             _programa = null;
-            Carpeta = carpeta;
+            Carpeta = origen;
+            _rutaArchivo = rutaArchivo;
             Secuencias.Clear();
             Pares.Clear();
             Candidatas.Clear();
@@ -198,11 +234,11 @@ namespace HerramientasSICAR.ViewModels
                 Cargando = true;
                 try
                 {
-                    _archivo = ArchivoSincro.Cargar(carpeta);
+                    _archivo = ArchivoSincro.Cargar(rutaArchivo);
                     if (!string.IsNullOrWhiteSpace(idiomaEdicion) && idiomaEdicion != _archivo.IdiomaEdicion)
                     {
                         _archivo.IdiomaEdicion = idiomaEdicion;
-                        _archivo.Guardar(carpeta);
+                        _archivo.Guardar(rutaArchivo);
                     }
                     string idioma = _archivo.IdiomaEdicion;
                     var programa = await Task.Run(() => PlcProgram.Load(carpeta, idioma));
@@ -335,7 +371,7 @@ namespace HerramientasSICAR.ViewModels
             _archivo.PonerGrupos(grupos.ToList());
             try
             {
-                _archivo.Guardar(Carpeta);
+                _archivo.Guardar(_rutaArchivo);
                 return true;
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)

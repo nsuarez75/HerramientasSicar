@@ -34,12 +34,23 @@ namespace HerramientasSICAR.Logica
         public void PonerGrupos(IEnumerable<ExclusiveGroup> grupos) =>
             Excluyentes = grupos.Select(g => new GrupoGuardado { Senales = g.Signals.ToList(), Nota = g.Note }).ToList();
 
-        /// <summary>El de la carpeta, o uno vacío si no hay o no se puede leer.</summary>
-        public static ArchivoSincro Cargar(string carpeta)
+        /// <summary>sincro.json dentro de una carpeta exportada a mano (la que se abre con «Abrir carpeta»).</summary>
+        public static string EnCarpeta(string carpeta) => Path.Combine(carpeta, Nombre);
+
+        /// <summary>
+        /// Archivo de un PLC exportado desde TIA: %AppData%\HerramientasSICAR\Sincro\&lt;proyecto&gt;\&lt;PLC&gt;.json, para no
+        /// dejar nada en la carpeta del proyecto.
+        /// </summary>
+        public static string EnAppData(string proyecto, string plc) =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HerramientasSICAR", "Sincro",
+                ArchivosBloque.NombreSeguro(proyecto), ArchivosBloque.NombreSeguro(plc) + ".json");
+
+        /// <summary>El de esa ruta, o uno vacío si no hay o no se puede leer.</summary>
+        public static ArchivoSincro Cargar(string ruta)
         {
             try
             {
-                var archivo = JsonSerializer.Deserialize<ArchivoSincro>(File.ReadAllText(Path.Combine(carpeta, Nombre)));
+                var archivo = JsonSerializer.Deserialize<ArchivoSincro>(File.ReadAllText(ruta));
                 if (archivo == null)
                     return new ArchivoSincro();
                 if (string.IsNullOrWhiteSpace(archivo.IdiomaEdicion))
@@ -53,7 +64,10 @@ namespace HerramientasSICAR.Logica
             }
         }
 
-        public void Guardar(string carpeta) =>
-            File.WriteAllText(Path.Combine(carpeta, Nombre), JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        public void Guardar(string ruta)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ruta));
+            File.WriteAllText(ruta, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        }
     }
 }
