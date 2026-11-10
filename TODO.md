@@ -18,5 +18,5 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 ## Sincro Checker (issue #21)
 
 - Usa la comprobación de GST-Diag, copiada en `Nucleo/`. Probado con un programa real y desde la app con TIA.
-- Cuando cambie la doble sincronización en GST-Diag, volver a copiar su núcleo (ver README, Estructura).
+- GST-Diag ya no tiene doble sincronización (GST-Diag #103): el núcleo copiado en `Nucleo/` es ahora el único y se mantiene aquí.
 - Límites (los mismos que GST-Diag): las señales de fuera del PLC son libres y las redes en STL y SCL no se leen.
