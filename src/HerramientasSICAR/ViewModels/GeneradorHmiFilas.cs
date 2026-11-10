@@ -112,27 +112,29 @@ namespace HerramientasSICAR.ViewModels
         public string Idb => Hmi.NombreIdb;
     }
 
-    /// <summary>
-    /// Fila de la lista de la izquierda de «Pantallas»: un subgrupo, o el rótulo de su grupo (que no se puede elegir).
-    /// </summary>
-    public sealed class SubgrupoEditable
+    /// <summary>Nodo del árbol de «Pantallas»: un grupo del menú (se pliega) o un subgrupo (se elige).</summary>
+    public sealed partial class NodoMenu : ObservableObject
     {
-        private SubgrupoEditable(SubgrupoMenu subgrupo, string rotulo)
+        private NodoMenu(string nombre, SubgrupoMenu subgrupo, IReadOnlyList<NodoMenu> hijos)
         {
+            Nombre = nombre;
             Subgrupo = subgrupo;
-            Rotulo = rotulo;
+            Hijos = hijos;
         }
 
-        public static SubgrupoEditable De(SubgrupoMenu subgrupo) => new SubgrupoEditable(subgrupo, null);
-        public static SubgrupoEditable RotuloDe(GrupoMenu grupo) => new SubgrupoEditable(null, grupo.Nombre);
+        public static NodoMenu DeGrupo(GrupoMenu grupo, IEnumerable<SubgrupoMenu> subgrupos) =>
+            new NodoMenu(grupo.Nombre, null, subgrupos.Select(s => new NodoMenu(s.Nombre, s, new NodoMenu[0])).ToList());
 
-        /// <summary>Null en un rótulo de grupo.</summary>
+        public string Nombre { get; }
+
+        /// <summary>Null en un grupo.</summary>
         public SubgrupoMenu Subgrupo { get; }
 
-        public string Rotulo { get; }
-        public bool EsRotulo => Subgrupo == null;
-        public bool EsSeleccionable => !EsRotulo;
-        public string Nombre => Subgrupo?.Nombre ?? "";
+        public IReadOnlyList<NodoMenu> Hijos { get; }
+        public bool EsGrupo => Subgrupo == null;
+
+        [ObservableProperty]
+        private bool _expandido = true;
     }
 
     /// <summary>Casilla «se ve en esta HMI» de una pantalla.</summary>

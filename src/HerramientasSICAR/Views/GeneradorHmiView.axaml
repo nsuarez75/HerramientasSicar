@@ -83,22 +83,22 @@
             <!-- ░░ Pantallas de los menús ░░ -->
             <TabItem Header="{l:T 'Pantallas'}">
                 <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
-                    <ListBox Classes="table" ItemsSource="{Binding Subgrupos}" SelectedItem="{Binding SubgrupoSeleccionado}">
-                        <ListBox.Styles>
-                            <!-- Los rótulos de grupo no se pueden seleccionar -->
-                            <Style Selector="ListBoxItem">
-                                <Setter Property="IsEnabled" Value="{ReflectionBinding EsSeleccionable}" />
+                    <!-- Grupos plegables con sus subgrupos -->
+                    <TreeView ItemsSource="{Binding Grupos}" SelectedItem="{Binding NodoSeleccionado}">
+                        <TreeView.Styles>
+                            <Style Selector="TreeViewItem" x:DataType="vm:NodoMenu">
+                                <Setter Property="IsExpanded" Value="{Binding Expandido, Mode=TwoWay}" />
                             </Style>
-                        </ListBox.Styles>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:SubgrupoEditable">
+                        </TreeView.Styles>
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate x:DataType="vm:NodoMenu" ItemsSource="{Binding Hijos}">
                                 <Panel>
-                                    <TextBlock Text="{Binding Rotulo}" Classes="caption" IsVisible="{Binding EsRotulo}" Margin="0,6,0,0" />
-                                    <TextBlock Text="{Binding Nombre}" IsVisible="{Binding EsSeleccionable}" Margin="10,0,0,0" />
+                                    <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" IsVisible="{Binding EsGrupo}" />
+                                    <TextBlock Text="{Binding Nombre}" IsVisible="{Binding !EsGrupo}" />
                                 </Panel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
 
                     <DockPanel Grid.Column="1">
                         <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">

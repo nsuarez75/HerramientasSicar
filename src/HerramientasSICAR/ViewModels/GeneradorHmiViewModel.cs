@@ -32,9 +32,14 @@ namespace HerramientasSICAR.ViewModels
         [ObservableProperty]
         private IdiomaEdicion _idioma;
 
+        /// <summary>Nodo elegido en el árbol (grupo o subgrupo).</summary>
+        [ObservableProperty]
+        private NodoMenu _nodoSeleccionado;
+
+        /// <summary>Subgrupo cuya tabla se ve: el último subgrupo elegido en el árbol.</summary>
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(EsOem), nameof(NotaSubgrupo), nameof(HayNotaSubgrupo), nameof(TieneNombres), nameof(TieneCasillas))]
-        private SubgrupoEditable _subgrupoSeleccionado;
+        private SubgrupoMenu _subgrupoActual;
 
         [ObservableProperty]
         private PantallaFunciones _pantallaSeleccionada;
@@ -47,18 +52,7 @@ namespace HerramientasSICAR.ViewModels
 
         public GeneradorHmiViewModel(Contexto contexto) : base(contexto)
         {
-            var subgrupos = new List<SubgrupoEditable>();
-            GrupoMenu grupo = null;
-            foreach (var subgrupo in CatalogoMenus.Subgrupos)
-            {
-                if (subgrupo.Grupo != grupo)
-                {
-                    grupo = subgrupo.Grupo;
-                    subgrupos.Add(SubgrupoEditable.RotuloDe(grupo));
-                }
-                subgrupos.Add(SubgrupoEditable.De(subgrupo));
-            }
-            Subgrupos = subgrupos;
+            Grupos = CatalogoMenus.Subgrupos.GroupBy(s => s.Grupo).Select(g => NodoMenu.DeGrupo(g.Key, g)).ToList();
 
             string ultimo = Contexto.Ajustes.UltimoProyectoHmi;
             ProyectoMenus proyecto = null;
@@ -81,7 +75,7 @@ namespace HerramientasSICAR.ViewModels
         public override string Icono => "monitor";
         public override bool UsaTia => false;
 
-        public IReadOnlyList<SubgrupoEditable> Subgrupos { get; }
+        public IReadOnlyList<NodoMenu> Grupos { get; }
         public ObservableCollection<HmiEditable> Hmis { get; } = new ObservableCollection<HmiEditable>();
         public ObservableCollection<PantallaFunciones> PantallasFunciones { get; } = new ObservableCollection<PantallaFunciones>();
 
@@ -99,15 +93,15 @@ namespace HerramientasSICAR.ViewModels
         public string NombreArchivo =>
             (RutaProyecto == null ? L.T("Proyecto sin guardar") : Path.GetFileName(RutaProyecto)) + (Cambiado ? " *" : "");
 
-        public bool EsOem => SubgrupoSeleccionado?.Subgrupo.Grupo == CatalogoMenus.Oem;
-        public bool TieneNombres => SubgrupoSeleccionado?.Subgrupo.Nombres > 0;
-        public bool TieneCasillas => SubgrupoSeleccionado?.Subgrupo.Posiciones > 0;
+        public bool EsOem => SubgrupoActual?.Grupo == CatalogoMenus.Oem;
+        public bool TieneNombres => SubgrupoActual?.Nombres > 0;
+        public bool TieneCasillas => SubgrupoActual?.Posiciones > 0;
 
         public string NotaSubgrupo
         {
             get
             {
-                var s = SubgrupoSeleccionado?.Subgrupo;
+                var s = SubgrupoActual;
                 if (s == null)
                     return "";
                 if (s.Posiciones == 0)
@@ -119,7 +113,7 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        public bool HayNotaSubgrupo => SubgrupoSeleccionado != null;
+        public bool HayNotaSubgrupo => SubgrupoActual != null;
 
         // ------------------------------------------------------------------ Proyecto
 
@@ -140,14 +134,22 @@ namespace HerramientasSICAR.ViewModels
                 PantallasFunciones.Add(new PantallaFunciones(p, proyecto, funciones));
             }
 
-            var anterior = SubgrupoSeleccionado;
-            SubgrupoSeleccionado = null;
-            SubgrupoSeleccionado = anterior ?? Subgrupos.First(s => !s.EsRotulo);
+            if (NodoSeleccionado == null)
+                NodoSeleccionado = Grupos[0].Hijos[0];
+            else
+                ReconstruirFilas();
             PantallaSeleccionada = PantallasFunciones[0];
             Cambiado = false;
         }
 
-        partial void OnSubgrupoSeleccionadoChanged(SubgrupoEditable value) => ReconstruirFilas();
+        // Al elegir un grupo la tabla sigue con el último subgrupo; al elegir un subgrupo, se cambia a él.
+        partial void OnNodoSeleccionadoChanged(NodoMenu value)
+        {
+            if (value?.Subgrupo != null)
+                SubgrupoActual = value.Subgrupo;
+        }
+
+        partial void OnSubgrupoActualChanged(SubgrupoMenu value) => ReconstruirFilas();
 
         partial void OnIdiomaChanged(IdiomaEdicion value)
         {
@@ -161,7 +163,7 @@ namespace HerramientasSICAR.ViewModels
 
         private void ReconstruirFilas()
         {
-            var subgrupo = SubgrupoSeleccionado?.Subgrupo;
+            var subgrupo = SubgrupoActual;
             if (subgrupo == null)
             {
                 Filas = new List<FilaPantalla>();
@@ -322,7 +324,7 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand]
         private void AlternarColumna(HmiEditable hmi)
         {
-            var subgrupo = SubgrupoSeleccionado?.Subgrupo;
+            var subgrupo = SubgrupoActual;
             if (hmi == null || subgrupo == null || subgrupo.Posiciones == 0)
                 return;
             var visibles = hmi.Hmi.Visibles[subgrupo.Clave];
