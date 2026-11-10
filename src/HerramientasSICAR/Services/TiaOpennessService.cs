@@ -296,6 +296,9 @@ namespace HerramientasSICAR.Services
         /// <summary>Carpeta del proyecto (la del .ap19): ahí dejan sus archivos las herramientas.</summary>
         public string Carpeta => _proyecto.Path.DirectoryName;
 
+        /// <summary>Nombre del proyecto.</summary>
+        public string Nombre => _proyecto.Name;
+
         /// <summary>Nombres de los PLC del proyecto.</summary>
         public List<string> NombresPlc() => Plcs().Select(p => p.Name).ToList();
 

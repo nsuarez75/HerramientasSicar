@@ -76,7 +76,7 @@ _Evitar_: conflicto, solape
 
 **Señales excluyentes**:
 Señales que el usuario marca porque nunca están a 1 a la vez (por ejemplo, las prioridades que elige un bloque
-llamado). Sincro Checker las tiene en cuenta y las guarda en `sincro.json` junto al programa exportado.
+llamado). Sincro Checker las tiene en cuenta y las guarda por proyecto y PLC en AppData (o en `sincro.json` si se abrió una carpeta exportada a mano).
 
 **Plantilla HMI**:
 Proyecto HMI estándar que suministra GESTAMP y que el Generador HMI rellena con los menús de cada estación.
