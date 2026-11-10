@@ -2,15 +2,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
 using HerramientasSICAR.Logica;
+using HerramientasSICAR.Services;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace HerramientasSICAR.ViewModels
@@ -20,14 +19,14 @@ namespace HerramientasSICAR.ViewModels
     {
         private readonly Action _alCambiar;
 
-        public FilaFbComentador(FbSecuencia fb, Action alCambiar)
+        public FilaFbComentador(BloqueRef fb, Action alCambiar)
         {
             Fb = fb;
             _alCambiar = alCambiar;
             _marcado = !fb.Protegido && ComentariosSecuencia.MarcadoPorDefecto(fb.Grupos, fb.Nombre);
         }
 
-        public FbSecuencia Fb { get; }
+        public BloqueRef Fb { get; }
         public string Nombre => Fb.Nombre;
 
         /// <summary>Carpetas por debajo de la de secuencias, para situar el bloque.</summary>
@@ -99,10 +98,10 @@ namespace HerramientasSICAR.ViewModels
         private void AlCambiarProyecto(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(Contexto.ProyectoConectado))
-                PonerFbs(null, new List<FbSecuencia>());
+                PonerFbs(null, new List<BloqueRef>());
         }
 
-        private void PonerFbs(string plc, IEnumerable<FbSecuencia> fbs)
+        private void PonerFbs(string plc, IEnumerable<BloqueRef> fbs)
         {
             Fbs.Clear();
             foreach (var fb in fbs)
@@ -123,27 +122,9 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand(CanExecute = nameof(PuedeUsarTia))]
         private async Task BuscarFbs()
         {
-            List<string> plcs = null;
-            await Contexto.Trabajar(L.T("Buscando los PLC del proyecto…"), async () =>
-            {
-                plcs = await Contexto.Tia().EnProyecto(p => p.NombresPlc());
-            });
-            if (plcs == null)
+            string plc = await ElegirPlc(L.T("Buscar FB de secuencia"), L.T("Buscar"));
+            if (plc == null)
                 return;
-            if (plcs.Count == 0)
-            {
-                Contexto.MostrarEstado(L.T("No se encontró ningún PLC con software en el proyecto."), error: true);
-                return;
-            }
-            string plc = plcs[0];
-            if (plcs.Count > 1)
-            {
-                var elegidos = await Contexto.Dialogos.ElegirVarios(L.T("Buscar FB de secuencia"), L.T("¿De qué PLC? Se usa el primero que marques."),
-                    plcs, plcs.Select((_, i) => i == 0).ToList(), L.T("Buscar"), L.T("Cancelar"));
-                if (elegidos == null || elegidos.Count == 0)
-                    return;
-                plc = plcs[elegidos[0]];
-            }
 
             await Contexto.Trabajar(L.T("Buscando los FB de {0}…", plc), async () =>
             {
@@ -179,39 +160,21 @@ namespace HerramientasSICAR.ViewModels
 
             var idioma = Idioma;
             bool traducir = Traducir;
-            string carpeta = Path.Combine(Path.GetTempPath(), "HerramientasSICAR", "Comentador", Guid.NewGuid().ToString("N"));
-            try
+            await Contexto.Trabajar(L.T("Exportando los FB…"), async () =>
             {
-                await Contexto.Trabajar(L.T("Exportando los FB…"), async () =>
+                var progreso = ProgresoEnEstado();
+                var resultado = new ResultadoOperacion();
+                int segmentos = 0;
+                using (var temporal = new CarpetaTemporal())
                 {
-                    var fallos = new List<string>();
-                    var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
-
                     // 1. Exportar (en el hilo de Openness).
-                    var exportados = await Contexto.Tia().EnProyecto(p =>
-                    {
-                        var rutas = new List<(FbSecuencia Fb, string Ruta)>();
-                        for (int i = 0; i < fbs.Count; i++)
-                        {
-                            ((IProgress<string>)progreso).Report(L.T("Exportando {0}/{1}: {2}", i + 1, fbs.Count, fbs[i].Nombre));
-                            try
-                            {
-                                rutas.Add((fbs[i], p.ExportarFb(plc, fbs[i], Path.Combine(carpeta, i.ToString()))));
-                            }
-                            catch (Exception e)
-                            {
-                                fallos.Add($"{fbs[i].Nombre}: {e.Message}");
-                            }
-                        }
-                        return rutas;
-                    });
+                    var exportados = await Contexto.Tia().EnProyecto(p => p.ExportarVarios(fbs, temporal.Ruta, progreso, resultado));
 
-                    // 2. Traducir los títulos distintos y reescribir los comentarios.
+                    // 2. Traducir los títulos distintos y reescribir los comentarios. Esto va fuera del hilo de Openness
+                    //    porque el traductor está en internet.
                     var xmls = await Task.Run(() => exportados.Select(e => File.ReadAllText(e.Ruta)).ToList());
                     var titulos = xmls.SelectMany(ComentariosSecuencia.Titulos).Distinct().ToList();
                     var textos = await TextosAsync(titulos, idioma, traducir, progreso);
-
-                    int segmentos = 0;
                     await Task.Run(() =>
                     {
                         for (int i = 0; i < exportados.Count; i++)
@@ -223,86 +186,32 @@ namespace HerramientasSICAR.ViewModels
                     });
 
                     // 3. Importar en TIA, sobrescribiendo, y compilar.
-                    int importados = await Contexto.Tia().EnProyecto(p =>
-                    {
-                        int n = 0;
-                        for (int i = 0; i < exportados.Count; i++)
-                        {
-                            var fb = exportados[i].Fb;
-                            ((IProgress<string>)progreso).Report(L.T("Importando {0}/{1}: {2}", i + 1, exportados.Count, fb.Nombre));
-                            try
-                            {
-                                if (!p.ImportarFb(plc, fb, exportados[i].Ruta))
-                                    fallos.Add(L.T("{0}: importado, pero no compila; revísalo en TIA", fb.Nombre));
-                                n++;
-                            }
-                            catch (Exception e)
-                            {
-                                fallos.Add($"{fb.Nombre}: {e.Message}");
-                            }
-                        }
-                        return n;
-                    });
+                    await Contexto.Tia().EnProyecto(p => p.ImportarVarios(exportados, compilar: true, progreso, resultado));
+                }
 
-                    Contexto.PonerFallos(fallos);
-                    Contexto.MostrarEstado(fallos.Count == 0
-                        ? L.T("Comentados {0} segmentos en {1} FB.", segmentos, importados)
-                        : L.T("Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo).", segmentos, importados, fallos.Count),
-                        error: fallos.Count > 0);
-                });
-            }
-            finally
-            {
-                BorrarCarpeta(carpeta);
-            }
+                var fallos = resultado.Fallos;
+                Contexto.PonerFallos(fallos);
+                Contexto.MostrarEstado(fallos.Count == 0
+                    ? L.T("Comentados {0} segmentos en {1} FB.", segmentos, resultado.Correctos)
+                    : L.T("Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo).", segmentos, resultado.Correctos, fallos.Count),
+                    error: fallos.Count > 0);
+            });
         }
 
         /// <summary>Las tres líneas de cada título: la de su idioma tal cual y las otras dos traducidas (o iguales).</summary>
-        private async Task<Dictionary<string, TextosComentario>> TextosAsync(IReadOnlyList<string> titulos, IdiomaTitulos idioma,
+        private static async Task<Dictionary<string, TextosComentario>> TextosAsync(IReadOnlyList<string> titulos, IdiomaTitulos idioma,
             bool traducir, IProgress<string> progreso)
         {
             string origen = ComentariosSecuencia.Codigo(idioma);
             var destinos = new[] { "en", "de", "es" }.Where(d => d != origen).ToList();
-            var traducciones = new ConcurrentDictionary<(string, string), string>();
-
-            if (traducir && titulos.Count > 0)
-            {
-                int total = titulos.Count * destinos.Count;
-                int hechas = 0;
-                using (var semaforo = new SemaphoreSlim(Traductor.MaxConcurrentes))
-                {
-                    await Task.WhenAll(titulos.SelectMany(t => destinos.Select(d => (t, d))).Select(async par =>
-                    {
-                        await semaforo.WaitAsync();
-                        try
-                        {
-                            traducciones[par] = await Traductor.TraducirAsync(par.t, par.d, origen);
-                        }
-                        finally
-                        {
-                            semaforo.Release();
-                            progreso.Report(L.T("Traduciendo títulos: {0}/{1}", Interlocked.Increment(ref hechas), total));
-                        }
-                    }));
-                }
-            }
+            var traducciones = traducir
+                ? await Traductor.TraducirVariosAsync(titulos.SelectMany(t => destinos.Select(d => (t, d))), origen,
+                    new Progress<(int Hechas, int Total)>(a => progreso.Report(L.T("Traduciendo títulos: {0}/{1}", a.Hechas, a.Total))))
+                : new Dictionary<(string Texto, string Destino), string>();
 
             string En(string t, string codigo) =>
                 codigo == origen ? t : traducciones.TryGetValue((t, codigo), out var traducido) ? traducido : t;
             return titulos.ToDictionary(t => t, t => new TextosComentario(En(t, "en"), En(t, "de"), En(t, "es")));
-        }
-
-        private static void BorrarCarpeta(string carpeta)
-        {
-            try
-            {
-                if (Directory.Exists(carpeta))
-                    Directory.Delete(carpeta, true);
-            }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-            {
-                // Es una carpeta temporal: si Windows la tiene bloqueada, se queda en %TEMP%.
-            }
         }
 
         private bool PuedeComentar() => PuedeUsarTia && Plc != null && Fbs.Any(f => f.Marcado);

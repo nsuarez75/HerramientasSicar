@@ -20,7 +20,7 @@ namespace HerramientasSICAR.ViewModels
 
         public ImportarExportarViewModel(Contexto contexto) : base(contexto)
         {
-            _progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
+            _progreso = ProgresoEnEstado();
         }
 
         public override string Nombre => L.T("Importar / Exportar");

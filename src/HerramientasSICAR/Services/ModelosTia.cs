@@ -32,6 +32,9 @@ namespace HerramientasSICAR.Services
         public string Plc { get; set; }
         public IReadOnlyList<string> Grupos { get; set; }
         public string Nombre { get; set; }
+
+        /// <summary>Protegido con contraseña (know-how): no se puede exportar.</summary>
+        public bool Protegido { get; set; }
     }
 
     /// <summary>Un PLC o una HMI del proyecto, sin lo que tiene dentro.</summary>

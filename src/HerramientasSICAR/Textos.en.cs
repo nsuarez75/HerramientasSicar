@@ -188,6 +188,8 @@ namespace HerramientasSICAR
             ["No se encontró el array '{0}' en el bloque."] = "Array '{0}' was not found in the block.",
 
             // ---- Comentador
+            ["sin compilar"] = "not compiled",
+            ["Buscando {0}…"] = "Looking for {0}…",
             ["Comentador"] = "Step comments",
             ["Escribe en cada segmento de los FB de secuencia un comentario en inglés, alemán y castellano a partir de su título, directamente en el proyecto de TIA."] =
                 "Writes a comment in English, German and Spanish on every network of the sequence FBs from its title, directly in the TIA project.",
@@ -305,8 +307,6 @@ namespace HerramientasSICAR
             ["Exportar"] = "Export",
             ["Cancelar"] = "Cancel",
             ["Exportando el programa de {0}…"] = "Exporting the program of {0}…",
-            ["{0}: protegido con contraseña"] = "{0}: password protected",
-            ["{0}: sin compilar"] = "{0}: not compiled",
             ["{0}. {1} objeto(s) no se han exportado (ver abajo): sus señales cuentan como libres."] =
                 "{0}. {1} object(s) were not exported (see below): their signals count as free.",
             ["Leyendo el programa exportado…"] = "Reading the exported program…",

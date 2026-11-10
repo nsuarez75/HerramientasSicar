@@ -358,8 +358,6 @@ namespace HerramientasSICAR.ViewModels
 
         // ------------------------------------------------------------------ Traducir y generar
 
-        private const int MaxTraduccionesConcurrentes = 20;
-
         [RelayCommand(CanExecute = nameof(Libre))]
         private async Task Traducir()
         {
@@ -377,39 +375,27 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Traduciendo…"), async () =>
             {
-                int hechos = 0;
-                using (var semaforo = new SemaphoreSlim(MaxTraduccionesConcurrentes))
+                var pares = textos.SelectMany(t => new[]
                 {
-                    var tareas = textos.Select(async texto =>
-                    {
-                        await semaforo.WaitAsync();
-                        try
-                        {
-                            string origen = texto.Texto.Trim();
-                            string en = string.IsNullOrWhiteSpace(texto.Ingles) ? await Traductor.TraducirAsync(origen, "en") : null;
-                            string de = string.IsNullOrWhiteSpace(texto.Aleman) ? await Traductor.TraducirAsync(origen, "de") : null;
-                            return (texto, en, de);
-                        }
-                        finally
-                        {
-                            semaforo.Release();
-                            Interlocked.Increment(ref hechos);
-                        }
-                    }).ToList();
-                    var resultados = await Task.WhenAll(tareas);
+                    string.IsNullOrWhiteSpace(t.Ingles) ? (t.Texto.Trim(), "en") : default,
+                    string.IsNullOrWhiteSpace(t.Aleman) ? (t.Texto.Trim(), "de") : default
+                }).Where(par => par.Item1 != null);
+                var traducciones = await Traductor.TraducirVariosAsync(pares);
 
-                    // Una traducción igual al original (nombres de equipos, o fallo del traductor) se deja vacía: sale el texto.
-                    foreach (var (texto, en, de) in resultados)
-                    {
-                        if (en != null && !string.Equals(en.Trim(), texto.Texto.Trim(), StringComparison.OrdinalIgnoreCase))
-                            texto.Ingles = en.Trim();
-                        if (de != null && !string.Equals(de.Trim(), texto.Texto.Trim(), StringComparison.OrdinalIgnoreCase))
-                            texto.Aleman = de.Trim();
-                    }
+                // Una traducción igual al original (nombres de equipos, o fallo del traductor) se deja vacía: sale el texto.
+                string Util(string origen, string destino) =>
+                    traducciones.TryGetValue((origen, destino), out var t) && !string.Equals(t.Trim(), origen, StringComparison.OrdinalIgnoreCase) ? t.Trim() : null;
+                foreach (var texto in textos)
+                {
+                    string origen = texto.Texto.Trim();
+                    if (string.IsNullOrWhiteSpace(texto.Ingles))
+                        texto.Ingles = Util(origen, "en") ?? "";
+                    if (string.IsNullOrWhiteSpace(texto.Aleman))
+                        texto.Aleman = Util(origen, "de") ?? "";
                 }
                 OnIdiomaChanged(Idioma);
                 MarcarCambiado();
-                Contexto.MostrarEstado(L.T("Traducidos {0} textos. Revísalos eligiendo Inglés o Alemán arriba.", hechos));
+                Contexto.MostrarEstado(L.T("Traducidos {0} textos. Revísalos eligiendo Inglés o Alemán arriba.", textos.Count));
             });
         }
 
