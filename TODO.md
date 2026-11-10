@@ -4,7 +4,6 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 
 ## Versión 2.0 (issue #6)
 
-- Probar con TIA cada herramienta del grupo «Con TIA» sobre el **proyecto conectado**: DiagExpected, Numerador, Renumerar Array y Sincro Checker (exportar desde TIA).
 - Los botones que solo llevan icono no tienen nombre accesible (lectores de pantalla, automatización):
   ponerles `AutomationProperties.Name`.
 
@@ -23,15 +22,3 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
   conectado, y marcar y borrar señales excluyentes.
 - Cuando cambie la doble sincronización en GST-Diag, volver a copiar su núcleo (ver README, Estructura).
 - Límites (los mismos que GST-Diag): las señales de fuera del PLC son libres y las redes en STL y SCL no se leen.
-
-## Generador HMI (issue #23)
-
-- Probar en TIA «Importar en TIA…» del Generador HMI: el FC en su carpeta del PLC y las listas en cada HMI.
-
-## Comentador (issue #25)
-
-- Probar con TIA «Comentar» sobre el proyecto conectado: exportación, importación sobrescribiendo y compilación de los FB.
-
-## Árbol común (issue #29) y refactor de TIA (issue #27)
-
-- Probar con TIA DiagExpected, Renumerar Array (lista de arrays y renumerar), Comentador y Numerador con el árbol común y el núcleo de TIA nuevo.
