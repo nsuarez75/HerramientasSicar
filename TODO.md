@@ -26,8 +26,12 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 
 ## Generador HMI (issue #23)
 
-- Probar en TIA la importación de `CallHMIMenusConfig_FC.xml` y de las listas de textos generadas.
+- Probar en TIA «Importar en TIA…» del Generador HMI: el FC en su carpeta del PLC y las listas en cada HMI.
 
 ## Comentador (issue #25)
 
 - Probar con TIA «Comentar» sobre el proyecto conectado: exportación, importación sobrescribiendo y compilación de los FB.
+
+## Árbol común (issue #29) y refactor de TIA (issue #27)
+
+- Probar con TIA DiagExpected, Renumerar Array (lista de arrays y renumerar), Comentador y Numerador con el árbol común y el núcleo de TIA nuevo.

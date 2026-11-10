@@ -146,19 +146,10 @@
         </Border>
 
         <Grid x:Name="Cuerpo" ColumnDefinitions="230,*">
-            <!-- ░░ Lateral: herramientas en dos grupos ░░ -->
+            <!-- ░░ Lateral: herramientas ░░ -->
             <Border Classes="side">
                 <ListBox Classes="cards nav" ItemsSource="{Binding Lateral}" SelectedItem="{Binding Seleccionada}" Margin="0,10,0,8">
-                    <ListBox.Styles>
-                        <!-- Los rótulos de grupo no se pueden seleccionar -->
-                        <Style Selector="ListBoxItem">
-                            <Setter Property="IsEnabled" Value="{ReflectionBinding EsSeleccionable}" />
-                        </Style>
-                    </ListBox.Styles>
                     <ListBox.DataTemplates>
-                        <DataTemplate DataType="vm:GrupoLateral">
-                            <TextBlock Text="{Binding Titulo}" Classes="caption" Margin="0,8,0,0" />
-                        </DataTemplate>
                         <DataTemplate DataType="vm:Herramienta">
                             <StackPanel Orientation="Horizontal" Spacing="10">
                                 <c:Icon Kind="{Binding Icono}" Width="16" Height="16" />

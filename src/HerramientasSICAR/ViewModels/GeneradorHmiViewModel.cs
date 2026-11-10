@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
+using HerramientasSICAR.Logica;
 using HerramientasSICAR.Logica.MenusHmi;
+using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -71,6 +73,19 @@ namespace HerramientasSICAR.ViewModels
                 }
             }
             Cargar(proyecto ?? ProyectoMenus.Nuevo(), proyecto == null ? null : ultimo);
+
+            GruposImportar = new[]
+            {
+                new GrupoImportar(L.T("Bloque"), new[] { GeneradorMenus.NombreFc }),
+                new GrupoImportar(L.T("Listas de menús y funciones de usuario"),
+                    CatalogoMenus.Listas.Select(l => l.Nombre).Concat(new[] { CatalogoMenus.ListaTextosFunciones })),
+                new GrupoImportar(L.T("Listas de Production data"),
+                    CatalogoMenus.DatosProduccion.SelectMany(t => Enumerable.Range(1, CatalogoMenus.DatasetsProduccion).Select(t.NombreLista))),
+            };
+            foreach (var componente in GruposImportar.SelectMany(g => g.Componentes))
+                componente.PropertyChanged += (_, __) => ImportarEnTiaCommand.NotifyCanExecuteChanged();
+            Contexto.ArbolCambiado += cambio => { if (cambio.Completo) PonerDestinos(); };
+            PonerDestinos();
         }
 
         public override string Nombre => L.T("Generador HMI");
@@ -79,6 +94,134 @@ namespace HerramientasSICAR.ViewModels
         public override bool UsaTia => false;
 
         public IReadOnlyList<NodoMenu> Grupos { get; }
+
+        // ------------------------------------------------------------------ Importar en TIA
+
+        /// <summary>Pestaña que se ve (0 Pantallas, 1 Funciones de usuario, 2 Production data, 3 Importar en TIA).</summary>
+        [ObservableProperty]
+        private int _pestana;
+
+        public IReadOnlyList<GrupoImportar> GruposImportar { get; }
+
+        /// <summary>PLC del proyecto conectado, para el FC.</summary>
+        public ObservableCollection<string> Plcs { get; } = new ObservableCollection<string>();
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ImportarEnTiaCommand))]
+        private string _plcDestino;
+
+        /// <summary>HMI del proyecto conectado, para las listas de textos.</summary>
+        public ObservableCollection<DestinoHmi> HmisDestino { get; } = new ObservableCollection<DestinoHmi>();
+
+        public bool HayDispositivos => Plcs.Count > 0 || HmisDestino.Count > 0;
+
+        // PLC y HMI del proyecto conectado (se rehacen al conectar). Se conserva lo elegido si sigue existiendo.
+        private void PonerDestinos()
+        {
+            string plc = PlcDestino;
+            var hmisMarcadas = HmisDestino.Where(h => h.Marcado).Select(h => h.Nombre).ToList();
+            bool primeraVez = HmisDestino.Count == 0;
+
+            Plcs.Clear();
+            HmisDestino.Clear();
+            foreach (var dispositivo in Contexto.Dispositivos)
+            {
+                if (dispositivo.EsHmi)
+                {
+                    var destino = new DestinoHmi(dispositivo.Nombre, primeraVez || hmisMarcadas.Contains(dispositivo.Nombre));
+                    destino.PropertyChanged += (_, __) => ImportarEnTiaCommand.NotifyCanExecuteChanged();
+                    HmisDestino.Add(destino);
+                }
+                else
+                    Plcs.Add(dispositivo.Nombre);
+            }
+            PlcDestino = Plcs.Contains(plc) ? plc : Plcs.FirstOrDefault();
+            OnPropertyChanged(nameof(HayDispositivos));
+            ImportarEnTiaCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand]
+        private void IrAImportar() => Pestana = 3;
+
+        /// <summary>
+        /// Genera en una carpeta temporal e importa lo marcado: el FC en el PLC (en su carpeta si ya está, si no en
+        /// 08_HMI_Management › 01_HMI_Configuration) y las listas en cada HMI marcada. Borra la carpeta al terminar.
+        /// </summary>
+        [RelayCommand(CanExecute = nameof(PuedeImportarEnTia))]
+        private async Task ImportarEnTia()
+        {
+            var errores = _proyecto.Errores();
+            if (errores.Count > 0)
+            {
+                await Contexto.Dialogos.Mensaje(L.T("No se puede generar"), string.Join("\n", errores));
+                return;
+            }
+
+            bool fc = GruposImportar[0].Componentes[0].Marcado;
+            var listas = GruposImportar.Skip(1).SelectMany(g => g.Componentes).Where(c => c.Marcado).Select(c => c.Nombre).ToList();
+            var hmis = HmisDestino.Where(h => h.Marcado).Select(h => h.Nombre).ToList();
+            if (listas.Count == 0)
+                hmis.Clear();
+            string plc = fc ? PlcDestino : null;
+
+            var partes = new List<string>();
+            if (plc != null)
+                partes.Add(L.T("el FC {0} en {1}", GeneradorMenus.NombreFc, plc));
+            if (hmis.Count > 0)
+                partes.Add(L.T("{0} lista(s) de textos en {1}", listas.Count, string.Join(", ", hmis)));
+            if (!await Contexto.Dialogos.Confirmar(L.T("Importar en TIA"),
+                    L.T("Se importan {0}. Lo que ya exista con el mismo nombre se sobrescribe. Guarda antes el proyecto en TIA.", string.Join(L.T(" y "), partes)),
+                    L.T("Importar")))
+                return;
+
+            var proyecto = _proyecto;
+            await Contexto.Trabajar(L.T("Generando…"), async () =>
+            {
+                var progreso = ProgresoEnEstado();
+                var resultado = new ResultadoOperacion();
+                using (var temporal = new CarpetaTemporal())
+                {
+                    await Task.Run(() => GeneradorMenus.Generar(proyecto, temporal.Ruta));
+
+                    if (plc != null)
+                    {
+                        progreso.Report(L.T("Importando {0} en {1}…", GeneradorMenus.NombreFc, plc));
+                        string ruta = Path.Combine(temporal.Ruta, GeneradorMenus.NombreFc + ".xml");
+                        await Contexto.Tia().EnProyecto(p => p.ImportarBloqueEnPlc(plc, GeneradorMenus.NombreFc, ruta, CarpetaFc, resultado));
+                    }
+
+                    var archivos = listas.Select(l => new ArchivoHmi(Path.Combine(temporal.Ruta, GeneradorMenus.CarpetaListas, l + ".xml"),
+                        RamaHmi.ListasTextos, new string[0])).ToList();
+                    foreach (string hmi in hmis)
+                    {
+                        var r = await Contexto.Tia().ImportarHmiAsync(hmi, null, new string[0], archivos, progreso);
+                        resultado.Correctos += r.Correctos;
+                        resultado.Fallos.AddRange(r.Fallos.Select(f => hmi + " · " + f));
+                    }
+                }
+
+                // El FC nuevo se ve en el árbol común si ese PLC ya estaba leído.
+                if (plc != null && Contexto.PlcLeido(plc) != null)
+                    await Contexto.LeerPlcAsync(plc);
+
+                Contexto.PonerFallos(resultado.Fallos);
+                string mensaje = L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos);
+                Contexto.MostrarEstado(resultado.Fallos.Count == 0 ? mensaje : mensaje + " " + L.T("{0} con error (ver abajo).", resultado.Fallos.Count),
+                    error: resultado.Fallos.Count > 0);
+            });
+        }
+
+        /// <summary>Carpeta del FC si el PLC aún no lo tiene (la de la plantilla SICAR@GST).</summary>
+        private static readonly IReadOnlyList<string> CarpetaFc = new[] { "08_HMI_Management", "01_HMI_Configuration" };
+
+        private bool PuedeImportarEnTia()
+        {
+            if (!PuedeUsarTia)
+                return false;
+            bool fc = GruposImportar[0].Componentes[0].Marcado && PlcDestino != null;
+            bool listas = GruposImportar.Skip(1).Any(g => g.Componentes.Any(c => c.Marcado)) && HmisDestino.Any(h => h.Marcado);
+            return fc || listas;
+        }
         public ObservableCollection<HmiEditable> Hmis { get; } = new ObservableCollection<HmiEditable>();
         public ObservableCollection<PantallaFunciones> PantallasFunciones { get; } = new ObservableCollection<PantallaFunciones>();
         public ObservableCollection<DatasetProduccion> DatasetsProduccion { get; } = new ObservableCollection<DatasetProduccion>();
@@ -439,6 +582,7 @@ namespace HerramientasSICAR.ViewModels
             QuitarHmiCommand.NotifyCanExecuteChanged();
             TraducirCommand.NotifyCanExecuteChanged();
             GenerarCommand.NotifyCanExecuteChanged();
+            ImportarEnTiaCommand?.NotifyCanExecuteChanged();
         }
     }
 }

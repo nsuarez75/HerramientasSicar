@@ -12,21 +12,6 @@ using System.Threading.Tasks;
 
 namespace HerramientasSICAR.ViewModels
 {
-    /// <summary>Rótulo de un grupo en la lista lateral («Con TIA», «Con archivos»): no se puede seleccionar.</summary>
-    public sealed class GrupoLateral
-    {
-        private readonly string _titulo;
-
-        public GrupoLateral(string titulo)
-        {
-            _titulo = titulo;
-        }
-
-        // Se traduce al pintarlo: al cambiar de idioma la ventana se vuelve a crear.
-        public string Titulo => L.T(_titulo);
-        public bool EsSeleccionable => false;
-    }
-
     public partial class MainViewModel : ObservableObject, IDisposable
     {
         private readonly ImportarExportarViewModel _importarExportar;
@@ -41,26 +26,18 @@ namespace HerramientasSICAR.ViewModels
             };
 
             _importarExportar = new ImportarExportarViewModel(Contexto);
-            var conTia = new Herramienta[]
+            // Todas trabajan con el proyecto conectado; el Generador HMI también edita y genera sin conexión.
+            foreach (var herramienta in new Herramienta[]
             {
                 _importarExportar,
+                new GeneradorHmiViewModel(Contexto),
+                new ComentadorViewModel(Contexto),
+                new SincroCheckerViewModel(Contexto),
                 new DiagExpectedViewModel(Contexto),
                 new NumeradorViewModel(Contexto),
                 new RenombrarArrayViewModel(Contexto),
-                new SincroCheckerViewModel(Contexto),
-                new ComentadorViewModel(Contexto),
-            };
-            var conArchivos = new Herramienta[]
-            {
-                new GeneradorHmiViewModel(Contexto),
-            };
-
-            Lateral.Add(new GrupoLateral("CON TIA"));
-            foreach (var h in conTia)
-                Lateral.Add(h);
-            Lateral.Add(new GrupoLateral("CON ARCHIVOS"));
-            foreach (var h in conArchivos)
-                Lateral.Add(h);
+            })
+                Lateral.Add(herramienta);
 
             _seleccionada = _actual = _importarExportar;
         }
@@ -85,7 +62,7 @@ namespace HerramientasSICAR.ViewModels
         public string Subtitulo => L.T("Utilidades para proyectos SICAR@GST en TIA Portal");
 
         /// <summary>Rótulos de grupo y herramientas, en el orden en que se ven en el lateral.</summary>
-        public ObservableCollection<object> Lateral { get; } = new ObservableCollection<object>();
+        public ObservableCollection<Herramienta> Lateral { get; } = new ObservableCollection<Herramienta>();
 
         public ObservableCollection<string> Proyectos { get; } = new ObservableCollection<string>();
 

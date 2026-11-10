@@ -23,8 +23,6 @@ namespace HerramientasSICAR
             ["Hay una versión nueva: {0} (tienes la {1})."] = "A new version is available: {0} (you have {1}).",
             ["Descargar"] = "Download",
             ["Cerrar"] = "Close",
-            ["CON TIA"] = "WITH TIA",
-            ["CON ARCHIVOS"] = "WITH FILES",
             ["Conecta con un proyecto de TIA en la barra superior."] = "Connect to a TIA project in the top bar.",
 
             // ---- Conexión y estado
@@ -204,6 +202,25 @@ namespace HerramientasSICAR
             ["Conecta con un proyecto para ver sus bloques."] = "Connect to a project to see its blocks.",
             ["Trae de TIA el árbol del PLC seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA"] = "Gets the tree of the selected PLC from TIA: if it was not read when connecting, or to see changes made in TIA",
             ["Se cambian solo los usos con índice fijo, en el orden en que aparecen en el bloque. El bloque se exporta, se renumera y se importa encima del original. Al terminar, guarda el proyecto en TIA."] = "Only the uses with a fixed index are changed, in the order they appear in the block. The block is exported, renumbered and imported over the original. When done, save the project in TIA.",
+
+            // ---- Generador HMI: importar en TIA
+            ["Bloque"] = "Block",
+            ["Listas de menús y funciones de usuario"] = "Menu and user function lists",
+            ["Listas de Production data"] = "Production data lists",
+            ["el FC {0} en {1}"] = "the {0} FC into {1}",
+            ["{0} lista(s) de textos en {1}"] = "{0} text list(s) into {1}",
+            ["Importar en TIA"] = "Import into TIA",
+            ["Se importan {0}. Lo que ya exista con el mismo nombre se sobrescribe. Guarda antes el proyecto en TIA."] = "Importing {0}. Anything that already exists with the same name is overwritten. Save the project in TIA first.",
+            [" y "] = " and ",
+            ["Importando {0} en {1}…"] = "Importing {0} into {1}…",
+            ["Guarda el FC y las listas en XML en una carpeta"] = "Saves the FC and the lists as XML in a folder",
+            ["Importar en TIA…"] = "Import into TIA…",
+            ["Conecta con el proyecto en la barra superior para importar en sus PLC y HMI."] = "Connect to the project in the top bar to import into its PLCs and HMIs.",
+            ["Todas"] = "All",
+            ["Ninguna"] = "None",
+            ["PLC del FC"] = "PLC for the FC",
+            ["Si el PLC ya tiene el FC, se sobrescribe en su carpeta; si no, se crea en 08_HMI_Management › 01_HMI_Configuration."] = "If the PLC already has the FC, it is overwritten in its folder; otherwise it is created in 08_HMI_Management › 01_HMI_Configuration.",
+            ["HMI de las listas de textos"] = "HMIs for the text lists",
 
             // ---- Comentador
             ["sin compilar"] = "not compiled",

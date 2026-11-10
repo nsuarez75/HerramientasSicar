@@ -139,6 +139,21 @@ namespace HerramientasSICAR.Services
             return bloque != null && Compilar(bloque);
         }
 
+        /// <summary>
+        /// Importa el XML de un bloque en un PLC: si el PLC ya tiene un bloque con ese nombre, en su carpeta
+        /// (sobrescribiéndolo); si no, en <paramref name="carpetaSiNoExiste"/>, que se crea si hace falta.
+        /// </summary>
+        public void ImportarBloqueEnPlc(string nombrePlc, string nombreBloque, string rutaXml, IReadOnlyList<string> carpetaSiNoExiste,
+            ResultadoOperacion resultado)
+        {
+            Intentar(resultado, nombreBloque, 0, () =>
+            {
+                var existente = BuscarBloques(nombrePlc, (_, n) => n.Equals(nombreBloque, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                var grupo = BuscarGrupo(nombrePlc, existente?.Grupos ?? carpetaSiNoExiste, crear: true);
+                ImportarEn(grupo, rutaXml);
+            });
+        }
+
         // ------------------------------------------------------------------ Exportar → cambiar → importar
 
         /// <summary>
