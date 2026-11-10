@@ -45,6 +45,9 @@ namespace HerramientasSICAR.ViewModels
         private PantallaFunciones _pantallaSeleccionada;
 
         [ObservableProperty]
+        private DatasetProduccion _datasetSeleccionado;
+
+        [ObservableProperty]
         private TextoEditable _tituloOem;
 
         [ObservableProperty]
@@ -78,6 +81,7 @@ namespace HerramientasSICAR.ViewModels
         public IReadOnlyList<NodoMenu> Grupos { get; }
         public ObservableCollection<HmiEditable> Hmis { get; } = new ObservableCollection<HmiEditable>();
         public ObservableCollection<PantallaFunciones> PantallasFunciones { get; } = new ObservableCollection<PantallaFunciones>();
+        public ObservableCollection<DatasetProduccion> DatasetsProduccion { get; } = new ObservableCollection<DatasetProduccion>();
 
         public IReadOnlyList<string> Idiomas { get; } = new[]
         {
@@ -104,6 +108,8 @@ namespace HerramientasSICAR.ViewModels
                 var s = SubgrupoActual;
                 if (s == null)
                     return "";
+                if (s.Grupo == CatalogoMenus.ProductionData)
+                    return L.T("Cada posición es un dataset; sus textos se escriben en la pestaña Production data.");
                 if (s.Posiciones == 0)
                     return L.T("Solo nombres para la lista {0}: el FC no oculta estas pantallas.", s.Lista.Nombre);
                 if (s.Nombres == 0)
@@ -134,6 +140,12 @@ namespace HerramientasSICAR.ViewModels
                 PantallasFunciones.Add(new PantallaFunciones(p, proyecto, funciones));
             }
 
+            DatasetsProduccion.Clear();
+            foreach (var tipo in CatalogoMenus.DatosProduccion)
+                for (int dataset = 1; dataset <= CatalogoMenus.DatasetsProduccion; dataset++)
+                    DatasetsProduccion.Add(new DatasetProduccion(tipo, dataset, proyecto, this));
+            DatasetSeleccionado = DatasetsProduccion[0];
+
             if (NodoSeleccionado == null)
                 NodoSeleccionado = Grupos[0].Hijos[0];
             else
@@ -159,6 +171,8 @@ namespace HerramientasSICAR.ViewModels
             TituloOem?.Refrescar();
             foreach (var texto in PantallasFunciones.SelectMany(p => p.Funciones).SelectMany(f => f.Textos))
                 texto.Refrescar();
+            foreach (var fila in DatasetsProduccion.SelectMany(d => d.Filas))
+                fila.Texto.Refrescar();
         }
 
         private void ReconstruirFilas()
@@ -206,6 +220,11 @@ namespace HerramientasSICAR.ViewModels
             if (PantallaSeleccionada != null)
                 foreach (var texto in PantallaSeleccionada.Funciones.SelectMany(f => f.Textos))
                     texto.RefrescarMarca();
+            foreach (var dataset in DatasetsProduccion)
+                dataset.Refrescar();
+            if (DatasetSeleccionado != null)
+                foreach (var fila in DatasetSeleccionado.Filas)
+                    fila.Texto.RefrescarMarca();
         }
 
         private static TipoArchivo TipoProyecto => new TipoArchivo(L.T("Proyecto del Generador HMI (*.hmimenus)"), "*" + ProyectoMenus.Extension);
@@ -397,7 +416,8 @@ namespace HerramientasSICAR.ViewModels
         private IEnumerable<TextoHmi> TodosLosTextos() =>
             _proyecto.TitulosOem
                 .Concat(_proyecto.Nombres.Values.SelectMany(n => n))
-                .Concat(_proyecto.FuncionesUsuario.SelectMany(p => p).SelectMany(f => f.Textos()));
+                .Concat(_proyecto.FuncionesUsuario.SelectMany(p => p).SelectMany(f => f.Textos()))
+                .Concat(_proyecto.DatosProduccion.Values.SelectMany(d => d).SelectMany(d => d));
 
         [RelayCommand(CanExecute = nameof(Libre))]
         private async Task Generar()

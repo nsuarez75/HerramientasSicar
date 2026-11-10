@@ -85,6 +85,12 @@ namespace HerramientasSICAR.Logica.MenusHmi
         /// <summary>Las 24 pantallas de funciones de usuario, con 8 funciones cada una.</summary>
         public List<List<FuncionUsuario>> FuncionesUsuario { get; set; } = new List<List<FuncionUsuario>>();
 
+        /// <summary>Por tipo de Production data (clave), los 8 datasets con los textos de sus filas.</summary>
+        public Dictionary<string, List<List<TextoHmi>>> DatosProduccion { get; set; } = new Dictionary<string, List<List<TextoHmi>>>();
+
+        /// <summary>Textos de las filas de un dataset de Production data (dataset de 1 a 8).</summary>
+        public List<TextoHmi> Dataset(TipoDatosProduccion tipo, int dataset) => DatosProduccion[tipo.Clave][dataset - 1];
+
         /// <summary>Proyecto vacío con una HMI.</summary>
         public static ProyectoMenus Nuevo()
         {
@@ -133,6 +139,16 @@ namespace HerramientasSICAR.Logica.MenusHmi
                 funcion.AccionDerecha = funcion.AccionDerecha ?? new TextoHmi();
                 funcion.FeedbackIzquierda = funcion.FeedbackIzquierda ?? new TextoHmi();
                 funcion.FeedbackDerecha = funcion.FeedbackDerecha ?? new TextoHmi();
+            }
+
+            DatosProduccion = DatosProduccion ?? new Dictionary<string, List<List<TextoHmi>>>();
+            foreach (var tipo in CatalogoMenus.DatosProduccion)
+            {
+                DatosProduccion.TryGetValue(tipo.Clave, out var datasets);
+                datasets = Ajustar(datasets, CatalogoMenus.DatasetsProduccion, _ => new List<TextoHmi>());
+                for (int i = 0; i < datasets.Count; i++)
+                    datasets[i] = Ajustar(datasets[i], tipo.Filas, _ => new TextoHmi());
+                DatosProduccion[tipo.Clave] = datasets;
             }
 
             foreach (var hmi in Hmis)

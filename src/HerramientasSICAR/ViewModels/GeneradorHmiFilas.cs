@@ -219,6 +219,50 @@ namespace HerramientasSICAR.ViewModels
         }
     }
 
+    /// <summary>Un dataset de Production data (una posición del menú) con los textos de sus filas.</summary>
+    public sealed class DatasetProduccion : ObservableObject
+    {
+        public DatasetProduccion(TipoDatosProduccion tipo, int dataset, ProyectoMenus proyecto, GeneradorHmiViewModel vm)
+        {
+            Tipo = tipo;
+            Dataset = dataset;
+            Textos = proyecto.Dataset(tipo, dataset);
+            Filas = Textos.Select((t, i) => new FilaDataset(i + 1, new TextoEditable(t, vm, () => Estandar(vm, i + 1)))).ToList();
+        }
+
+        public TipoDatosProduccion Tipo { get; }
+        public int Dataset { get; }
+        public IReadOnlyList<TextoHmi> Textos { get; }
+        public IReadOnlyList<FilaDataset> Filas { get; }
+
+        public string Titulo => Tipo.Subgrupo.Nombre + " · " + Dataset;
+        public string Lista => Tipo.NombreLista(Dataset);
+        public int Configuradas => Textos.Count(t => !t.Vacio);
+
+        // Si el dataset está entero vacío salen los textos estándar; si no, lo vacío sale vacío.
+        private string Estandar(GeneradorHmiViewModel vm, int fila)
+        {
+            if (Textos.Any(t => !t.Vacio))
+                return "";
+            int idioma = vm.Idioma == IdiomaEdicion.Ingles ? 1 : vm.Idioma == IdiomaEdicion.Aleman ? 2 : 0;
+            return Tipo.TextoEstandar(idioma, Dataset, fila);
+        }
+
+        public void Refrescar() => OnPropertyChanged(nameof(Configuradas));
+    }
+
+    public sealed class FilaDataset
+    {
+        public FilaDataset(int numero, TextoEditable texto)
+        {
+            Numero = numero;
+            Texto = texto;
+        }
+
+        public int Numero { get; }
+        public TextoEditable Texto { get; }
+    }
+
     /// <summary>Una función de usuario con sus cinco textos.</summary>
     public sealed class FilaFuncion
     {

@@ -93,6 +93,33 @@ namespace HerramientasSICAR.Logica.MenusHmi
     }
 
     /// <summary>
+    /// Pantallas de Production data de un tipo (contadores, tiempos de ciclo…): cada posición del menú es un dataset,
+    /// con su lista SO_ProdData_&lt;Clave&gt;_Dataset_NN de <see cref="Filas"/> textos.
+    /// </summary>
+    public sealed class TipoDatosProduccion
+    {
+        public TipoDatosProduccion(string clave, SubgrupoMenu subgrupo, int filas, string estandarEs, string estandarEn, string estandarDe)
+        {
+            Clave = clave;
+            Subgrupo = subgrupo;
+            Filas = filas;
+            Estandar = new[] { estandarEs, estandarEn, estandarDe };
+        }
+
+        public string Clave { get; }
+        public SubgrupoMenu Subgrupo { get; }
+        public int Filas { get; }
+
+        /// <summary>Texto estándar en es-ES, en-US y de-DE, con «xx» donde va la fila y «DD» donde va el dataset.</summary>
+        public IReadOnlyList<string> Estandar { get; }
+
+        public string NombreLista(int dataset) => $"SO_ProdData_{Clave}_Dataset_{dataset:D2}";
+
+        public string TextoEstandar(int idioma, int dataset, int fila) =>
+            Estandar[idioma].Replace("DD", dataset.ToString("D2")).Replace("xx", fila == 0 ? "xx" : fila.ToString("D2"));
+    }
+
+    /// <summary>
     /// Menús de la HMI SICAR@GST que configura el Generador HMI: los que tienen ocultamiento en el FC
     /// CallHMIMenusConfig_FC y las listas de textos con los nombres de sus pantallas.
     /// </summary>
@@ -108,6 +135,7 @@ namespace HerramientasSICAR.Logica.MenusHmi
         public static readonly GrupoMenu Equipment = new GrupoMenu(3, "Equipment", "Equipments", "Equipments");
         public static readonly GrupoMenu ManualOperations = new GrupoMenu(4, "Manual operations", "Manual operation", "ManualOperation");
         public static readonly GrupoMenu HardwareDiagnostics = new GrupoMenu(6, "Hardware diagnostics", "Hardware diagnostics", "HardwareDiagnostics");
+        public static readonly GrupoMenu ProductionData = new GrupoMenu(7, "Production data", "Production data", "ProductionData");
         public static readonly GrupoMenu Sistema = new GrupoMenu(8, "System", "System", "System");
 
         public static readonly ListaMenu ListaOem = new ListaMenu("CO_OEM_Screens_ID", 88, "<<OEM screen xx>>", "<<OEM screen xx>>", "<<OEM screen xx>>");
@@ -130,6 +158,12 @@ namespace HerramientasSICAR.Logica.MenusHmi
         public static readonly SubgrupoMenu UserFunctions;
         public static readonly SubgrupoMenu Profinet;
         public static readonly SubgrupoMenu Energia;
+
+        /// <summary>Datasets por tipo de Production data (posiciones 1 a 8 de cada subgrupo).</summary>
+        public const int DatasetsProduccion = 8;
+
+        /// <summary>Tipos de Production data, en el orden del menú.</summary>
+        public static readonly IReadOnlyList<TipoDatosProduccion> DatosProduccion;
 
         /// <summary>Subgrupos en el orden del FC y de la herramienta.</summary>
         public static readonly IReadOnlyList<SubgrupoMenu> Subgrupos;
@@ -168,6 +202,26 @@ namespace HerramientasSICAR.Logica.MenusHmi
             Profinet = new SubgrupoMenu(HardwareDiagnostics, 1, "Profinet diagnostics", "Profinet diagnostic", "ProfinetDiagnostic", 8, 8, ListaProfinet);
             lista.Add(Profinet);
             lista.Add(new SubgrupoMenu(HardwareDiagnostics, 3, "Web server", "Web server", "WebServer", 0, 8, ListaWebServer));
+
+            var produccion = new[]
+            {
+                new SubgrupoMenu(ProductionData, 1, "Process counters", "Process counters", "ProcessCounters", DatasetsProduccion, 0),
+                new SubgrupoMenu(ProductionData, 2, "Shift counters", "Shift counters", "ShiftCounters", DatasetsProduccion, 0),
+                new SubgrupoMenu(ProductionData, 3, "Cycle times", "Cycle times", "CycleTimes", DatasetsProduccion, 0),
+                new SubgrupoMenu(ProductionData, 4, "Limit values", "Limit values", "LimitValues", DatasetsProduccion, 0),
+            };
+            lista.AddRange(produccion);
+            DatosProduccion = new[]
+            {
+                new TipoDatosProduccion("ProcessCounter", produccion[0], 20,
+                    "<<Contadores, imagen xx-datos DD>>", "<<Process counters, screen xx-dataset DD>>", "<<Zähler, Bild xx-Datensatz DD>>"),
+                new TipoDatosProduccion("ShiftCounter", produccion[1], 10,
+                    "<<Contadores de turnos, imagen xx-datos DD>>", "<<Shiftcounters, screen xx-dataset DD>>", "<<Schichtzähler, Bild xx-Datensatz DD>>"),
+                new TipoDatosProduccion("CycleTime", produccion[2], 20,
+                    "<<Tiempos de ciclo, imagen xx-datos DD>>", "<<Cycle times, screen xx-dataset DD>>", "<<Taktzeit, Bild xx-Datensatz DD>>"),
+                new TipoDatosProduccion("LimitValue", produccion[3], 10,
+                    "<<Valores límite, imagen xx-datos DD>>", "<<Limit values, screen xx-dataset DD>>", "<<Grenzwert, Bild xx-Datensatz DD>>"),
+            };
 
             Energia = new SubgrupoMenu(Sistema, 5, "Energy measurement", "Energy", "EnergyMeasurement", 7, 0);
             lista.Add(Energia);

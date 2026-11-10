@@ -68,6 +68,9 @@ namespace HerramientasSICAR.Logica.MenusHmi
             foreach (var lista in CatalogoMenus.Listas)
                 listas[lista.Nombre] = XmlLista(lista.Nombre, Entradas(proyecto, lista));
             listas[CatalogoMenus.ListaTextosFunciones] = XmlLista(CatalogoMenus.ListaTextosFunciones, EntradasFunciones(proyecto));
+            foreach (var tipo in CatalogoMenus.DatosProduccion)
+                for (int dataset = 1; dataset <= CatalogoMenus.DatasetsProduccion; dataset++)
+                    listas[tipo.NombreLista(dataset)] = XmlLista(tipo.NombreLista(dataset), EntradasDataset(proyecto, tipo, dataset));
             return listas;
         }
 
@@ -136,6 +139,22 @@ namespace HerramientasSICAR.Logica.MenusHmi
                     }
                 }
             }
+            return entradas;
+        }
+
+        /// <summary>
+        /// SO_ProdData_&lt;tipo&gt;_Dataset_NN: un texto por fila. Un dataset sin ningún texto lleva los estándar en todas
+        /// sus filas; si tiene alguno, lo vacío sale vacío.
+        /// </summary>
+        public static IReadOnlyList<Entrada> EntradasDataset(ProyectoMenus proyecto, TipoDatosProduccion tipo, int dataset)
+        {
+            var textos = proyecto.Dataset(tipo, dataset);
+            bool vacio = textos.All(t => t.Vacio);
+            Entrada Estandar(int fila) => new Entrada(fila, tipo.TextoEstandar(0, dataset, fila), tipo.TextoEstandar(1, dataset, fila), tipo.TextoEstandar(2, dataset, fila));
+
+            var entradas = new List<Entrada> { Estandar(0) };
+            for (int fila = 1; fila <= tipo.Filas; fila++)
+                entradas.Add(vacio ? Estandar(fila) : DeTexto(fila, textos[fila - 1]));
             return entradas;
         }
 

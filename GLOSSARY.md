@@ -126,3 +126,7 @@ _Evitar_: placeholder, texto por defecto
 **Función de usuario**:
 Botón de una pantalla de User functions de la HMI (24 pantallas × 8 funciones) con cinco textos: nombre, acción
 izquierda y derecha y feedback izquierda y derecha.
+
+**Dataset (de Production data)**:
+Cada posición de los subgrupos de Production data (contadores, tiempos de ciclo, valores límite). Tiene su lista de
+textos `SO_ProdData_…_Dataset_NN`, con una fila por elemento de la pantalla.

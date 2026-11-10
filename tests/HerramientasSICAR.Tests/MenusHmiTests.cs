@@ -226,14 +226,46 @@ namespace HerramientasSICAR.Tests
                 var escritos = GeneradorMenus.Generar(ProyectoMenus.Nuevo(), carpeta);
 
                 Assert.True(File.Exists(Path.Combine(carpeta, "CallHMIMenusConfig_FC.xml")));
-                Assert.Equal(CatalogoMenus.Listas.Count + 1, Directory.GetFiles(Path.Combine(carpeta, "Listas de textos")).Length);
-                Assert.Equal(CatalogoMenus.Listas.Count + 2, escritos.Count);
+                // 13 de nombres de pantallas + CO_UserFunctions + 4 tipos × 8 datasets de Production data
+                Assert.Equal(46, Directory.GetFiles(Path.Combine(carpeta, "Listas de textos")).Length);
+                Assert.Equal(47, escritos.Count);
+                Assert.True(File.Exists(Path.Combine(carpeta, "Listas de textos", "SO_ProdData_LimitValue_Dataset_08.xml")));
             }
             finally
             {
                 if (Directory.Exists(carpeta))
                     Directory.Delete(carpeta, true);
             }
+        }
+
+        [Fact]
+        public void Un_dataset_vacio_lleva_los_textos_estandar_y_uno_a_medias_deja_vacio_lo_que_falta()
+        {
+            var proyecto = ProyectoMenus.Nuevo();
+            var ciclos = CatalogoMenus.DatosProduccion.Single(t => t.Clave == "CycleTime");
+            var turnos = CatalogoMenus.DatosProduccion.Single(t => t.Clave == "ShiftCounter");
+            proyecto.Dataset(ciclos, 1)[0] = TextoHmi.De("Robot A");
+
+            var lleno = GeneradorMenus.EntradasDataset(proyecto, ciclos, 1);
+            var vacio = GeneradorMenus.EntradasDataset(proyecto, turnos, 3);
+
+            Assert.Equal(21, lleno.Count);
+            Assert.Equal(new[] { "<<Tiempos de ciclo, imagen xx-datos 01>>", "<<Cycle times, screen xx-dataset 01>>", "<<Taktzeit, Bild xx-Datensatz 01>>" }, lleno[0].Textos);
+            Assert.Equal("Robot A", lleno[1].Textos[2]);
+            Assert.Equal("", lleno[2].Textos[0]);
+            Assert.Equal(11, vacio.Count);
+            Assert.Equal(new[] { "<<Contadores de turnos, imagen 10-datos 03>>", "<<Shiftcounters, screen 10-dataset 03>>", "<<Schichtzähler, Bild 10-Datensatz 03>>" }, vacio[10].Textos);
+        }
+
+        [Fact]
+        public void Production_data_va_en_el_FC_con_8_posiciones_por_subgrupo()
+        {
+            var lineas = GeneradorMenus.Awl(ProyectoMenus.Nuevo().Hmis[0]).Select(l => l.ToString()).ToList();
+
+            Assert.Contains("// Group 7 (Production data)", lineas);
+            Assert.Contains("      =     HMIMenusConfig01_IDB.statCfg.Blanking.ProductionData.LimitValues[8]", lineas);
+            Assert.DoesNotContain("      =     HMIMenusConfig01_IDB.statCfg.Blanking.ProductionData.LimitValues[9]", lineas);
+            Assert.True(lineas.IndexOf("// Group 7 (Production data)") < lineas.IndexOf("// Group 8 (System)"));
         }
 
         [Fact]

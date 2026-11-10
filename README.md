@@ -78,11 +78,12 @@ Genera el comentario de los pasos de secuencia en castellano, inglés y alemán 
 Configura los menús de las HMI de un PLC y genera lo que hay que importar en TIA. Todo se edita en la herramienta y se guarda en un archivo de proyecto `.hmimenus` (Nuevo / Abrir / Guardar / Guardar como), que sirve para pasar la configuración de un equipo a otro. Al arrancar se abre el último proyecto usado.
 
 - **HMI**: de 1 a 8. El número de cada una elige su IDB (`HMIMenusConfigNN_IDB`).
-- **Pantallas**: por cada subgrupo del menú (OEM 1–8, Installation, Equipment, Manual operations, Profinet diagnostics, Web server y Energy measurement), el nombre de cada pantalla, común a todas las HMI, y una casilla por HMI para elegir si se ve. En los grupos OEM también se pone el título del grupo. Pulsando el nombre de una HMI en la cabecera se marcan o desmarcan todas.
+- **Pantallas**: por cada subgrupo del menú (OEM 1–8, Installation, Equipment, Manual operations, Profinet diagnostics, Web server, Production data y Energy measurement), el nombre de cada pantalla, común a todas las HMI, y una casilla por HMI para elegir si se ve. En los grupos OEM también se pone el título del grupo. Pulsando el nombre de una HMI en la cabecera se marcan o desmarcan todas.
 - **Funciones de usuario**: 24 pantallas con 8 funciones cada una, cada función con nombre, acción izquierda y derecha y feedback izquierda y derecha.
+- **Production data**: cada posición de Process counters, Shift counters, Cycle times y Limit values es un dataset con su lista `SO_ProdData_…_Dataset_NN` de 20 o 10 filas, que se escriben en su pestaña.
 - **Idiomas**: cada texto se escribe una vez y sale igual en es-ES, en-US y de-DE. Eligiendo «Inglés» o «Alemán» arriba se puede poner un texto distinto en ese idioma; **Traducir** los rellena con un traductor en línea para revisarlos.
 
-**Generar FC y listas** escribe en la carpeta que se elija `CallHMIMenusConfig_FC.xml` (FC 1450, con todas las HMI) y `Listas de textos/*.xml` (las 14 listas de menús y funciones), listos para importar con Importar / Exportar. Las listas llevan siempre todas las entradas: una pantalla sin nombre lleva el texto estándar de su lista (`<<Robot 03>>`…), y una función de usuario sin ningún texto, los suyos (`<<S1 L2 Name>>`…). La especificación está en [`docs/generador-hmi.md`](docs/generador-hmi.md).
+**Generar FC y listas** escribe en la carpeta que se elija `CallHMIMenusConfig_FC.xml` (FC 1450, con todas las HMI) y `Listas de textos/*.xml` (las 14 listas de menús y funciones y las 32 de Production data), listos para importar con Importar / Exportar. Las listas llevan siempre todas las entradas: una pantalla sin nombre lleva el texto estándar de su lista (`<<Robot 03>>`…), y una función de usuario sin ningún texto, los suyos (`<<S1 L2 Name>>`…). La especificación está en [`docs/generador-hmi.md`](docs/generador-hmi.md).
 
 ## Compilar
 

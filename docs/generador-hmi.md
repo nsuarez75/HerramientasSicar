@@ -24,8 +24,8 @@ Ya no se lee ni se genera ningún Excel.
 
 ## Menús
 
-Solo los que ya generaba el generador anterior, más Profinet diagnostics y Energy measurement (antes eran líneas
-fijas del FC):
+Los que ya generaba el generador anterior, más Profinet diagnostics y Energy measurement (antes eran líneas fijas
+del FC) y Production data (añadido el 10/11/2026):
 
 | Subgrupo | Posiciones en el FC | Nombres | Lista de textos |
 |---|---|---|---|
@@ -42,9 +42,19 @@ fijas del FC):
 | Manual operation › Poka-Yoke test, Docking stations | 8 | 8 | `CO_PokaYokeTest_ID`, `CO_DockingStation_ID` |
 | Hardware diagnostics › Profinet diagnostic | 8 | 8 | `CO_ProfinetDiagnose_ID` |
 | Hardware diagnostics › Web server | — | 8 | `CO_WebServer_Device_ID` |
+| Production data › Process counters, Shift counters, Cycle times, Limit values | 8 | — | ver abajo |
 | System › Energy | 7 | — | — |
 
-Process diagnostics, Production data y el resto de System no se tocan.
+Process diagnostics y el resto de System no se tocan.
+
+### Production data
+
+Cada posición de los cuatro subgrupos es un **dataset**, con su propia lista
+`SO_ProdData_<ProcessCounter|ShiftCounter|CycleTime|LimitValue>_Dataset_NN`: 20 filas en contadores de proceso y
+tiempos de ciclo, 10 en contadores de turno y valores límite (por ejemplo, Cycle times 1 lleva un robot por fila).
+Son listas SO del estándar, pero se modifican igual que las CO. Se editan en la pestaña Production data; el
+ocultamiento, en Pantallas como los demás (visibles por defecto). Un dataset sin ningún texto lleva los estándar
+(`<<Tiempos de ciclo, imagen 05-datos 02>>`); si tiene alguno, lo vacío sale vacío.
 
 ## Ocultamiento (FC)
 
@@ -72,7 +82,7 @@ Siempre todo, sin elegir HMI ni componentes, en la carpeta que se elija:
 
 ```
 <carpeta>/CallHMIMenusConfig_FC.xml
-<carpeta>/Listas de textos/<lista>.xml   (14 listas)
+<carpeta>/Listas de textos/<lista>.xml   (46 listas: 14 de menús y funciones + 32 de Production data)
 ```
 
 ## Comprobado

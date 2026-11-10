@@ -208,6 +208,45 @@
                     </DockPanel>
                 </Grid>
             </TabItem>
+            <!-- Production data -->
+            <TabItem Header="{l:T 'Production data'}">
+                <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
+                    <ListBox Classes="table" ItemsSource="{Binding DatasetsProduccion}" SelectedItem="{Binding DatasetSeleccionado}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DatasetProduccion">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Classes="pill"><TextBlock Text="{Binding Configuradas}" /></Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <DockPanel Grid.Column="1">
+                        <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:T 'Cada posición de Production data es un dataset con su lista de textos, una fila por elemento de la pantalla. Un dataset sin ningún texto sale con los textos estándar; si tiene alguno, lo vacío sale vacío.'}" />
+                        <TextBlock DockPanel.Dock="Top" Classes="label" Margin="0,0,0,8" Text="{Binding DatasetSeleccionado.Lista, FallbackValue=''}" />
+                        <Border DockPanel.Dock="Top" Classes="tablehead">
+                            <Grid ColumnDefinitions="44,*" ColumnSpacing="8">
+                                <TextBlock Text="#" Classes="columnHeader" />
+                                <TextBlock Grid.Column="1" Text="{l:T 'Texto'}" Classes="columnHeader" />
+                            </Grid>
+                        </Border>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding DatasetSeleccionado.Filas, FallbackValue={x:Null}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FilaDataset">
+                                        <Grid ColumnDefinitions="44,*" ColumnSpacing="8" Margin="14,2">
+                                            <TextBlock Text="{Binding Numero}" Classes="mono" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Text="{Binding Texto.Valor}" Watermark="{Binding Texto.MarcaDeAgua}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </UserControl>

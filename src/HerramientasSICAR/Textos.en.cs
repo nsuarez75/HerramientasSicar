@@ -278,6 +278,11 @@ namespace HerramientasSICAR
             ["Acción derecha"] = "Right action",
             ["Feedback izquierda"] = "Left feedback",
             ["Feedback derecha"] = "Right feedback",
+            ["Cada posición es un dataset; sus textos se escriben en la pestaña Production data."] = "Each position is a dataset; its texts are written in the Production data tab.",
+            ["Production data"] = "Production data",
+            ["Texto"] = "Text",
+            ["Cada posición de Production data es un dataset con su lista de textos, una fila por elemento de la pantalla. Un dataset sin ningún texto sale con los textos estándar; si tiene alguno, lo vacío sale vacío."] =
+                "Each Production data position is a dataset with its text list, one row per item on the screen. A dataset with no text at all gets the standard texts; if it has any, empty rows stay empty.",
 
             // ---- Sincro Checker
             ["Busca en el programa de un PLC los pares de pasos de cada secuencia que pueden ser candidatos a la vez al pasar de manual a automático, lo que da error de sincronización. Usa las mismas reglas que GST-Diag."] =
