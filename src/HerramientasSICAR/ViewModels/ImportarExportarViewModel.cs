@@ -21,6 +21,22 @@ namespace HerramientasSICAR.ViewModels
         public ImportarExportarViewModel(Contexto contexto) : base(contexto)
         {
             _progreso = ProgresoEnEstado();
+            Contexto.ArbolCambiado += AlCambiarArbol;
+        }
+
+        // El árbol es común a todas las herramientas: se rehace al conectar y se actualiza el PLC que se vuelve a leer.
+        private void AlCambiarArbol(CambioArbol cambio)
+        {
+            if (cambio.Completo)
+            {
+                MostrarArbol(cambio.Dispositivos, cambio.Arbol);
+                return;
+            }
+            var raiz = Dispositivos.FirstOrDefault(d => d.Tipo == TipoNodo.Plc && d.Nombre == cambio.Plc.Nombre);
+            if (raiz == null)
+                return;
+            raiz.ReemplazarContenido(cambio.Plc.Raiz);
+            ArbolReleido(NodoSeleccionado != null && NodoSeleccionado.Raiz == raiz ? NodoSeleccionado : raiz);
         }
 
         public override string Nombre => L.T("Importar / Exportar");
@@ -76,7 +92,7 @@ namespace HerramientasSICAR.ViewModels
         /// PLC y HMI del proyecto recién conectado (o ninguno si se desconecta), con el árbol de los que se han leído;
         /// los demás salen «sin leer».
         /// </summary>
-        public void MostrarArbol(IReadOnlyList<DispositivoInfo> dispositivos, ArbolProyecto arbol)
+        private void MostrarArbol(IReadOnlyList<DispositivoInfo> dispositivos, ArbolProyecto arbol)
         {
             Dispositivos.Clear();
             NodoSeleccionado = null;
@@ -102,11 +118,13 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Leyendo el árbol del proyecto…"), async () =>
             {
-                var arbol = await Contexto.Tia().LeerArbolAsync(new[] { info }, _progreso);
                 if (info.EsHmi)
+                {
+                    var arbol = await Contexto.Tia().LeerArbolAsync(new[] { info }, _progreso);
                     dispositivo.ReemplazarRamas(ArchivosHmi.OrdenArbol, arbol.Hmis.Single().Ramas);
+                }
                 else
-                    dispositivo.ReemplazarContenido(arbol.Plcs.Single().Raiz);
+                    await Contexto.LeerPlcAsync(info.Nombre);   // lo pone en el árbol común: lo ven todas las herramientas
                 ArbolReleido(destino);
                 Contexto.MostrarEstado(L.T("Árbol de {0} leído.", dispositivo.Nombre));
             });
@@ -194,8 +212,7 @@ namespace HerramientasSICAR.ViewModels
                 if (destino.Raiz.Leido)
                 {
                     _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
-                    var plc = await Contexto.Tia().LeerPlcAsync(destino.Dispositivo);
-                    destino.Raiz.ReemplazarContenido(plc.Raiz);
+                    await Contexto.LeerPlcAsync(destino.Dispositivo);
                     ArbolReleido(destino);
                 }
                 resultado.Fallos.InsertRange(0, noBloques);

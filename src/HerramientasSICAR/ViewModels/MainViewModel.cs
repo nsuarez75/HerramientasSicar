@@ -199,11 +199,11 @@ namespace HerramientasSICAR.ViewModels
             await Contexto.Trabajar(L.T("Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"), async () =>
             {
                 Contexto.ProyectoConectado = null;
-                _importarExportar.MostrarArbol(new List<DispositivoInfo>(), new ArbolProyecto());
+                Contexto.PonerArbol(new List<DispositivoInfo>(), new ArbolProyecto());
                 var dispositivos = await Contexto.Tia().ConectarAsync(ruta);
                 Contexto.ProyectoConectado = ruta;
                 // Primero salen todos sin leer: si la lectura falla, se puede leer cada uno con el botón Leer.
-                _importarExportar.MostrarArbol(dispositivos, new ArbolProyecto());
+                Contexto.PonerArbol(dispositivos, new ArbolProyecto());
                 if (dispositivos.Count == 0)
                 {
                     Contexto.MostrarEstado(L.T("Conectado, pero el proyecto no tiene ningún PLC ni HMI."));
@@ -215,7 +215,7 @@ namespace HerramientasSICAR.ViewModels
                 {
                     Contexto.MostrarEstado(L.T("Leyendo el árbol del proyecto…"));
                     var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
-                    _importarExportar.MostrarArbol(dispositivos, await Contexto.Tia().LeerArbolAsync(elegidos, progreso));
+                    Contexto.PonerArbol(dispositivos, await Contexto.Tia().LeerArbolAsync(elegidos, progreso));
                 }
 
                 int sinLeer = dispositivos.Count - elegidos.Count;

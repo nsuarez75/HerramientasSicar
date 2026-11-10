@@ -37,22 +37,6 @@ namespace HerramientasSICAR.Services
             return Plcs().SelectMany(p => BuscarBloques(p.Name, (_, n) => n.Equals(nombre, StringComparison.OrdinalIgnoreCase))).ToList();
         }
 
-        /// <summary>
-        /// Bloques _FB de la carpeta 10_Sequence &amp; Messageblocks del PLC (a cualquier profundidad) y sus subcarpetas,
-        /// para el Comentador.
-        /// </summary>
-        public List<BloqueRef> FbsDeSecuencias(string nombrePlc)
-        {
-            var fbs = BuscarBloques(nombrePlc, (grupos, nombre) =>
-                grupos.Contains(ComentariosSecuencia.CarpetaSecuencias) && ComentariosSecuencia.EsFb(nombre));
-            if (fbs.Count == 0 && !TieneCarpeta(BuscarPlc(nombrePlc).BlockGroup, ComentariosSecuencia.CarpetaSecuencias))
-                throw new InvalidOperationException(L.T("El PLC {0} no tiene la carpeta {1}.", nombrePlc, ComentariosSecuencia.CarpetaSecuencias));
-            return fbs;
-        }
-
-        private static bool TieneCarpeta(PlcBlockGroup grupo, string nombre) =>
-            grupo.Groups.Cast<PlcBlockGroup>().Any(g => g.Name == nombre || TieneCarpeta(g, nombre));
-
         // Único recorrido del árbol de bloques: cada bloque con las carpetas desde la raíz del PLC hasta él.
         private static void RecorrerBloques(PlcBlockGroup grupo, List<string> ruta, Action<PlcBlock, IReadOnlyList<string>> alBloque)
         {
@@ -120,6 +104,13 @@ namespace HerramientasSICAR.Services
                 destino.Delete();
             bloque.Export(destino, ExportOptions.WithDefaults);
             return destino.FullName;
+        }
+
+        /// <summary>XML del bloque, sin dejar nada en disco (se exporta a una carpeta temporal que se borra).</summary>
+        public string LeerXml(BloqueRef referencia)
+        {
+            using (var temporal = new CarpetaTemporal())
+                return File.ReadAllText(Exportar(referencia, temporal.Ruta));
         }
 
         // Ruta para un objeto en una carpeta plana: si ya hay uno con ese nombre (dos objetos iguales en carpetas distintas), se numera.
