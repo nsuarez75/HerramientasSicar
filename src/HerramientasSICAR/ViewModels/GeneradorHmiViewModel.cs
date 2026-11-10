@@ -1,11 +1,10 @@
-using ClosedXML.Excel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
+using HerramientasSICAR.Logica.MenusHmi;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -13,717 +12,416 @@ using System.Threading.Tasks;
 
 namespace HerramientasSICAR.ViewModels
 {
-    public class HmiScreenData
-    {
-        public string Hmi { get; set; }
-        public string Grupo { get; set; }
-        public string Subgrupo { get; set; }
-        public string Nombre { get; set; }
-        public bool Visible { get; set; }
-    }
-
-    // Un subgrupo de pantallas dentro de un grupo (p.ej. "Detail1" -> LayoutDetailed1[32]).
-    public class SubgrupoConfig
-    {
-        public string Clave { get; set; }
-        public int Id { get; set; }
-        public string Comentario { get; set; }
-        public string PlcName { get; set; }
-        public int MaxSize { get; set; }
-    }
-
-    public class GrupoConfig
-    {
-        public string Clave { get; set; }
-        public int Id { get; set; }
-        public string Comentario { get; set; }
-        public string PlcName { get; set; }
-        public List<SubgrupoConfig> Subgrupos { get; set; }
-    }
-
+    /// <summary>
+    /// Generador HMI: se configuran los menús de las HMI de un PLC (nombres de pantallas, qué pantallas ve cada HMI y
+    /// funciones de usuario) y se generan el FC CallHMIMenusConfig_FC y las listas de textos en XML para importar en TIA.
+    /// La configuración se guarda en un archivo .hmimenus.
+    /// </summary>
     public partial class GeneradorHmiViewModel : Herramienta
     {
-        // Columna de Excel, y nombres de subgrupo para Installation/Equipment/Manual Operations,
-        // para cada uno de los 8 bloques de pantallas que hay en cada hoja HMI (equivale al
-        // "match col" del script Python).
-        private static readonly (string Columna, string Inst, string Equip, string Man)[] ColumnasConfig = new[]
-        {
-            ("D", "Main",         "Robots",         "Manual1"),
-            ("F", "General",      "Drives",         "Manual2"),
-            ("H", "Detail1",      "Welding",        "UserFunctions"),
-            ("J", "Detail2",      "Spare04",        "Poka"),
-            ("L", "Fixture",      "Spare05",        "Docking"),
-            ("N", "Traceability", "Spare06",        "Spare06"),
-            ("P", "Spare07",      "Spare07",        "Spare07"),
-            ("R", "Interface",    "Identification", "Spare08"),
-        };
-
-        // Columna de inicio (numero de columna, V=22) de cada una de las 8 imagenes de funcion
-        // de usuario dentro de un bloque; cada imagen ocupa 4 columnas: [contador][feedback
-        // izq.][nombre][feedback der.]. Hay 3 bloques apilados verticalmente (24 imagenes en total).
-        private static readonly int[] ColumnasUserFunctions = { 22, 26, 30, 34, 38, 42, 46, 50 };
-
-        // Equivalente al diccionario "estructura" del script Python: solo los subgrupos
-        // listados aquí tienen un bloque IDB real en el PLC; el resto de columnas/subgrupos
-        // (p.ej. "Spare07") se leen del Excel pero no generan salida, igual que en Python.
-        private static readonly List<GrupoConfig> Estructura = new List<GrupoConfig>
-        {
-            new GrupoConfig
-            {
-                Clave = "OEM", Id = 1, Comentario = "OEM", PlcName = "OEM",
-                Subgrupos = Enumerable.Range(1, 8).Select(i => new SubgrupoConfig
-                {
-                    Clave = $"OEM{i}",
-                    Id = i,
-                    Comentario = $"OEM_{i:D2}",
-                    PlcName = $"OEM_{i:D2}",
-                    MaxSize = 8
-                }).ToList()
-            },
-            new GrupoConfig
-            {
-                Clave = "Installation", Id = 2, Comentario = "Installation", PlcName = "Installation",
-                Subgrupos = new List<SubgrupoConfig>
-                {
-                    new SubgrupoConfig { Clave = "General",      Id = 2, Comentario = "Layout general",      PlcName = "LayoutGeneral",     MaxSize = 8  },
-                    new SubgrupoConfig { Clave = "Detail1",      Id = 3, Comentario = "Layout detailed 1",    PlcName = "LayoutDetailed1",   MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Detail2",      Id = 4, Comentario = "Layout detailed 2",    PlcName = "LayoutDetailed2",   MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Fixture",      Id = 5, Comentario = "Layout fixture",       PlcName = "LayoutFixture",     MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Traceability", Id = 6, Comentario = "Traceability",         PlcName = "Traceability",      MaxSize = 24 },
-                    new SubgrupoConfig { Clave = "Interface",    Id = 8, Comentario = "Interface signals",    PlcName = "InterfaceSignals",  MaxSize = 32 },
-                }
-            },
-            new GrupoConfig
-            {
-                Clave = "Equipment", Id = 3, Comentario = "Equipments", PlcName = "Equipments",
-                Subgrupos = new List<SubgrupoConfig>
-                {
-                    new SubgrupoConfig { Clave = "Robots",  Id = 1, Comentario = "Robots",  PlcName = "Robots",  MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Drives",  Id = 2, Comentario = "Drives",  PlcName = "Drives",  MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Welding", Id = 3, Comentario = "Welding", PlcName = "Welding", MaxSize = 32 },
-                }
-            },
-            new GrupoConfig
-            {
-                Clave = "Manual Operations", Id = 4, Comentario = "Manual operation", PlcName = "ManualOperation",
-                Subgrupos = new List<SubgrupoConfig>
-                {
-                    new SubgrupoConfig { Clave = "Manual1",       Id = 1, Comentario = "Manual Movements 1", PlcName = "ManualMovements1", MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "Manual2",       Id = 2, Comentario = "Manual Movements 2", PlcName = "ManualMovements2", MaxSize = 32 },
-                    new SubgrupoConfig { Clave = "UserFunctions", Id = 3, Comentario = "User functions",     PlcName = "UserFunctions",    MaxSize = 24 },
-                    new SubgrupoConfig { Clave = "Poka",          Id = 4, Comentario = "Poka-Yoke test",     PlcName = "PokaYokeTest",     MaxSize = 8  },
-                    new SubgrupoConfig { Clave = "Docking",       Id = 5, Comentario = "Docking stations",   PlcName = "DockingStations",  MaxSize = 8  },
-                }
-            },
-        };
+        private ProyectoMenus _proyecto;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(GenerarCommand))]
-        private string _rutaOrigen = "";
+        [NotifyPropertyChangedFor(nameof(NombreArchivo))]
+        private string _rutaProyecto;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(GenerarCommand))]
-        private string _rutaDestino = "";
+        [NotifyPropertyChangedFor(nameof(NombreArchivo))]
+        private bool _cambiado;
 
-        private IProgress<string> _progreso;
+        [ObservableProperty]
+        private IdiomaEdicion _idioma;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(EsOem), nameof(NotaSubgrupo), nameof(HayNotaSubgrupo), nameof(TieneNombres), nameof(TieneCasillas))]
+        private SubgrupoEditable _subgrupoSeleccionado;
+
+        [ObservableProperty]
+        private PantallaFunciones _pantallaSeleccionada;
+
+        [ObservableProperty]
+        private TextoEditable _tituloOem;
+
+        [ObservableProperty]
+        private IReadOnlyList<FilaPantalla> _filas = new List<FilaPantalla>();
 
         public GeneradorHmiViewModel(Contexto contexto) : base(contexto)
         {
+            Subgrupos = CatalogoMenus.Subgrupos
+                .Select((s, i) => new SubgrupoEditable(s, i == 0 || CatalogoMenus.Subgrupos[i - 1].Grupo != s.Grupo))
+                .ToList();
+
+            string ultimo = Contexto.Ajustes.UltimoProyectoHmi;
+            ProyectoMenus proyecto = null;
+            if (!string.IsNullOrEmpty(ultimo) && File.Exists(ultimo))
+            {
+                try
+                {
+                    proyecto = ProyectoMenus.Abrir(ultimo);
+                }
+                catch (Exception e) when (e is IOException || e is InvalidDataException || e is UnauthorizedAccessException)
+                {
+                    proyecto = null;
+                }
+            }
+            Cargar(proyecto ?? ProyectoMenus.Nuevo(), proyecto == null ? null : ultimo);
         }
 
         public override string Nombre => L.T("Generador HMI");
-        public override string Descripcion => L.T("A partir del Excel de configuración de pantallas HMI (plantilla de GESTAMP), genera la configuración de menús del PLC y las listas de textos, y el código AWL que configura qué imágenes del HMI se ven.");
+        public override string Descripcion => L.T("Configura los menús de las HMI del PLC (nombres de pantallas, qué pantallas ve cada HMI y funciones de usuario) y genera el FC CallHMIMenusConfig_FC y las listas de textos en XML para importarlos en TIA.");
         public override string Icono => "monitor";
         public override bool UsaTia => false;
 
-        [RelayCommand(CanExecute = nameof(Libre))]
-        private async Task ElegirOrigen()
+        public IReadOnlyList<SubgrupoEditable> Subgrupos { get; }
+        public ObservableCollection<HmiEditable> Hmis { get; } = new ObservableCollection<HmiEditable>();
+        public ObservableCollection<PantallaFunciones> PantallasFunciones { get; } = new ObservableCollection<PantallaFunciones>();
+
+        public IReadOnlyList<string> Idiomas { get; } = new[]
         {
-            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Excel de configuración de pantallas HMI"),
-                string.IsNullOrEmpty(RutaOrigen) ? null : Path.GetDirectoryName(RutaOrigen), TipoArchivo.Excel);
+            L.T("Texto (para todos los idiomas)"), L.T("Inglés (si es distinto)"), L.T("Alemán (si es distinto)")
+        };
+
+        public int IdiomaIndice
+        {
+            get => (int)Idioma;
+            set => Idioma = (IdiomaEdicion)Math.Max(0, value);
+        }
+
+        public string NombreArchivo =>
+            (RutaProyecto == null ? L.T("Proyecto sin guardar") : Path.GetFileName(RutaProyecto)) + (Cambiado ? " *" : "");
+
+        public bool EsOem => SubgrupoSeleccionado?.Subgrupo.Grupo == CatalogoMenus.Oem;
+        public bool TieneNombres => SubgrupoSeleccionado?.Subgrupo.Nombres > 0;
+        public bool TieneCasillas => SubgrupoSeleccionado?.Subgrupo.Posiciones > 0;
+
+        public string NotaSubgrupo
+        {
+            get
+            {
+                var s = SubgrupoSeleccionado?.Subgrupo;
+                if (s == null)
+                    return "";
+                if (s.Posiciones == 0)
+                    return L.T("Solo nombres para la lista {0}: el FC no oculta estas pantallas.", s.Lista.Nombre);
+                if (s.Nombres == 0)
+                    return L.T("Sin lista de textos: solo se elige qué posiciones se ven en cada HMI.");
+                string lista = s.Lista.Nombre + (s.Desplazamiento > 0 ? L.T(" (valores {0} a {1})", s.Desplazamiento + 1, s.Desplazamiento + s.Nombres) : "");
+                return L.T("Nombres en la lista {0}. Si una pantalla no tiene nombre, sale el texto estándar.", lista);
+            }
+        }
+
+        public bool HayNotaSubgrupo => SubgrupoSeleccionado != null;
+
+        // ------------------------------------------------------------------ Proyecto
+
+        private void Cargar(ProyectoMenus proyecto, string ruta)
+        {
+            _proyecto = proyecto;
+            RutaProyecto = ruta;
+
+            Hmis.Clear();
+            foreach (var hmi in proyecto.Hmis.OrderBy(h => h.Numero))
+                Hmis.Add(new HmiEditable(hmi, this));
+
+            PantallasFunciones.Clear();
+            for (int p = 1; p <= CatalogoMenus.PantallasFunciones; p++)
+            {
+                int pantalla = p;
+                var funciones = proyecto.FuncionesUsuario[p - 1].Select((f, i) => new FilaFuncion(i + 1, f, this, pantalla)).ToList();
+                PantallasFunciones.Add(new PantallaFunciones(p, proyecto, funciones));
+            }
+
+            var anterior = SubgrupoSeleccionado;
+            SubgrupoSeleccionado = null;
+            SubgrupoSeleccionado = anterior ?? Subgrupos[0];
+            PantallaSeleccionada = PantallasFunciones[0];
+            Cambiado = false;
+        }
+
+        partial void OnSubgrupoSeleccionadoChanged(SubgrupoEditable value) => ReconstruirFilas();
+
+        partial void OnIdiomaChanged(IdiomaEdicion value)
+        {
+            OnPropertyChanged(nameof(IdiomaIndice));
+            foreach (var fila in Filas.Where(f => f.Nombre != null))
+                fila.Nombre.Refrescar();
+            TituloOem?.Refrescar();
+            foreach (var texto in PantallasFunciones.SelectMany(p => p.Funciones).SelectMany(f => f.Textos))
+                texto.Refrescar();
+        }
+
+        private void ReconstruirFilas()
+        {
+            var subgrupo = SubgrupoSeleccionado?.Subgrupo;
+            if (subgrupo == null)
+            {
+                Filas = new List<FilaPantalla>();
+                TituloOem = null;
+                return;
+            }
+
+            TituloOem = subgrupo.Grupo == CatalogoMenus.Oem
+                ? new TextoEditable(_proyecto.TitulosOem[subgrupo.Id - 1], this, () => $"OEM_{subgrupo.Id:D2}")
+                : null;
+
+            var filas = new List<FilaPantalla>();
+            for (int posicion = 1; posicion <= subgrupo.Filas; posicion++)
+            {
+                int p = posicion;
+                TextoEditable nombre = null;
+                if (posicion <= subgrupo.Nombres)
+                    nombre = new TextoEditable(_proyecto.Nombre(subgrupo, posicion), this, () => TextoEstandar(subgrupo, p));
+                var casillas = Hmis.Select(h => new CasillaVisible(
+                    posicion <= subgrupo.Posiciones ? h.Hmi.Visibles[subgrupo.Clave] : null, posicion - 1, this)).ToList();
+                filas.Add(new FilaPantalla(posicion, nombre, casillas));
+            }
+            Filas = filas;
+        }
+
+        private string TextoEstandar(SubgrupoMenu subgrupo, int posicion)
+        {
+            int idioma = Idioma == IdiomaEdicion.Ingles ? 1 : Idioma == IdiomaEdicion.Aleman ? 2 : 0;
+            if (subgrupo.Grupo == CatalogoMenus.Oem)
+                return $"<<OEM {subgrupo.Id:D2} screen {posicion:D2}>>";
+            return subgrupo.Lista.TextoEstandar(idioma, subgrupo.Desplazamiento + posicion);
+        }
+
+        /// <summary>Algo del proyecto ha cambiado (lo llaman las filas al editar).</summary>
+        public void MarcarCambiado()
+        {
+            Cambiado = true;
+            foreach (var pantalla in PantallasFunciones)
+                pantalla.Refrescar();
+            if (PantallaSeleccionada != null)
+                foreach (var texto in PantallaSeleccionada.Funciones.SelectMany(f => f.Textos))
+                    texto.RefrescarMarca();
+        }
+
+        private static TipoArchivo TipoProyecto => new TipoArchivo(L.T("Proyecto del Generador HMI (*.hmimenus)"), "*" + ProyectoMenus.Extension);
+
+        // Si hay cambios sin guardar, pregunta antes de perderlos.
+        private async Task<bool> PuedeDescartar() =>
+            !Cambiado || await Contexto.Dialogos.Confirmar(L.T("Cambios sin guardar"),
+                L.T("El proyecto tiene cambios sin guardar. ¿Descartarlos?"), L.T("Descartar"));
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task Nuevo()
+        {
+            if (!await PuedeDescartar())
+                return;
+            Cargar(ProyectoMenus.Nuevo(), null);
+            Contexto.MostrarEstado(L.T("Proyecto nuevo con una HMI."));
+        }
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task Abrir()
+        {
+            if (!await PuedeDescartar())
+                return;
+            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Abrir un proyecto del Generador HMI"), CarpetaInicial(), TipoProyecto);
             if (ruta == null)
                 return;
-            RutaOrigen = ruta;
-            if (string.IsNullOrEmpty(RutaDestino))
-                RutaDestino = Path.Combine(Path.GetDirectoryName(ruta), Path.GetFileNameWithoutExtension(ruta) + "_PLC.xlsx");
+            try
+            {
+                Cargar(ProyectoMenus.Abrir(ruta), ruta);
+                RecordarProyecto(ruta);
+                Contexto.MostrarEstado(L.T("Proyecto abierto: {0}", ruta));
+            }
+            catch (Exception e) when (e is IOException || e is InvalidDataException || e is UnauthorizedAccessException)
+            {
+                Contexto.MostrarEstado(L.T("Error: {0}", e.Message), error: true);
+            }
         }
 
         [RelayCommand(CanExecute = nameof(Libre))]
-        private async Task ElegirDestino()
+        private async Task Guardar()
         {
-            string ruta = await Contexto.Dialogos.GuardarArchivo(L.T("Guardar el Excel generado como…"),
-                string.IsNullOrEmpty(RutaDestino) ? null : RutaDestino, TipoArchivo.Excel);
+            if (RutaProyecto == null)
+                await GuardarComo();
+            else
+                GuardarEn(RutaProyecto);
+        }
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task GuardarComo()
+        {
+            string sugerido = RutaProyecto ?? Path.Combine(CarpetaInicial() ?? "", "Menus HMI" + ProyectoMenus.Extension);
+            string ruta = await Contexto.Dialogos.GuardarArchivo(L.T("Guardar el proyecto como…"), sugerido, TipoProyecto);
             if (ruta != null)
-                RutaDestino = ruta;
+                GuardarEn(ruta);
         }
 
-        [RelayCommand(CanExecute = nameof(PuedeGenerar))]
-        private async Task Generar()
-        {
-            string origen = RutaOrigen;
-            string destino = RutaDestino.Trim();
-            await Contexto.Trabajar(L.T("Cargando el Excel de origen…"), async () =>
-            {
-                _progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
-                // ClosedXML y las traducciones bloquean: fuera del hilo de la ventana.
-                await Task.Run(async () =>
-                {
-                    using (var stream = new FileStream(origen, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var libroEntrada = new XLWorkbook(stream))
-                    {
-                        var datos = GenerarDatos(libroEntrada);
-                        if (datos.Count == 0)
-                            throw new InvalidOperationException(L.T("No se encontraron pantallas válidas en ninguna hoja del archivo de origen."));
-
-                        using (var libroSalida = new XLWorkbook())
-                        {
-                            GenerarConfigPLC(libroSalida, datos);
-
-                            // Los textos se leen siempre de la primera hoja del libro de origen,
-                            // igual que en el script Python (todas las hojas HMI comparten la
-                            // misma disposición de nombres de pantalla).
-                            var hojaTextos = libroEntrada.Worksheets.First();
-                            await GenerarListasTextosAsync(hojaTextos, libroSalida);
-
-                            SetEstado(L.T("Guardando el archivo…"));
-                            libroSalida.SaveAs(destino);
-                        }
-                    }
-                });
-                Contexto.MostrarEstado(L.T("Excel generado: {0}", destino));
-            });
-        }
-
-        // Se llama desde el hilo de Task.Run: Progress devuelve el texto al hilo de la ventana.
-        private void SetEstado(string texto) => _progreso?.Report(texto);
-
-        private bool PuedeGenerar() => Libre && File.Exists(RutaOrigen) && !string.IsNullOrWhiteSpace(RutaDestino);
-
-        protected override void ActualizarComandos()
-        {
-            ElegirOrigenCommand.NotifyCanExecuteChanged();
-            ElegirDestinoCommand.NotifyCanExecuteChanged();
-            GenerarCommand.NotifyCanExecuteChanged();
-        }
-
-        private List<HmiScreenData> GenerarDatos(XLWorkbook libro)
-        {
-            var hmi = new List<HmiScreenData>();
-
-            foreach (var hoja in libro.Worksheets)
-            {
-                SetEstado(L.T("Leyendo {0}…", hoja.Name));
-
-                for (int colIdx = 0; colIdx < ColumnasConfig.Length; colIdx++)
-                {
-                    var (columna, inst, equip, man) = ColumnasConfig[colIdx];
-                    int numOem = colIdx + 1;
-
-                    // Pantallas OEM
-                    for (int fila = 7; fila <= 14; fila++)
-                        AgregarPosicion(hmi, hoja, columna, fila, "OEM", $"OEM{numOem}");
-
-                    // Installation
-                    for (int fila = 16; fila <= 47; fila++)
-                        AgregarPosicion(hmi, hoja, columna, fila, "Installation", inst);
-
-                    // Equipment
-                    for (int fila = 49; fila <= 72; fila++)
-                        AgregarPosicion(hmi, hoja, columna, fila, "Equipment", equip);
-
-                    // Manual Operations
-                    for (int fila = 74; fila <= 105; fila++)
-                        AgregarPosicion(hmi, hoja, columna, fila, "Manual Operations", man);
-                }
-            }
-
-            return hmi;
-        }
-
-        // Se añade siempre una entrada por posición (fila), incluso cuando la celda está vacía,
-        // para que el índice dentro de "valores" en GenerarConfigPLC siga correspondiéndose 1:1
-        // con la posición del array del PLC. Si se omitieran las celdas vacías, un hueco en medio
-        // del rango desplazaría todas las posiciones siguientes y desalinearía la visibilidad.
-        private void AgregarPosicion(List<HmiScreenData> hmi, IXLWorksheet hoja, string columna, int fila, string grupo, string subgrupo)
-        {
-            var cell = hoja.Cell($"{columna}{fila}");
-            string nombre = GetVal(cell);
-
-            hmi.Add(new HmiScreenData
-            {
-                Hmi = hoja.Name,
-                Grupo = grupo,
-                Subgrupo = subgrupo,
-                Nombre = nombre,
-                Visible = !string.IsNullOrEmpty(nombre) && EsVisible(cell)
-            });
-        }
-
-        private bool EsVisible(IXLCell cell)
-        {
-            var fill = cell.Style.Fill;
-
-            // Sin relleno sólido, la celda se ve con el fondo blanco por defecto de Excel.
-            if (fill.PatternType != XLFillPatternValues.Solid)
-                return false;
-
-            var color = ResolverColor(cell.Worksheet.Workbook, fill.BackgroundColor);
-            return !EsBlancoOTransparente(color);
-        }
-
-        // Las plantillas HMI usan colores de tema (Accent1, Background1...) en vez de la
-        // paleta indexada clásica de Excel, así que hay que resolverlos contra el tema del
-        // libro (y aplicar el tinte) para saber el color real que se ve en la celda.
-        private static System.Drawing.Color ResolverColor(XLWorkbook libro, XLColor color)
-        {
-            switch (color.ColorType)
-            {
-                case XLColorType.Color:
-                    return color.Color;
-                case XLColorType.Indexed:
-                    return XLColor.FromIndex(color.Indexed).Color;
-                case XLColorType.Theme:
-                    var baseColor = ResolverColorTema(libro, color.ThemeColor);
-                    return AplicarTinte(baseColor, color.ThemeTint);
-                default:
-                    return System.Drawing.Color.White;
-            }
-        }
-
-        private static System.Drawing.Color ResolverColorTema(XLWorkbook libro, XLThemeColor tema)
-        {
-            var t = libro.Theme;
-            switch (tema)
-            {
-                case XLThemeColor.Background1: return t.Background1.Color;
-                case XLThemeColor.Text1: return t.Text1.Color;
-                case XLThemeColor.Background2: return t.Background2.Color;
-                case XLThemeColor.Text2: return t.Text2.Color;
-                case XLThemeColor.Accent1: return t.Accent1.Color;
-                case XLThemeColor.Accent2: return t.Accent2.Color;
-                case XLThemeColor.Accent3: return t.Accent3.Color;
-                case XLThemeColor.Accent4: return t.Accent4.Color;
-                case XLThemeColor.Accent5: return t.Accent5.Color;
-                case XLThemeColor.Accent6: return t.Accent6.Color;
-                case XLThemeColor.Hyperlink: return t.Hyperlink.Color;
-                case XLThemeColor.FollowedHyperlink: return t.FollowedHyperlink.Color;
-                default: return System.Drawing.Color.White;
-            }
-        }
-
-        // Fórmula de tinte de OOXML: tinte negativo oscurece hacia negro, tinte positivo
-        // aclara hacia blanco (p.ej. Accent1 con tinte 0.8 da un azul muy claro, no blanco puro).
-        private static System.Drawing.Color AplicarTinte(System.Drawing.Color color, double tinte)
-        {
-            if (tinte == 0) return color;
-
-            double Ajustar(byte canal) => tinte < 0
-                ? canal * (1 + tinte)
-                : canal * (1 - tinte) + (255 * tinte);
-
-            int r = (int)Math.Round(Ajustar(color.R));
-            int g = (int)Math.Round(Ajustar(color.G));
-            int b = (int)Math.Round(Ajustar(color.B));
-
-            return System.Drawing.Color.FromArgb(
-                Math.Max(0, Math.Min(255, r)),
-                Math.Max(0, Math.Min(255, g)),
-                Math.Max(0, Math.Min(255, b)));
-        }
-
-        private static bool EsBlancoOTransparente(System.Drawing.Color color)
-        {
-            const int umbral = 250;
-            return color.A == 0 || (color.R >= umbral && color.G >= umbral && color.B >= umbral);
-        }
-
-        private string GetVal(IXLCell cell)
+        private void GuardarEn(string ruta)
         {
             try
             {
-                // CachedValue (no Value) replica openpyxl con data_only=True: lee el último
-                // resultado que Excel calculó y guardó en el archivo, sin que ClosedXML intente
-                // recalcular la fórmula con su propio motor.
-                var valor = cell.CachedValue;
-
-                if (valor.IsBlank || valor.IsError) return "";
-
-                return valor.ToString(CultureInfo.InvariantCulture)?.Trim() ?? "";
+                _proyecto.Guardar(ruta);
+                RutaProyecto = ruta;
+                Cambiado = false;
+                RecordarProyecto(ruta);
+                Contexto.MostrarEstado(L.T("Proyecto guardado: {0}", ruta));
             }
-            catch
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                return "";
+                Contexto.MostrarEstado(L.T("Error: {0}", e.Message), error: true);
             }
         }
 
-        private void GenerarConfigPLC(XLWorkbook libroSalida, List<HmiScreenData> datos)
+        private void RecordarProyecto(string ruta)
         {
-            SetEstado(L.T("Generando la configuración del PLC…"));
-
-            // Agrupamos visibilidad por HMI/Grupo/Subgrupo, preservando el orden de aparición
-            // (equivalente a "datos_agrupados" en Python).
-            var agrupado = new Dictionary<string, Dictionary<string, Dictionary<string, List<bool>>>>();
-            var hmisUnicos = new SortedSet<string>(StringComparer.Ordinal);
-
-            foreach (var item in datos)
-            {
-                hmisUnicos.Add(item.Hmi);
-
-                if (!agrupado.TryGetValue(item.Hmi, out var porGrupo))
-                {
-                    porGrupo = new Dictionary<string, Dictionary<string, List<bool>>>();
-                    agrupado[item.Hmi] = porGrupo;
-                }
-                if (!porGrupo.TryGetValue(item.Grupo, out var porSubgrupo))
-                {
-                    porSubgrupo = new Dictionary<string, List<bool>>();
-                    porGrupo[item.Grupo] = porSubgrupo;
-                }
-                if (!porSubgrupo.TryGetValue(item.Subgrupo, out var visibles))
-                {
-                    visibles = new List<bool>();
-                    porSubgrupo[item.Subgrupo] = visibles;
-                }
-                visibles.Add(item.Visible);
-            }
-
-            var hojaConfig = libroSalida.Worksheets.Add("MenusConfig");
-
-            int idxHmi = 0;
-            foreach (var nombreHmi in hmisUnicos)
-            {
-                idxHmi++;
-                string numHmi = idxHmi.ToString("D2");
-                string idbName = $"HMIMenusConfig{numHmi}_IDB";
-
-                var lineas = new List<string>
-                {
-                    $"// --- Configuration for {nombreHmi} ---",
-                    "      NOP 0",
-                    "",
-                    "// The screens accesses is configurated for each HMI depending on the existence of the",
-                    "// screen and an additonal user configuration.",
-                    "",
-                    "// Some screens have a data block associated and the presence of it in the CPU indicates",
-                    "// the existence of the screen.  In this case, the no presence of the data block in the",
-                    "// CPU hides the access of the screen.  But if it is present, the user can also hide it",
-                    "// with an additional configuration due a operational needs.",
-                    "",
-                    "// Besides, for the screens which do not have a data block associated, their existence and",
-                    "// therefore their access must be defined by the user.",
-                    "",
-                    "// In both cases, that additional configuration must be programmed in this network, before the",
-                    "// call to the FB450.",
-                    "// For each HMI a call to FB450 must be done and the user additional configuration can also",
-                    "// be done.",
-                    "",
-                    "// Only the necessary screens and their access should be visible.",
-                    "",
-                    "// Log. 0 = screen visible / Log. 1 = screen invisible and not accessible",
-                    ""
-                };
-
-                foreach (var grupo in Estructura)
-                {
-                    lineas.Add($"// Group {grupo.Id} ({grupo.Comentario})");
-
-                    foreach (var sub in grupo.Subgrupos)
-                    {
-                        lineas.Add($"// Subgroup {sub.Id} ({sub.Comentario})");
-                        lineas.Add($"// =     HMIMenusConfig0x_IDB.statCfg.Blanking.{grupo.PlcName}.{sub.PlcName}[y]");
-                        lineas.Add("");
-
-                        List<bool> valores = null;
-                        if (agrupado.TryGetValue(nombreHmi, out var porGrupo) &&
-                            porGrupo.TryGetValue(grupo.Clave, out var porSubgrupo))
-                        {
-                            porSubgrupo.TryGetValue(sub.Clave, out valores);
-                        }
-                        valores ??= new List<bool>();
-
-                        var idxSiempreFalse = new List<int>();
-                        var idxSiempreTrue = new List<int>();
-
-                        for (int i = 1; i <= sub.MaxSize; i++)
-                        {
-                            if (i <= valores.Count)
-                            {
-                                if (valores[i - 1])
-                                    idxSiempreFalse.Add(i);
-                                else
-                                    idxSiempreTrue.Add(i);
-                            }
-                            else
-                            {
-                                idxSiempreTrue.Add(i);
-                            }
-                        }
-
-                        if (idxSiempreFalse.Count > 0)
-                        {
-                            lineas.Add("      A     alwaysFalse");
-                            foreach (var i in idxSiempreFalse)
-                                lineas.Add($"      =     {idbName}.statCfg.Blanking.{grupo.PlcName}.{sub.PlcName}[{i}]");
-                            lineas.Add("");
-                        }
-
-                        if (idxSiempreTrue.Count > 0)
-                        {
-                            lineas.Add("      A     alwaysTrue");
-                            foreach (var i in idxSiempreTrue)
-                                lineas.Add($"      =     {idbName}.statCfg.Blanking.{grupo.PlcName}.{sub.PlcName}[{i}]");
-                            lineas.Add("");
-                        }
-                    }
-                }
-
-                lineas.AddRange(new[]
-                {
-                    "      A     alwaysTrue",
-                    "",
-                    $"      =     {idbName}.statCfg.Blanking.HardwareDiagnostics.ProfinetDiagnostic[8]",
-                    "",
-                    "// Group 8 (System)",
-                    "// Subgroup 5 (Energy)",
-                    "",
-                    "      A     alwaysTrue",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[2]",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[3]",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[4]",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[5]",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[6]",
-                    $"      =     {idbName}.statCfg.Blanking.System.EnergyMeasurement[7]"
-                });
-
-                for (int fila = 0; fila < lineas.Count; fila++)
-                    hojaConfig.Cell(fila + 1, idxHmi).Value = lineas[fila];
-
-                hojaConfig.Column(idxHmi).Width = 100;
-            }
+            Contexto.Ajustes.UltimoProyectoHmi = ruta;
+            Contexto.Ajustes.UltimaCarpeta = Path.GetDirectoryName(ruta);
+            Contexto.Ajustes.Guardar();
         }
 
-        private async Task GenerarListasTextosAsync(IXLWorksheet hojaDatos, XLWorkbook libroSalida)
+        private string CarpetaInicial() =>
+            RutaProyecto != null ? Path.GetDirectoryName(RutaProyecto) : Contexto.Ajustes.UltimaCarpeta;
+
+        // ------------------------------------------------------------------ HMIs
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private void AnadirHmi()
         {
-            SetEstado(L.T("Generando las listas de textos…"));
-
-            void CrearHoja(string nombre, List<(int Valor, string Texto)> pares)
+            if (_proyecto.AnadirHmi() == null)
             {
-                var ws = libroSalida.Worksheets.Add(nombre);
-                ws.Cell(1, 1).Value = "Value";
-                ws.Cell(1, 2).Value = "Text";
-
-                int fila = 2;
-                foreach (var (valor, texto) in pares)
-                {
-                    ws.Cell(fila, 1).Value = valor;
-                    ws.Cell(fila, 2).Value = texto;
-                    fila++;
-                }
+                Contexto.MostrarEstado(L.T("Ya hay 8 HMI, el máximo (hay 8 IDB HMIMenusConfig)."), error: true);
+                return;
             }
-
-            void AgregarRango(List<(int Valor, string Texto)> lista, string columna, int filaInicio, int filaFin, int offsetIndice)
-            {
-                for (int fila = filaInicio; fila <= filaFin; fila++)
-                {
-                    string texto = GetVal(hojaDatos.Cell($"{columna}{fila}"));
-                    if (!string.IsNullOrEmpty(texto))
-                        lista.Add((fila - filaInicio + 1 + offsetIndice, texto));
-                }
-            }
-
-            // 1. CO_OEM_Screens_ID
-            var datosOem = new List<(int, string)> { (0, "<<OEM screen xx>>") };
-            string[] letrasOem = { "D", "F", "H", "J", "L", "N", "P", "R" };
-            for (int colIdx = 1; colIdx <= letrasOem.Length; colIdx++)
-            {
-                string letra = letrasOem[colIdx - 1];
-                datosOem.Add((colIdx * 10, $"OEM_0{colIdx}"));
-
-                for (int fila = 7; fila <= 14; fila++)
-                {
-                    int idxSub = fila - 6;
-                    string texto = GetVal(hojaDatos.Cell($"{letra}{fila}"));
-                    if (string.IsNullOrEmpty(texto))
-                        texto = $"<<OEM 0{colIdx} screen {idxSub:D2}>>";
-                    datosOem.Add((colIdx * 10 + idxSub, texto));
-                }
-            }
-            CrearHoja("CO_OEM_Screens_ID", datosOem);
-
-            // 2. CO_Layout_General_ID
-            var datosGen = new List<(int, string)> { (0, "<<Layout general level xx>>") };
-            AgregarRango(datosGen, "F", 16, 23, 0);
-            CrearHoja("CO_Layout_General_ID", datosGen);
-
-            // 3. CO_Layout_Detailed_ID (Nivel 1 y Nivel 2)
-            var datosDet = new List<(int, string)> { (0, "<<Layout detailed level xx>>") };
-            AgregarRango(datosDet, "H", 16, 47, 0);
-            AgregarRango(datosDet, "J", 16, 47, 32);
-            CrearHoja("CO_Layout_Detailed_ID", datosDet);
-
-            // 4. CO_Layout_Fixture_ID
-            var datosFix = new List<(int, string)> { (0, "<<Layout fixture level xx>>") };
-            AgregarRango(datosFix, "L", 16, 47, 0);
-            CrearHoja("CO_Layout_Fixture_ID", datosFix);
-
-            // 5. CO_Traceability_ID
-            var datosTrac = new List<(int, string)> { (0, "<<Traceability level xx>>") };
-            AgregarRango(datosTrac, "N", 16, 39, 0);
-            CrearHoja("CO_Traceability_ID", datosTrac);
-
-            // 6. CO_Interface_Signals_ID
-            var datosInt = new List<(int, string)> { (0, "<<Interface signals level xx>>") };
-            AgregarRango(datosInt, "R", 16, 47, 0);
-            CrearHoja("CO_Interface_Signals_ID", datosInt);
-
-            // 7. CO_Rob_ID
-            var datosRob = new List<(int, string)> { (0, "<<Robots level xx>>") };
-            AgregarRango(datosRob, "D", 49, 72, 0);
-            CrearHoja("CO_Rob_ID", datosRob);
-
-            // 8. CO_Manual_Movements_ID (Manual 1 y Manual 2)
-            var datosMan = new List<(int, string)> { (0, "<<Manual movements level xx>>") };
-            AgregarRango(datosMan, "D", 74, 105, 0);
-            AgregarRango(datosMan, "F", 74, 105, 32);
-            CrearHoja("CO_Manual_Movements_ID", datosMan);
-
-            // 9. CO_UserFunctions_ID (24 pantallas: H74:H97)
-            var datosUser = new List<(int, string)> { (0, "<<User functions level xx>>") };
-            AgregarRango(datosUser, "H", 74, 97, 0);
-            CrearHoja("CO_UserFunctions_ID", datosUser);
-
-            // 9b. CO_UserFunctions: 24 imagenes apiladas en 3 bloques de 8 (filas de titulo 5,
-            // 14 y 23), cada imagen con 8 funciones. Por cada funcion se generan 5 indices
-            // (nombre, 2 vacios, feedback izq., feedback der.) separados de 10 en 10 dentro de
-            // un bloque de 100 por imagen, aunque no haya nada configurado en el Excel.
-            var datosUserFunctions = new List<(int, string)>();
-            for (int bloque = 0; bloque < 3; bloque++)
-            {
-                int filaTitulo = 5 + bloque * 9;
-
-                for (int posImagen = 0; posImagen < ColumnasUserFunctions.Length; posImagen++)
-                {
-                    int numImagen = bloque * ColumnasUserFunctions.Length + posImagen + 1;
-                    int colInicio = ColumnasUserFunctions[posImagen];
-
-                    for (int fn = 1; fn <= 8; fn++)
-                    {
-                        int fila = filaTitulo + fn;
-                        string feedbackIzq = GetVal(hojaDatos.Cell(fila, colInicio + 1));
-                        string nombre = GetVal(hojaDatos.Cell(fila, colInicio + 2));
-                        string feedbackDer = GetVal(hojaDatos.Cell(fila, colInicio + 3));
-
-                        int baseIdx = 111 + (numImagen - 1) * 100 + (fn - 1) * 10;
-                        bool sinUsar = string.IsNullOrEmpty(nombre) && string.IsNullOrEmpty(feedbackIzq) && string.IsNullOrEmpty(feedbackDer);
-
-                        if (sinUsar)
-                        {
-                            // Funcion no configurada: se marcan los 5 indices con un placeholder
-                            // identificable (pantalla/funcion) en vez de dejarlos vacios.
-                            datosUserFunctions.Add((baseIdx, $"<<S{numImagen} L{fn} Name>>"));
-                            datosUserFunctions.Add((baseIdx + 1, $"<<S{numImagen} L{fn} Action left>>"));
-                            datosUserFunctions.Add((baseIdx + 2, $"<<S{numImagen} L{fn} Action right>>"));
-                            datosUserFunctions.Add((baseIdx + 3, $"<<S{numImagen} L{fn} Feed back left>>"));
-                            datosUserFunctions.Add((baseIdx + 4, $"<<S{numImagen} L{fn} Feed back right>>"));
-                        }
-                        else
-                        {
-                            datosUserFunctions.Add((baseIdx, nombre));
-                            datosUserFunctions.Add((baseIdx + 1, ""));
-                            datosUserFunctions.Add((baseIdx + 2, ""));
-                            datosUserFunctions.Add((baseIdx + 3, feedbackIzq));
-                            datosUserFunctions.Add((baseIdx + 4, feedbackDer));
-                        }
-                    }
-                }
-            }
-            await EscribirUserFunctionsTraducidoAsync(libroSalida, datosUserFunctions);
-
-            // 10. CO_PokaYokeTest_ID
-            var datosPoka = new List<(int, string)> { (0, "<<PokaYoke test level xx>>") };
-            AgregarRango(datosPoka, "J", 74, 81, 0);
-            CrearHoja("CO_PokaYokeTest_ID", datosPoka);
-
-            // 11. CO_DockingStation_ID
-            var datosDock = new List<(int, string)> { (0, "<<Docking station level xx>>") };
-            AgregarRango(datosDock, "L", 74, 81, 0);
-            CrearHoja("CO_DockingStation_ID", datosDock);
-
-            // 12. CO_ProfinetDiagnose_ID
-            var datosProfi = new List<(int, string)> { (0, "<<Profinet diagnose level xx>>") };
-            AgregarRango(datosProfi, "D", 108, 115, 0);
-            CrearHoja("CO_ProfinetDiagnose_ID", datosProfi);
-
-            // 13. CO_WebServer_Device_ID
-            var datosWeb = new List<(int, string)> { (0, "<<Web server device level xx>>") };
-            AgregarRango(datosWeb, "H", 108, 115, 0);
-            CrearHoja("CO_WebServer_Device_ID", datosWeb);
+            RecargarHmis();
         }
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task QuitarHmi(HmiEditable hmi)
+        {
+            if (hmi == null || !await Contexto.Dialogos.Confirmar(L.T("Quitar HMI"),
+                    L.T("¿Quitar la HMI {0} del proyecto? Se pierde qué pantallas se ven en ella.", hmi.Nombre), L.T("Quitar")))
+                return;
+            _proyecto.Hmis.Remove(hmi.Hmi);
+            RecargarHmis();
+        }
+
+        private void RecargarHmis()
+        {
+            Hmis.Clear();
+            foreach (var hmi in _proyecto.Hmis.OrderBy(h => h.Numero))
+                Hmis.Add(new HmiEditable(hmi, this));
+            ReconstruirFilas();
+            MarcarCambiado();
+        }
+
+        /// <summary>Marca o desmarca todas las pantallas del subgrupo elegido en una HMI.</summary>
+        [RelayCommand]
+        private void AlternarColumna(HmiEditable hmi)
+        {
+            var subgrupo = SubgrupoSeleccionado?.Subgrupo;
+            if (hmi == null || subgrupo == null || subgrupo.Posiciones == 0)
+                return;
+            var visibles = hmi.Hmi.Visibles[subgrupo.Clave];
+            bool marcar = visibles.Any(v => !v);
+            for (int i = 0; i < visibles.Count; i++)
+                visibles[i] = marcar;
+            foreach (var fila in Filas)
+                foreach (var casilla in fila.Casillas)
+                    casilla.Refrescar();
+            MarcarCambiado();
+        }
+
+        // ------------------------------------------------------------------ Traducir y generar
 
         private const int MaxTraduccionesConcurrentes = 20;
 
-        // Traduce los textos de comandos/funciones de CO_UserFunctions a inglés, alemán y
-        // español (idioma de origen desconocido, auto-detección) reutilizando el mismo
-        // traductor que usa el Comentador. Los placeholders "<<...>>" de funciones sin
-        // configurar y las celdas vacías se copian tal cual, sin pasar por el traductor.
-        private async Task EscribirUserFunctionsTraducidoAsync(XLWorkbook libroSalida, List<(int Valor, string Texto)> datos)
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task Traducir()
         {
-            SetEstado(L.T("Traduciendo las funciones de usuario…"));
-
-            bool EsPlaceholder(string texto) => texto.StartsWith("<<") && texto.EndsWith(">>");
-            bool NecesitaTraduccion(string texto) => !string.IsNullOrWhiteSpace(texto) && !EsPlaceholder(texto);
-
-            string[] idiomas = { "en", "de", "es" };
-            var textosUnicos = datos.Select(d => d.Texto).Where(NecesitaTraduccion).Distinct().ToList();
-            var pares = textosUnicos.SelectMany(t => idiomas.Select(idioma => (texto: t, idioma))).ToList();
-
-            var traducciones = new ConcurrentDictionary<(string texto, string idioma), string>();
-            using (var semaphore = new SemaphoreSlim(MaxTraduccionesConcurrentes))
+            var textos = TodosLosTextos().Where(t => !string.IsNullOrWhiteSpace(t.Texto)
+                && (string.IsNullOrWhiteSpace(t.Ingles) || string.IsNullOrWhiteSpace(t.Aleman))).ToList();
+            if (textos.Count == 0)
             {
-                var tareas = pares.Select(async par =>
-                {
-                    await semaphore.WaitAsync();
-                    try
-                    {
-                        traducciones[par] = await ExcelProcessor.TraducirAsync(par.texto, par.idioma);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                });
-
-                await Task.WhenAll(tareas);
+                Contexto.MostrarEstado(L.T("Todos los textos tienen ya su inglés y su alemán."));
+                return;
             }
+            if (!await Contexto.Dialogos.Confirmar(L.T("Traducir"),
+                    L.T("Se rellenan el inglés y el alemán de {0} textos que no los tienen, con un traductor en línea (necesita internet). Revísalos después eligiendo el idioma arriba.", textos.Count),
+                    L.T("Traducir")))
+                return;
 
-            var ws = libroSalida.Worksheets.Add("CO_UserFunctions");
-            ws.Cell(1, 1).Value = "Value";
-            ws.Cell(1, 2).Value = "Text";
-            ws.Cell(1, 3).Value = "English";
-            ws.Cell(1, 4).Value = "German";
-            ws.Cell(1, 5).Value = "Spanish";
-
-            int fila = 2;
-            foreach (var (valor, texto) in datos)
+            await Contexto.Trabajar(L.T("Traduciendo…"), async () =>
             {
-                ws.Cell(fila, 1).Value = valor;
-                ws.Cell(fila, 2).Value = texto;
-
-                if (NecesitaTraduccion(texto))
+                int hechos = 0;
+                using (var semaforo = new SemaphoreSlim(MaxTraduccionesConcurrentes))
                 {
-                    ws.Cell(fila, 3).Value = traducciones[(texto, "en")];
-                    ws.Cell(fila, 4).Value = traducciones[(texto, "de")];
-                    ws.Cell(fila, 5).Value = traducciones[(texto, "es")];
-                }
-                else
-                {
-                    ws.Cell(fila, 3).Value = texto;
-                    ws.Cell(fila, 4).Value = texto;
-                    ws.Cell(fila, 5).Value = texto;
-                }
+                    var tareas = textos.Select(async texto =>
+                    {
+                        await semaforo.WaitAsync();
+                        try
+                        {
+                            string origen = texto.Texto.Trim();
+                            string en = string.IsNullOrWhiteSpace(texto.Ingles) ? await ExcelProcessor.TraducirAsync(origen, "en") : null;
+                            string de = string.IsNullOrWhiteSpace(texto.Aleman) ? await ExcelProcessor.TraducirAsync(origen, "de") : null;
+                            return (texto, en, de);
+                        }
+                        finally
+                        {
+                            semaforo.Release();
+                            Interlocked.Increment(ref hechos);
+                        }
+                    }).ToList();
+                    var resultados = await Task.WhenAll(tareas);
 
-                fila++;
+                    // Una traducción igual al original (nombres de equipos, o fallo del traductor) se deja vacía: sale el texto.
+                    foreach (var (texto, en, de) in resultados)
+                    {
+                        if (en != null && !string.Equals(en.Trim(), texto.Texto.Trim(), StringComparison.OrdinalIgnoreCase))
+                            texto.Ingles = en.Trim();
+                        if (de != null && !string.Equals(de.Trim(), texto.Texto.Trim(), StringComparison.OrdinalIgnoreCase))
+                            texto.Aleman = de.Trim();
+                    }
+                }
+                OnIdiomaChanged(Idioma);
+                MarcarCambiado();
+                Contexto.MostrarEstado(L.T("Traducidos {0} textos. Revísalos eligiendo Inglés o Alemán arriba.", hechos));
+            });
+        }
+
+        private IEnumerable<TextoHmi> TodosLosTextos() =>
+            _proyecto.TitulosOem
+                .Concat(_proyecto.Nombres.Values.SelectMany(n => n))
+                .Concat(_proyecto.FuncionesUsuario.SelectMany(p => p).SelectMany(f => f.Textos()));
+
+        [RelayCommand(CanExecute = nameof(Libre))]
+        private async Task Generar()
+        {
+            var errores = _proyecto.Errores();
+            if (errores.Count > 0)
+            {
+                await Contexto.Dialogos.Mensaje(L.T("No se puede generar"), string.Join("\n", errores));
+                return;
             }
+            string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta donde generar el FC y las listas de textos"),
+                Contexto.Ajustes.UltimaCarpetaHmiGenerada ?? CarpetaInicial());
+            if (carpeta == null)
+                return;
+            Contexto.Ajustes.UltimaCarpetaHmiGenerada = carpeta;
+            Contexto.Ajustes.Guardar();
+
+            var proyecto = _proyecto;
+            await Contexto.Trabajar(L.T("Generando…"), async () =>
+            {
+                var escritos = await Task.Run(() => GeneradorMenus.Generar(proyecto, carpeta));
+                Contexto.MostrarEstado(L.T("Generados el FC y {0} listas de textos en {1}", escritos.Count - 1, carpeta));
+            });
+        }
+
+        protected override void ActualizarComandos()
+        {
+            NuevoCommand.NotifyCanExecuteChanged();
+            AbrirCommand.NotifyCanExecuteChanged();
+            GuardarCommand.NotifyCanExecuteChanged();
+            GuardarComoCommand.NotifyCanExecuteChanged();
+            AnadirHmiCommand.NotifyCanExecuteChanged();
+            QuitarHmiCommand.NotifyCanExecuteChanged();
+            TraducirCommand.NotifyCanExecuteChanged();
+            GenerarCommand.NotifyCanExecuteChanged();
         }
     }
 }

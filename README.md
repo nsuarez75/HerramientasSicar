@@ -75,7 +75,14 @@ Genera el comentario de los pasos de secuencia en castellano, inglés y alemán 
 
 #### Generador HMI
 
-Partiendo de una plantilla estándar suministrada por GESTAMP, rellena la configuración de menús de cada HMI del proyecto con el nombre de cada menú/submenú y genera un Excel con todas las listas de textos completadas para copiar en el proyecto, así como el código AWL de configuración de visibilidad de las imágenes del HMI.
+Configura los menús de las HMI de un PLC y genera lo que hay que importar en TIA. Todo se edita en la herramienta y se guarda en un archivo de proyecto `.hmimenus` (Nuevo / Abrir / Guardar / Guardar como), que sirve para pasar la configuración de un equipo a otro. Al arrancar se abre el último proyecto usado.
+
+- **HMI**: de 1 a 8. El número de cada una elige su IDB (`HMIMenusConfigNN_IDB`).
+- **Pantallas**: por cada subgrupo del menú (OEM 1–8, Installation, Equipment, Manual operations, Profinet diagnostics, Web server y Energy measurement), el nombre de cada pantalla, común a todas las HMI, y una casilla por HMI para elegir si se ve. En los grupos OEM también se pone el título del grupo. Pulsando el nombre de una HMI en la cabecera se marcan o desmarcan todas.
+- **Funciones de usuario**: 24 pantallas con 8 funciones cada una, cada función con nombre, acción izquierda y derecha y feedback izquierda y derecha.
+- **Idiomas**: cada texto se escribe una vez y sale igual en es-ES, en-US y de-DE. Eligiendo «Inglés» o «Alemán» arriba se puede poner un texto distinto en ese idioma; **Traducir** los rellena con un traductor en línea para revisarlos.
+
+**Generar FC y listas** escribe en la carpeta que se elija `CallHMIMenusConfig_FC.xml` (FC 1450, con todas las HMI) y `Listas de textos/*.xml` (las 14 listas de menús y funciones), listos para importar con Importar / Exportar. Las listas llevan siempre todas las entradas: una pantalla sin nombre lleva el texto estándar de su lista (`<<Robot 03>>`…), y una función de usuario sin ningún texto, los suyos (`<<S1 L2 Name>>`…). La especificación está en [`docs/generador-hmi.md`](docs/generador-hmi.md).
 
 ## Compilar
 
@@ -90,7 +97,7 @@ Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR
 El código de la app está en `src/HerramientasSICAR/` y los tests en `tests/HerramientasSICAR.Tests/`. Dentro de `src/HerramientasSICAR/`:
 
 - `Services/TiaOpennessService.cs`: todo lo que habla con TIA (proyectos abiertos, conexión, árbol de bloques, exportar e importar, y las operaciones de cada herramienta en `ProyectoTia`). Va siempre por `HiloOpenness`, un único hilo para las llamadas a Openness.
-- `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque, `sincro.json` de Sincro Checker y comprobación de versión.
+- `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque, `sincro.json` de Sincro Checker, comprobación de versión y, en `Logica/MenusHmi/`, el catálogo de menús, el proyecto `.hmimenus` y la generación del FC y las listas del Generador HMI.
 - `Nucleo/`: copia del núcleo de GST-Diag (`src/GstDiag.Core`: Lad, Logic, SimaticMl, Sicar, Symbols, Programs y `Diagnostics/ValueSource.cs`) con lo que lee el programa exportado y comprueba la doble sincronización. Es el mismo código con el espacio de nombres `HerramientasSICAR.Nucleo` y los cambios mínimos para .NET Framework 4.8: `GeneratedRegex` pasa a `Regex` normal, unos pocos métodos que 4.8 no tiene (`Compat.cs`) y PolySharp para lo que le falta al lenguaje. Sus tests son los de GST-Diag (`tests/HerramientasSICAR.Tests/Nucleo/`). Si se cambia la sincro en GST-Diag, se vuelve a copiar.
 - `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide).
 - `L.cs` y `Textos.en.cs`: los textos se escriben en castellano y se traducen al inglés con `L.T`. Al añadir un texto, añadir su traducción (el test lo comprueba).

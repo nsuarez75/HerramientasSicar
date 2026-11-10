@@ -100,3 +100,29 @@ va a la suya.
 **HMI**:
 En Importar / Exportar, un panel o estación PC con WinCC clásico (Basic, Comfort o Advanced). Las HMI Unified no se
 muestran.
+
+## Generador HMI
+
+**Menú (de HMI)**:
+Árbol de pantallas de la HMI SICAR: **grupos** (OEM, Installation, Equipments…) con **subgrupos** (Layout general,
+Robots…), y en cada subgrupo varias **posiciones**, una por pantalla.
+_Evitar_: imagen (para la pantalla), submenú
+
+**Ocultamiento**:
+Si una **posición** del menú se ve o no en una HMI. Lo escribe el FC `CallHMIMenusConfig_FC` en
+`HMIMenusConfigNN_IDB.statCfg.Blanking`: log. 0 = se ve, log. 1 = oculta. No cambia las **listas de textos**.
+_Evitar_: blanking (salvo en el PLC), visibilidad de imágenes
+
+**Lista de textos**:
+Lista de WinCC que da el texto de cada valor (por ejemplo, el nombre de cada pantalla). El Generador HMI la genera
+completa en es-ES, en-US y de-DE.
+_Evitar_: text list (salvo en la interfaz de TIA en inglés)
+
+**Texto estándar**:
+Texto `<<…>>` que lleva una entrada de **lista de textos** sin nombre, el mismo que trae la plantilla de GESTAMP
+(`<<Robot 03>>`, `<<S1 L2 Name>>`).
+_Evitar_: placeholder, texto por defecto
+
+**Función de usuario**:
+Botón de una pantalla de User functions de la HMI (24 pantallas × 8 funciones) con cinco textos: nombre, acción
+izquierda y derecha y feedback izquierda y derecha.
