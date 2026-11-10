@@ -19,6 +19,9 @@ namespace HerramientasSICAR
 
         public string UltimaCarpeta { get; set; }
 
+        /// <summary>Idioma en que están escritos los títulos de los segmentos, en el Comentador (0 castellano, 1 inglés, 2 alemán).</summary>
+        public int IdiomaTitulosComentador { get; set; }
+
         /// <summary>Proyecto del Generador HMI que se abre al arrancar.</summary>
         public string UltimoProyectoHmi { get; set; }
 

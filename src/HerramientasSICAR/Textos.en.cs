@@ -189,27 +189,34 @@ namespace HerramientasSICAR
 
             // ---- Comentador
             ["Comentador"] = "Step comments",
-            ["Genera el comentario de los pasos de secuencia en castellano, inglés y alemán a partir del título de cada segmento."] =
-                "Generates the comment of each sequence step in Spanish, English and German from the title of its network.",
-            ["Lista de textos"] = "Text list",
-            ["Lista de textos exportada de TIA"] = "Text list exported from TIA",
-            ["Excel exportado de TIA (.xlsx)"] = "Excel file exported from TIA (.xlsx)",
-            ["Archivo de salida"] = "Output file",
-            ["Ej.: TextList_comentada.xlsx"] = "E.g. TextList_commented.xlsx",
-            ["Traducir los títulos (inglés, alemán y castellano). Necesita conexión a internet."] = "Translate the titles (English, German and Spanish). Needs an internet connection.",
-            ["Generar comentarios"] = "Generate comments",
-            ["1. En TIA, exporta los textos del proyecto marcando solo «Block comment»."] = "1. In TIA, export the project texts with only «Block comment» checked.",
-            ["2. Elige ese Excel aquí y genera los comentarios. La salida se guarda en la misma carpeta."] = "2. Choose that Excel file here and generate the comments. The output is saved in the same folder.",
-            ["3. Importa en TIA el archivo generado con «Import source language» marcado y sin ningún FB de secuencia abierto."] =
-                "3. Import the generated file in TIA with «Import source language» checked and no sequence FB open.",
-            ["La traducción usa servicios de terceros (Google Translate): su calidad depende de lo claro que sea el título de cada paso."] =
-                "The translation uses third-party services (Google Translate): its quality depends on how clear each step title is.",
-            ["Leyendo la lista de textos…"] = "Reading the text list…",
-            ["Preparando…"] = "Preparing…",
+            ["Escribe en cada segmento de los FB de secuencia un comentario en inglés, alemán y castellano a partir de su título, directamente en el proyecto de TIA."] =
+                "Writes a comment in English, German and Spanish on every network of the sequence FBs from its title, directly in the TIA project.",
+            ["Castellano"] = "Spanish",
+            ["Inglés"] = "English",
+            ["Alemán"] = "German",
+            ["{0} de {1} FB marcados"] = "{0} of {1} FBs checked",
+            ["Pulsa «Buscar FB de secuencia» para ver los bloques _FB de la carpeta {0}. Salen marcados los de secuencia de cada estación (OM1 a OM8), sin Summary, Messages ni 50_Safety."] =
+                "Press «Find sequence FBs» to list the _FB blocks of the {0} folder. The sequence FBs of each station (OM1 to OM8) come checked, without Summary, Messages or 50_Safety.",
+            ["Buscar FB de secuencia"] = "Find sequence FBs",
+            ["Buscar"] = "Find",
+            ["Buscando los FB de {0}…"] = "Looking for the FBs of {0}…",
+            ["{0}: {1} FB en {2}. Marcados los de secuencia."] = "{0}: {1} FBs in {2}. Sequence FBs are checked.",
+            ["Comentar"] = "Comment",
+            ["Se exportan {0} FB de {1}, se reescribe el comentario de cada segmento y se importan en TIA sobrescribiéndolos. Guarda antes el proyecto y cierra en TIA los FB que vayas a comentar. ¿Seguir?"] =
+                "{0} FBs of {1} are exported, the comment of each network is rewritten and they are imported back into TIA, overwriting them. Save the project first and close in TIA the FBs you are going to comment. Continue?",
+            ["Exportando los FB…"] = "Exporting the FBs…",
             ["Traduciendo títulos: {0}/{1}"] = "Translating titles: {0}/{1}",
-            ["Copiando títulos: {0}/{1}"] = "Copying titles: {0}/{1}",
-            ["Lista de textos guardada: {0}"] = "Text list saved: {0}",
-            ["La hoja 'User Texts' no existe."] = "The 'User Texts' sheet does not exist.",
+            ["{0}: importado, pero no compila; revísalo en TIA"] = "{0}: imported, but it does not compile; check it in TIA",
+            ["Comentados {0} segmentos en {1} FB."] = "Commented {0} networks in {1} FBs.",
+            ["Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo)."] = "Commented {0} networks in {1} FBs. There are {2} warning(s) (see below).",
+            ["El PLC {0} no tiene la carpeta {1}."] = "PLC {0} has no {1} folder.",
+            ["Los títulos están en"] = "Titles are in",
+            ["Traducir a los otros dos idiomas (necesita internet)"] = "Translate into the other two languages (needs internet)",
+            ["Cada segmento con título recibe un comentario de tres líneas (Title_english, Title_deutsch y Title_espanol) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra."] =
+                "Every network with a title gets a three-line comment (Title_english, Title_deutsch and Title_espanol) with the title without the step number, in the project language (en-US). Any existing comment is overwritten. The FBs are exported to a temporary folder, imported back into TIA overwriting them, and the folder is deleted.",
+            ["Marcar todos"] = "Check all",
+            ["Ninguno"] = "None",
+            ["protegido"] = "protected",
 
             // ---- Generador HMI
             ["Generador HMI"] = "HMI generator",

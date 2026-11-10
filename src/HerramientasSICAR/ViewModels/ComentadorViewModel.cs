@@ -1,88 +1,316 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
+using HerramientasSICAR.Logica;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HerramientasSICAR.ViewModels
 {
+    /// <summary>Un FB de la carpeta de secuencias en la lista del Comentador.</summary>
+    public sealed partial class FilaFbComentador : ObservableObject
+    {
+        private readonly Action _alCambiar;
+
+        public FilaFbComentador(FbSecuencia fb, Action alCambiar)
+        {
+            Fb = fb;
+            _alCambiar = alCambiar;
+            _marcado = !fb.Protegido && ComentariosSecuencia.MarcadoPorDefecto(fb.Grupos, fb.Nombre);
+        }
+
+        public FbSecuencia Fb { get; }
+        public string Nombre => Fb.Nombre;
+
+        /// <summary>Carpetas por debajo de la de secuencias, para situar el bloque.</summary>
+        public string Carpeta
+        {
+            get
+            {
+                int i = Fb.Grupos.ToList().IndexOf(ComentariosSecuencia.CarpetaSecuencias);
+                return string.Join(" › ", Fb.Grupos.Skip(i + 1));
+            }
+        }
+
+        public bool Protegido => Fb.Protegido;
+        public bool SePuedeMarcar => !Fb.Protegido;
+
+        [ObservableProperty]
+        private bool _marcado;
+
+        partial void OnMarcadoChanged(bool value) => _alCambiar();
+    }
+
+    /// <summary>
+    /// Comentador: escribe en cada segmento de los FB de secuencia elegidos un comentario de tres líneas
+    /// (inglés, alemán y castellano) a partir de su título. Exporta los FB a una carpeta temporal, cambia el XML,
+    /// los importa en TIA sobrescribiéndolos y borra la carpeta.
+    /// </summary>
     public partial class ComentadorViewModel : Herramienta
     {
         public ComentadorViewModel(Contexto contexto) : base(contexto)
         {
+            _idiomaIndice = Math.Max(0, Math.Min(2, contexto.Ajustes.IdiomaTitulosComentador));
+            Contexto.PropertyChanged += AlCambiarProyecto;
         }
 
         public override string Nombre => L.T("Comentador");
-        public override string Descripcion => L.T("Genera el comentario de los pasos de secuencia en castellano, inglés y alemán a partir del título de cada segmento.");
+        public override string Descripcion => L.T("Escribe en cada segmento de los FB de secuencia un comentario en inglés, alemán y castellano a partir de su título, directamente en el proyecto de TIA.");
         public override string Icono => "languages";
-        public override bool UsaTia => false;
+        public override bool UsaTia => true;
+
+        public ObservableCollection<FilaFbComentador> Fbs { get; } = new ObservableCollection<FilaFbComentador>();
+
+        public IReadOnlyList<string> Idiomas { get; } = new[] { L.T("Castellano"), L.T("Inglés"), L.T("Alemán") };
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ProcesarCommand))]
-        private string _rutaEntrada = "";
+        private int _idiomaIndice;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ProcesarCommand))]
-        private string _nombreSalida = "";
+        private bool _traducir = true;
 
         [ObservableProperty]
-        private bool _traducirTextos = true;
+        [NotifyPropertyChangedFor(nameof(HayFbs), nameof(SinFbs))]
+        private string _plc;
 
-        [ObservableProperty]
-        private double _progreso;
+        public bool HayFbs => Fbs.Count > 0;
+        public bool SinFbs => !HayFbs;
+        public int Marcados => Fbs.Count(f => f.Marcado);
+        public string Ayuda => L.T("Pulsa «Buscar FB de secuencia» para ver los bloques _FB de la carpeta {0}. Salen marcados los de secuencia de cada estación (OM1 a OM8), sin Summary, Messages ni 50_Safety.", ComentariosSecuencia.CarpetaSecuencias);
+        public string Resumen => L.T("{0} de {1} FB marcados", Marcados, Fbs.Count);
 
-        [ObservableProperty]
-        private bool _hayProgreso;
+        private IdiomaTitulos Idioma => (IdiomaTitulos)IdiomaIndice;
 
-        [RelayCommand(CanExecute = nameof(Libre))]
-        private async Task ElegirEntrada()
+        partial void OnIdiomaIndiceChanged(int value)
         {
-            string ruta = await Contexto.Dialogos.ElegirArchivo(L.T("Lista de textos exportada de TIA"), CarpetaInicial(), TipoArchivo.Excel);
-            if (ruta == null)
-                return;
-            RutaEntrada = ruta;
-            if (string.IsNullOrWhiteSpace(NombreSalida))
-                NombreSalida = Path.GetFileNameWithoutExtension(ruta) + "_comentada.xlsx";
+            Contexto.Ajustes.IdiomaTitulosComentador = value;
+            Contexto.Ajustes.Guardar();
         }
 
-        [RelayCommand(CanExecute = nameof(PuedeProcesar))]
-        private async Task Procesar()
+        // Si se conecta otro proyecto, la lista ya no vale.
+        private void AlCambiarProyecto(object sender, PropertyChangedEventArgs e)
         {
-            string salida = NombreSalida.Trim();
-            if (!salida.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-                salida += ".xlsx";
-            string rutaSalida = Path.Combine(Path.GetDirectoryName(RutaEntrada), salida);
-            bool traducir = TraducirTextos;
+            if (e.PropertyName == nameof(Contexto.ProyectoConectado))
+                PonerFbs(null, new List<FbSecuencia>());
+        }
 
-            Progreso = 0;
-            HayProgreso = true;
-            await Contexto.Trabajar(L.T("Leyendo la lista de textos…"), async () =>
+        private void PonerFbs(string plc, IEnumerable<FbSecuencia> fbs)
+        {
+            Fbs.Clear();
+            foreach (var fb in fbs)
+                Fbs.Add(new FilaFbComentador(fb, AlCambiarMarcas));
+            Plc = plc;
+            OnPropertyChanged(nameof(HayFbs));
+            OnPropertyChanged(nameof(SinFbs));
+            AlCambiarMarcas();
+        }
+
+        private void AlCambiarMarcas()
+        {
+            OnPropertyChanged(nameof(Marcados));
+            OnPropertyChanged(nameof(Resumen));
+            ComentarCommand.NotifyCanExecuteChanged();
+        }
+
+        [RelayCommand(CanExecute = nameof(PuedeUsarTia))]
+        private async Task BuscarFbs()
+        {
+            List<string> plcs = null;
+            await Contexto.Trabajar(L.T("Buscando los PLC del proyecto…"), async () =>
             {
-                // Progress<T> devuelve el avance al hilo de la ventana aunque el trabajo vaya en segundo plano.
-                var avance = new Progress<(int completados, int total)>(p =>
-                {
-                    Progreso = p.total > 0 ? 100.0 * p.completados / p.total : 0;
-                    Contexto.MostrarEstado(p.total == 0 ? L.T("Preparando…")
-                        : traducir ? L.T("Traduciendo títulos: {0}/{1}", p.completados, p.total)
-                        : L.T("Copiando títulos: {0}/{1}", p.completados, p.total));
-                });
-
-                // Mezcla lectura de Excel con llamadas de red: fuera del hilo de la ventana.
-                await Task.Run(() => ExcelProcessor.ModificarTodosComentariosAsync(RutaEntrada, rutaSalida, traducir, avance));
-                Contexto.MostrarEstado(L.T("Lista de textos guardada: {0}", rutaSalida));
+                plcs = await Contexto.Tia().EnProyecto(p => p.NombresPlc());
             });
-            HayProgreso = false;
+            if (plcs == null)
+                return;
+            if (plcs.Count == 0)
+            {
+                Contexto.MostrarEstado(L.T("No se encontró ningún PLC con software en el proyecto."), error: true);
+                return;
+            }
+            string plc = plcs[0];
+            if (plcs.Count > 1)
+            {
+                var elegidos = await Contexto.Dialogos.ElegirVarios(L.T("Buscar FB de secuencia"), L.T("¿De qué PLC? Se usa el primero que marques."),
+                    plcs, plcs.Select((_, i) => i == 0).ToList(), L.T("Buscar"), L.T("Cancelar"));
+                if (elegidos == null || elegidos.Count == 0)
+                    return;
+                plc = plcs[elegidos[0]];
+            }
+
+            await Contexto.Trabajar(L.T("Buscando los FB de {0}…", plc), async () =>
+            {
+                var fbs = await Contexto.Tia().EnProyecto(p => p.FbsDeSecuencias(plc));
+                PonerFbs(plc, fbs);
+                Contexto.MostrarEstado(L.T("{0}: {1} FB en {2}. Marcados los de secuencia.", plc, fbs.Count, ComentariosSecuencia.CarpetaSecuencias));
+            });
         }
 
-        private string CarpetaInicial() => string.IsNullOrEmpty(RutaEntrada) ? null : Path.GetDirectoryName(RutaEntrada);
+        [RelayCommand]
+        private void MarcarTodos()
+        {
+            foreach (var fila in Fbs.Where(f => f.SePuedeMarcar))
+                fila.Marcado = true;
+        }
 
-        private bool PuedeProcesar() => Libre && File.Exists(RutaEntrada) && !string.IsNullOrWhiteSpace(NombreSalida);
+        [RelayCommand]
+        private void MarcarNinguno()
+        {
+            foreach (var fila in Fbs)
+                fila.Marcado = false;
+        }
+
+        [RelayCommand(CanExecute = nameof(PuedeComentar))]
+        private async Task Comentar()
+        {
+            var fbs = Fbs.Where(f => f.Marcado).Select(f => f.Fb).ToList();
+            string plc = Plc;
+            if (!await Contexto.Dialogos.Confirmar(L.T("Comentar"),
+                    L.T("Se exportan {0} FB de {1}, se reescribe el comentario de cada segmento y se importan en TIA sobrescribiéndolos. Guarda antes el proyecto y cierra en TIA los FB que vayas a comentar. ¿Seguir?", fbs.Count, plc),
+                    L.T("Comentar")))
+                return;
+
+            var idioma = Idioma;
+            bool traducir = Traducir;
+            string carpeta = Path.Combine(Path.GetTempPath(), "HerramientasSICAR", "Comentador", Guid.NewGuid().ToString("N"));
+            try
+            {
+                await Contexto.Trabajar(L.T("Exportando los FB…"), async () =>
+                {
+                    var fallos = new List<string>();
+                    var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
+
+                    // 1. Exportar (en el hilo de Openness).
+                    var exportados = await Contexto.Tia().EnProyecto(p =>
+                    {
+                        var rutas = new List<(FbSecuencia Fb, string Ruta)>();
+                        for (int i = 0; i < fbs.Count; i++)
+                        {
+                            ((IProgress<string>)progreso).Report(L.T("Exportando {0}/{1}: {2}", i + 1, fbs.Count, fbs[i].Nombre));
+                            try
+                            {
+                                rutas.Add((fbs[i], p.ExportarFb(plc, fbs[i], Path.Combine(carpeta, i.ToString()))));
+                            }
+                            catch (Exception e)
+                            {
+                                fallos.Add($"{fbs[i].Nombre}: {e.Message}");
+                            }
+                        }
+                        return rutas;
+                    });
+
+                    // 2. Traducir los títulos distintos y reescribir los comentarios.
+                    var xmls = await Task.Run(() => exportados.Select(e => File.ReadAllText(e.Ruta)).ToList());
+                    var titulos = xmls.SelectMany(ComentariosSecuencia.Titulos).Distinct().ToList();
+                    var textos = await TextosAsync(titulos, idioma, traducir, progreso);
+
+                    int segmentos = 0;
+                    await Task.Run(() =>
+                    {
+                        for (int i = 0; i < exportados.Count; i++)
+                        {
+                            var (xml, comentados) = ComentariosSecuencia.Comentar(xmls[i], t => textos[t]);
+                            File.WriteAllText(exportados[i].Ruta, xml, new UTF8Encoding(true));
+                            segmentos += comentados;
+                        }
+                    });
+
+                    // 3. Importar en TIA, sobrescribiendo, y compilar.
+                    int importados = await Contexto.Tia().EnProyecto(p =>
+                    {
+                        int n = 0;
+                        for (int i = 0; i < exportados.Count; i++)
+                        {
+                            var fb = exportados[i].Fb;
+                            ((IProgress<string>)progreso).Report(L.T("Importando {0}/{1}: {2}", i + 1, exportados.Count, fb.Nombre));
+                            try
+                            {
+                                if (!p.ImportarFb(plc, fb, exportados[i].Ruta))
+                                    fallos.Add(L.T("{0}: importado, pero no compila; revísalo en TIA", fb.Nombre));
+                                n++;
+                            }
+                            catch (Exception e)
+                            {
+                                fallos.Add($"{fb.Nombre}: {e.Message}");
+                            }
+                        }
+                        return n;
+                    });
+
+                    Contexto.PonerFallos(fallos);
+                    Contexto.MostrarEstado(fallos.Count == 0
+                        ? L.T("Comentados {0} segmentos en {1} FB.", segmentos, importados)
+                        : L.T("Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo).", segmentos, importados, fallos.Count),
+                        error: fallos.Count > 0);
+                });
+            }
+            finally
+            {
+                BorrarCarpeta(carpeta);
+            }
+        }
+
+        /// <summary>Las tres líneas de cada título: la de su idioma tal cual y las otras dos traducidas (o iguales).</summary>
+        private async Task<Dictionary<string, TextosComentario>> TextosAsync(IReadOnlyList<string> titulos, IdiomaTitulos idioma,
+            bool traducir, IProgress<string> progreso)
+        {
+            string origen = ComentariosSecuencia.Codigo(idioma);
+            var destinos = new[] { "en", "de", "es" }.Where(d => d != origen).ToList();
+            var traducciones = new ConcurrentDictionary<(string, string), string>();
+
+            if (traducir && titulos.Count > 0)
+            {
+                int total = titulos.Count * destinos.Count;
+                int hechas = 0;
+                using (var semaforo = new SemaphoreSlim(Traductor.MaxConcurrentes))
+                {
+                    await Task.WhenAll(titulos.SelectMany(t => destinos.Select(d => (t, d))).Select(async par =>
+                    {
+                        await semaforo.WaitAsync();
+                        try
+                        {
+                            traducciones[par] = await Traductor.TraducirAsync(par.t, par.d, origen);
+                        }
+                        finally
+                        {
+                            semaforo.Release();
+                            progreso.Report(L.T("Traduciendo títulos: {0}/{1}", Interlocked.Increment(ref hechas), total));
+                        }
+                    }));
+                }
+            }
+
+            string En(string t, string codigo) =>
+                codigo == origen ? t : traducciones.TryGetValue((t, codigo), out var traducido) ? traducido : t;
+            return titulos.ToDictionary(t => t, t => new TextosComentario(En(t, "en"), En(t, "de"), En(t, "es")));
+        }
+
+        private static void BorrarCarpeta(string carpeta)
+        {
+            try
+            {
+                if (Directory.Exists(carpeta))
+                    Directory.Delete(carpeta, true);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Es una carpeta temporal: si Windows la tiene bloqueada, se queda en %TEMP%.
+            }
+        }
+
+        private bool PuedeComentar() => PuedeUsarTia && Plc != null && Fbs.Any(f => f.Marcado);
 
         protected override void ActualizarComandos()
         {
-            ElegirEntradaCommand.NotifyCanExecuteChanged();
-            ProcesarCommand.NotifyCanExecuteChanged();
+            BuscarFbsCommand.NotifyCanExecuteChanged();
+            ComentarCommand.NotifyCanExecuteChanged();
         }
     }
 }

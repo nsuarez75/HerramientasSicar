@@ -27,3 +27,7 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 ## Generador HMI (issue #23)
 
 - Probar en TIA la importación de `CallHMIMenusConfig_FC.xml` y de las listas de textos generadas.
+
+## Comentador (issue #25)
+
+- Probar con TIA «Comentar» sobre el proyecto conectado: exportación, importación sobrescribiendo y compilación de los FB.
