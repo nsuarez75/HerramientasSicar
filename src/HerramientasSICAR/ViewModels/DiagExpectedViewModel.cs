@@ -24,14 +24,18 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand(CanExecute = nameof(PuedeGenerar))]
         private async Task Generar()
         {
-            string bloque = NombreBloque.Trim();
-            await Contexto.Trabajar(L.T("Exportando {0}…", bloque), async () =>
+            string nombre = NombreBloque.Trim();
+            var bloque = await ElegirBloque(nombre, "DiagExpected");
+            if (bloque == null)
+                return;
+
+            await Contexto.Trabajar(L.T("Exportando {0}…", nombre), async () =>
             {
                 string excel = await Contexto.Tia().EnProyecto(p =>
                 {
-                    p.CompilarBloque(bloque);
-                    string xml = p.ExportarBloque(bloque, p.Carpeta);
-                    string ruta = Path.Combine(p.Carpeta, bloque + "_DIAG.xlsx");
+                    // Exportar compila el bloque si hace falta.
+                    string xml = p.Exportar(bloque, p.Carpeta);
+                    string ruta = Path.Combine(p.Carpeta, nombre + "_DIAG.xlsx");
                     new TIADiagExpected().ProcesarYGenerarExcel(xml, ruta);
                     return ruta;
                 });

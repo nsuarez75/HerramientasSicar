@@ -151,34 +151,16 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand(CanExecute = nameof(PuedeUsarTia))]
         private async Task ExportarDesdeTia()
         {
-            List<string> plcs = null;
-            await Contexto.Trabajar(L.T("Buscando los PLC del proyecto…"), async () =>
-            {
-                plcs = await Contexto.Tia().EnProyecto(p => p.NombresPlc());
-            });
-            if (plcs == null)
+            string plc = await ElegirPlc(L.T("Exportar desde TIA"), L.T("Exportar"));
+            if (plc == null)
                 return;
-            if (plcs.Count == 0)
-            {
-                Contexto.MostrarEstado(L.T("No se encontró ningún PLC con software en el proyecto."), error: true);
-                return;
-            }
-            string plc = plcs[0];
-            if (plcs.Count > 1)
-            {
-                var elegidos = await Contexto.Dialogos.ElegirVarios(L.T("Exportar desde TIA"), L.T("¿De qué PLC? Se usa el primero que marques."),
-                    plcs, plcs.Select((_, i) => i == 0).ToList(), L.T("Exportar"), L.T("Cancelar"));
-                if (elegidos == null || elegidos.Count == 0)
-                    return;
-                plc = plcs[elegidos[0]];
-            }
 
             string carpeta = null;
             string idioma = null;
             var saltados = new List<string>();
             await Contexto.Trabajar(L.T("Exportando el programa de {0}…", plc), async () =>
             {
-                var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
+                var progreso = ProgresoEnEstado();
                 var resultado = await Contexto.Tia().EnProyecto(p =>
                 {
                     string destino = Path.Combine(p.Carpeta, "HerramientasSICAR", "Sincro", ArchivosBloque.NombreSeguro(plc));

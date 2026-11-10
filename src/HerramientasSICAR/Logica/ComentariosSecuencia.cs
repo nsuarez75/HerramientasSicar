@@ -10,24 +10,6 @@ namespace HerramientasSICAR.Logica
     /// <summary>Idioma en que están escritos los títulos de los segmentos.</summary>
     public enum IdiomaTitulos { Castellano, Ingles, Aleman }
 
-    /// <summary>Un bloque _FB de la carpeta de secuencias de un PLC.</summary>
-    public sealed class FbSecuencia
-    {
-        public FbSecuencia(string nombre, IReadOnlyList<string> grupos, bool protegido)
-        {
-            Nombre = nombre;
-            Grupos = grupos;
-            Protegido = protegido;
-        }
-
-        public string Nombre { get; }
-
-        /// <summary>Carpetas de TIA desde la raíz del PLC hasta la del bloque.</summary>
-        public IReadOnlyList<string> Grupos { get; }
-
-        public bool Protegido { get; }
-    }
-
     /// <summary>Las tres líneas del comentario de un segmento.</summary>
     public sealed class TextosComentario
     {

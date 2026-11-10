@@ -140,17 +140,14 @@ namespace HerramientasSICAR.Services
                 foreach (var referencia in bloques)
                 {
                     progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, referencia.Nombre));
-                    bool seguir = Intentar(resultado, referencia.Nombre, total - n, () =>
+                    bool seguir = proyecto.Intentar(resultado, referencia.Nombre, total - n, () =>
                     {
-                        var bloque = proyecto.BuscarGrupo(referencia.Plc, referencia.Grupos, crear: false)?.Blocks.Find(referencia.Nombre)
-                            ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
-
                         var partes = new List<string> { carpeta };
                         if (variosDispositivos)
                             partes.Add(ArchivosBloque.NombreSeguro(referencia.Plc));
                         partes.AddRange(referencia.Grupos.Select(ArchivosBloque.NombreSeguro));
 
-                        ProyectoTia.Exportar(bloque, Path.Combine(partes.ToArray()));
+                        proyecto.Exportar(referencia, Path.Combine(partes.ToArray()));
                     });
                     if (!seguir)
                         return resultado;
@@ -159,7 +156,7 @@ namespace HerramientasSICAR.Services
                 foreach (var referencia in elementosHmi)
                 {
                     progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, referencia.Nombre));
-                    bool seguir = Intentar(resultado, referencia.Nombre, total - n, () =>
+                    bool seguir = proyecto.Intentar(resultado, referencia.Nombre, total - n, () =>
                     {
                         var partes = new List<string> { carpeta };
                         if (variosDispositivos)
@@ -194,11 +191,8 @@ namespace HerramientasSICAR.Services
                     var archivo = archivos[i];
                     string nombre = Path.GetFileName(archivo.Ruta);
                     progreso.Report(L.T("Importando {0}/{1}: {2}", i + 1, archivos.Count, nombre));
-                    bool seguir = Intentar(resultado, nombre, archivos.Count - i - 1, () =>
-                    {
-                        var grupo = proyecto.BuscarGrupo(plc, gruposDestino.Concat(archivo.Grupos).ToList(), crear: true);
-                        grupo.Blocks.Import(new FileInfo(archivo.Ruta), ImportOptions.Override);
-                    });
+                    bool seguir = proyecto.Intentar(resultado, nombre, archivos.Count - i - 1, () =>
+                        ProyectoTia.ImportarEn(proyecto.BuscarGrupo(plc, gruposDestino.Concat(archivo.Grupos).ToList(), crear: true), archivo.Ruta));
                     if (!seguir)
                         break;
                 }
@@ -216,7 +210,8 @@ namespace HerramientasSICAR.Services
             return _hilo.Ejecutar(() =>
             {
                 ComprobarConexion();
-                var destino = new ProyectoTia(_proyecto).BuscarHmi(hmi);
+                var proyecto = new ProyectoTia(_proyecto);
+                var destino = proyecto.BuscarHmi(hmi);
                 var resultado = new ResultadoOperacion();
 
                 for (int i = 0; i < archivos.Count; i++)
@@ -224,35 +219,12 @@ namespace HerramientasSICAR.Services
                     var archivo = archivos[i];
                     string nombre = Path.GetFileName(archivo.Ruta);
                     progreso.Report(L.T("Importando {0}/{1}: {2}", i + 1, archivos.Count, nombre));
-                    if (!Intentar(resultado, nombre, archivos.Count - i - 1,
+                    if (!proyecto.Intentar(resultado, nombre, archivos.Count - i - 1,
                             () => HmiTia.Importar(destino, archivo, ArchivosHmi.CarpetasDestino(rama, grupos, archivo))))
                         break;
                 }
                 return resultado;
             });
-        }
-
-        /// <summary>
-        /// Hace el trabajo de un elemento y apunta si ha ido bien o el fallo. Devuelve false si TIA se ha cerrado
-        /// (o ya no tiene el proyecto): seguir solo llenaría la lista de fallos con el mismo error.
-        /// </summary>
-        private bool Intentar(ResultadoOperacion resultado, string nombre, int quedan, Action trabajo)
-        {
-            try
-            {
-                trabajo();
-                resultado.Correctos++;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                resultado.Fallos.Add($"{nombre}: {ex.Message}");
-                if (!(ex is EngineeringObjectDisposedException) || BuscarProyecto(_rutaProyecto) != null)
-                    return true;
-
-                resultado.Fallos.Add(L.T("TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer.", quedan));
-                return false;
-            }
         }
 
         private static PlcInfo LeerPlc(PlcSoftware plc) => new PlcInfo { Nombre = plc.Name, Raiz = LeerGrupo(plc.BlockGroup) };
@@ -308,9 +280,11 @@ namespace HerramientasSICAR.Services
 
     /// <summary>
     /// Operaciones de las herramientas sobre el proyecto conectado. Solo se usa dentro de
-    /// <see cref="TiaOpennessService.EnProyecto{T}"/>, en el hilo de Openness.
+    /// <see cref="TiaOpennessService.EnProyecto{T}"/>, en el hilo de Openness. Todo lo que se hace con bloques
+    /// (buscar, exportar, importar, modificar, compilar) está en ProyectoTia.Bloques.cs: las herramientas no hablan
+    /// con Openness por su cuenta.
     /// </summary>
-    public sealed class ProyectoTia
+    public sealed partial class ProyectoTia
     {
         private readonly Project _proyecto;
 
@@ -321,38 +295,6 @@ namespace HerramientasSICAR.Services
 
         /// <summary>Carpeta del proyecto (la del .ap19): ahí dejan sus archivos las herramientas.</summary>
         public string Carpeta => _proyecto.Path.DirectoryName;
-
-        /// <summary>Compila los bloques de todos los PLC del proyecto.</summary>
-        public void CompilarTodo()
-        {
-            var plcs = Plcs().ToList();
-            if (plcs.Count == 0)
-                throw new InvalidOperationException(L.T("No se encontró ningún PLC con software en el proyecto."));
-            foreach (var plc in plcs)
-                plc.BlockGroup.GetService<ICompilable>()?.Compile();
-        }
-
-        public void CompilarBloque(string nombreBloque)
-        {
-            var compilable = Bloque(nombreBloque).GetService<ICompilable>()
-                ?? throw new InvalidOperationException(L.T("El bloque no es compilable."));
-            compilable.Compile();
-        }
-
-        /// <summary>Exporta el bloque a &lt;carpeta&gt;\&lt;nombre&gt;.xml y devuelve la ruta.</summary>
-        public string ExportarBloque(string nombreBloque, string carpeta) => Exportar(Bloque(nombreBloque), carpeta);
-
-        /// <summary>Grupo donde está el bloque, o null si no existe.</summary>
-        public PlcBlockGroup GrupoDe(string nombreBloque) => BuscarBloque(nombreBloque)?.Parent as PlcBlockGroup;
-
-        /// <summary>Importa el XML en el grupo; si ya hay un bloque con ese nombre, se sobrescribe.</summary>
-        public void ImportarBloque(string rutaXml, PlcBlockGroup grupo)
-        {
-            var archivo = new FileInfo(rutaXml);
-            if (!archivo.Exists)
-                throw new FileNotFoundException(L.T("Archivo XML de importación no encontrado."), rutaXml);
-            grupo.Blocks.Import(archivo, ImportOptions.Override);
-        }
 
         /// <summary>Nombres de los PLC del proyecto.</summary>
         public List<string> NombresPlc() => Plcs().Select(p => p.Name).ToList();
@@ -368,8 +310,8 @@ namespace HerramientasSICAR.Services
         public int ExportarPrograma(string nombrePlc, string carpeta, IProgress<string> progreso, List<string> saltados)
         {
             var plc = BuscarPlc(nombrePlc);
-            var bloques = new List<PlcBlock>();
-            Recoger(plc.BlockGroup, bloques);
+            var bloques = new List<(PlcBlock Bloque, IReadOnlyList<string> Grupos)>();
+            RecorrerBloques(plc.BlockGroup, new List<string>(), (b, g) => bloques.Add((b, g)));
             var tablas = new List<PlcTagTable>();
             Recoger(plc.TagTableGroup, tablas);
             var tipos = new List<PlcType>();
@@ -384,126 +326,29 @@ namespace HerramientasSICAR.Services
                 Directory.CreateDirectory(dir);
             }
 
+            var resultado = new ResultadoOperacion();
             int total = bloques.Count + tablas.Count + tipos.Count;
             int n = 0;
-            int exportados = 0;
-            foreach (var bloque in bloques)
+            foreach (var (bloque, _) in bloques)
             {
                 progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, bloque.Name));
-                if (bloque.IsKnowHowProtected)
-                    saltados.Add(L.T("{0}: protegido con contraseña", bloque.Name));
-                else if (!bloque.IsConsistent)
-                    saltados.Add(L.T("{0}: sin compilar", bloque.Name));
-                else
-                    exportados += IntentarExportar(bloque.Name, saltados, () => bloque.Export(Destino(raiz, "Bloques", bloque.Name), ExportOptions.WithDefaults));
+                if (!Intentar(resultado, bloque.Name, total - n, () => ExportarBloque(bloque, Path.Combine(raiz, "Bloques"), compilar: false, numerarSiExiste: true)))
+                    break;
             }
             foreach (var tabla in tablas)
             {
                 progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, tabla.Name));
-                exportados += IntentarExportar(tabla.Name, saltados, () => tabla.Export(Destino(raiz, "Variables", tabla.Name), ExportOptions.WithDefaults));
+                if (!Intentar(resultado, tabla.Name, total - n, () => tabla.Export(new FileInfo(RutaLibre(Path.Combine(raiz, "Variables"), tabla.Name)), ExportOptions.WithDefaults)))
+                    break;
             }
             foreach (var tipo in tipos)
             {
                 progreso.Report(L.T("Exportando {0}/{1}: {2}", ++n, total, tipo.Name));
-                exportados += IntentarExportar(tipo.Name, saltados, () => tipo.Export(Destino(raiz, "Tipos", tipo.Name), ExportOptions.WithDefaults));
+                if (!Intentar(resultado, tipo.Name, total - n, () => tipo.Export(new FileInfo(RutaLibre(Path.Combine(raiz, "Tipos"), tipo.Name)), ExportOptions.WithDefaults)))
+                    break;
             }
-            return exportados;
-        }
-
-        /// <summary>
-        /// Bloques _FB de la carpeta 10_Sequence &amp; Messageblocks del PLC y sus subcarpetas, para el Comentador.
-        /// </summary>
-        public List<FbSecuencia> FbsDeSecuencias(string nombrePlc)
-        {
-            var raiz = BuscarPlc(nombrePlc).BlockGroup;
-            var ruta = new List<string>();
-            var carpeta = BuscarCarpeta(raiz, ComentariosSecuencia.CarpetaSecuencias, ruta)
-                ?? throw new InvalidOperationException(L.T("El PLC {0} no tiene la carpeta {1}.", nombrePlc, ComentariosSecuencia.CarpetaSecuencias));
-            var fbs = new List<FbSecuencia>();
-            RecogerFbs(carpeta, ruta, fbs);
-            return fbs;
-        }
-
-        // Busca la carpeta por nombre a cualquier profundidad y deja en «ruta» las carpetas hasta ella (incluida).
-        private static PlcBlockGroup BuscarCarpeta(PlcBlockGroup grupo, string nombre, List<string> ruta)
-        {
-            foreach (PlcBlockGroup sub in grupo.Groups)
-            {
-                ruta.Add(sub.Name);
-                if (sub.Name == nombre)
-                    return sub;
-                var encontrada = BuscarCarpeta(sub, nombre, ruta);
-                if (encontrada != null)
-                    return encontrada;
-                ruta.RemoveAt(ruta.Count - 1);
-            }
-            return null;
-        }
-
-        private static void RecogerFbs(PlcBlockGroup grupo, List<string> ruta, List<FbSecuencia> fbs)
-        {
-            foreach (PlcBlock bloque in grupo.Blocks)
-                if (ComentariosSecuencia.EsFb(bloque.Name))
-                    fbs.Add(new FbSecuencia(bloque.Name, ruta.ToList(), bloque.IsKnowHowProtected));
-            foreach (PlcBlockGroup sub in grupo.Groups)
-            {
-                ruta.Add(sub.Name);
-                RecogerFbs(sub, ruta, fbs);
-                ruta.RemoveAt(ruta.Count - 1);
-            }
-        }
-
-        /// <summary>Exporta un FB de secuencia a la carpeta (compilándolo antes si hace falta) y devuelve la ruta del XML.</summary>
-        public string ExportarFb(string nombrePlc, FbSecuencia fb, string carpeta)
-        {
-            var bloque = BuscarGrupo(nombrePlc, fb.Grupos, crear: false)?.Blocks.Find(fb.Nombre)
-                ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
-            return Exportar(bloque, carpeta);
-        }
-
-        /// <summary>
-        /// Importa el XML de un FB de secuencia en su carpeta, sobrescribiéndolo, y lo compila. Devuelve false si no
-        /// ha compilado (queda importado, pero hay que revisarlo en TIA).
-        /// </summary>
-        public bool ImportarFb(string nombrePlc, FbSecuencia fb, string rutaXml)
-        {
-            var grupo = BuscarGrupo(nombrePlc, fb.Grupos, crear: false)
-                ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
-            grupo.Blocks.Import(new FileInfo(rutaXml), ImportOptions.Override);
-            var bloque = grupo.Blocks.Find(fb.Nombre);
-            bloque?.GetService<ICompilable>()?.Compile();
-            return bloque != null && bloque.IsConsistent;
-        }
-
-        private static int IntentarExportar(string nombre, List<string> saltados, Action exportar)
-        {
-            try
-            {
-                exportar();
-                return 1;
-            }
-            catch (Exception e)
-            {
-                saltados.Add($"{nombre}: {e.Message}");
-                return 0;
-            }
-        }
-
-        // Nombre que Windows admite; si ya existe (dos objetos con el mismo nombre en carpetas distintas), se numera.
-        private static FileInfo Destino(string raiz, string sub, string nombre)
-        {
-            string seguro = string.Concat(nombre.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-            string ruta = Path.Combine(raiz, sub, seguro + ".xml");
-            for (int i = 2; File.Exists(ruta); i++)
-                ruta = Path.Combine(raiz, sub, $"{seguro}_{i}.xml");
-            return new FileInfo(ruta);
-        }
-
-        private static void Recoger(PlcBlockGroup grupo, List<PlcBlock> bloques)
-        {
-            bloques.AddRange(grupo.Blocks);
-            foreach (PlcBlockGroup sub in grupo.Groups)
-                Recoger(sub, bloques);
+            saltados.AddRange(resultado.Fallos);
+            return resultado.Correctos;
         }
 
         private static void Recoger(PlcTagTableGroup grupo, List<PlcTagTable> tablas)
@@ -518,32 +363,6 @@ namespace HerramientasSICAR.Services
             tipos.AddRange(grupo.Types);
             foreach (PlcTypeUserGroup sub in grupo.Groups)
                 Recoger(sub, tipos);
-        }
-
-        internal static string Exportar(PlcBlock bloque, string carpeta)
-        {
-            if (bloque.IsKnowHowProtected)
-                throw new InvalidOperationException(L.T("está protegido con contraseña (know-how)"));
-
-            // Openness no exporta bloques sin compilar: se compilan antes.
-            if (!bloque.IsConsistent)
-            {
-                bloque.GetService<ICompilable>()?.Compile();
-                if (!bloque.IsConsistent)
-                    throw new InvalidOperationException(L.T("no compila; revisa sus errores en TIA"));
-            }
-
-            string ruta = Path.Combine(carpeta, ArchivosBloque.NombreSeguro(bloque.Name) + ".xml");
-            if (ArchivosBloque.RutaDemasiadoLarga(ruta))
-                throw new InvalidOperationException(L.T("la ruta es demasiado larga para Windows ({0} caracteres); exporta a una carpeta con una ruta más corta", ruta.Length));
-
-            Directory.CreateDirectory(carpeta);
-            var destino = new FileInfo(ruta);
-            if (destino.Exists)
-                destino.Delete();
-
-            bloque.Export(destino, ExportOptions.WithDefaults);
-            return destino.FullName;
         }
 
         internal IEnumerable<PlcSoftware> Plcs() => Software<PlcSoftware>();
@@ -589,28 +408,6 @@ namespace HerramientasSICAR.Services
                 grupo = siguiente;
             }
             return grupo;
-        }
-
-        private PlcBlock Bloque(string nombreBloque) => BuscarBloque(nombreBloque)
-            ?? throw new InvalidOperationException(L.T("No se encontró el bloque '{0}' en el proyecto.", nombreBloque));
-
-        /// <summary>Busca el bloque por nombre (sin distinguir mayúsculas) en todos los PLC.</summary>
-        private PlcBlock BuscarBloque(string nombreBloque) =>
-            Plcs().Select(p => BuscarBloque(p.BlockGroup, nombreBloque.Trim())).FirstOrDefault(b => b != null);
-
-        private static PlcBlock BuscarBloque(PlcBlockGroup grupo, string nombreBloque)
-        {
-            foreach (PlcBlock bloque in grupo.Blocks)
-                if (bloque.Name.Equals(nombreBloque, StringComparison.OrdinalIgnoreCase))
-                    return bloque;
-
-            foreach (PlcBlockGroup subgrupo in grupo.Groups)
-            {
-                var encontrado = BuscarBloque(subgrupo, nombreBloque);
-                if (encontrado != null)
-                    return encontrado;
-            }
-            return null;
         }
 
         private static IEnumerable<T> BuscarSoftware<T>(DeviceItemComposition elementos) where T : class

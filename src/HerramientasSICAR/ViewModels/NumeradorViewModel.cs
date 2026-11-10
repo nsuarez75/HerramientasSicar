@@ -1,7 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -34,10 +32,18 @@ namespace HerramientasSICAR.ViewModels
         {
             await Contexto.Trabajar(L.T("Compilando el proyecto…"), async () =>
             {
-                var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
-                var fallos = new List<string>();
-                int hechos = await Contexto.Tia().EnProyecto(p => NumerarBloques(p, progreso, fallos));
+                var progreso = ProgresoEnEstado();
+                // Compila, y en cada PLC cada FB de mensajes se exporta, se renumera y se vuelve a importar en su sitio.
+                // Los que el proyecto no tiene (estaciones que no existen) no salen al buscar.
+                var resultado = await Contexto.Tia().EnProyecto(p =>
+                {
+                    p.CompilarTodo();
+                    var bloques = Bloques.SelectMany(p.BuscarPorNombre).ToList();
+                    return p.ModificarBloques(bloques, (_, xml) => Renumerar(xml), compilar: false, progreso);
+                });
 
+                int hechos = resultado.Correctos;
+                var fallos = resultado.Fallos;
                 Contexto.PonerFallos(fallos);
                 Contexto.MostrarEstado(hechos == 0 && fallos.Count == 0
                     ? L.T("El proyecto no tiene ningún FB de mensajes de SICAR.")
@@ -48,45 +54,11 @@ namespace HerramientasSICAR.ViewModels
             });
         }
 
-        // En el hilo de Openness: compila, y cada FB de mensajes se exporta, se renumera y se vuelve a importar
-        // en su mismo grupo. Los que el proyecto no tiene (estaciones que no existen) se saltan.
-        private static int NumerarBloques(Services.ProyectoTia p, IProgress<string> progreso, List<string> fallos)
+        /// <summary>Numera los mensajes del FB de 1 en adelante, en el orden en que aparecen.</summary>
+        internal static string Renumerar(string xml)
         {
-            int hechos = 0;
-            string temporal = Path.Combine(Path.GetTempPath(), "HerramientasSICAR", "Numerador");
-            p.CompilarTodo();
-            try
-            {
-                foreach (string bloque in Bloques)
-                {
-                    var grupo = p.GrupoDe(bloque);
-                    if (grupo == null)
-                        continue;
-
-                    progreso.Report(L.T("Procesando {0}…", bloque));
-                    try
-                    {
-                        string xml = p.ExportarBloque(bloque, temporal);
-                        int contador = 0;
-                        string nuevo = NumeroMensaje.Replace(File.ReadAllText(xml), m => m.Groups[1].Value + ++contador);
-                        File.WriteAllText(xml, nuevo);
-
-                        p.ImportarBloque(xml, grupo);
-                        hechos++;
-                    }
-                    catch (Exception ex)
-                    {
-                        // Un bloque que falla no para los demás.
-                        fallos.Add($"{bloque}: {ex.Message}");
-                    }
-                }
-            }
-            finally
-            {
-                if (Directory.Exists(temporal))
-                    Directory.Delete(temporal, true);
-            }
-            return hechos;
+            int contador = 0;
+            return NumeroMensaje.Replace(xml, m => m.Groups[1].Value + ++contador);
         }
 
         protected override void ActualizarComandos() => NumerarCommand.NotifyCanExecuteChanged();
