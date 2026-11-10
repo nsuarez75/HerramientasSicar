@@ -112,19 +112,27 @@ namespace HerramientasSICAR.ViewModels
         public string Idb => Hmi.NombreIdb;
     }
 
-    /// <summary>Un subgrupo en la lista de la izquierda de «Pantallas».</summary>
+    /// <summary>
+    /// Fila de la lista de la izquierda de «Pantallas»: un subgrupo, o el rótulo de su grupo (que no se puede elegir).
+    /// </summary>
     public sealed class SubgrupoEditable
     {
-        public SubgrupoEditable(SubgrupoMenu subgrupo, bool primeroDelGrupo)
+        private SubgrupoEditable(SubgrupoMenu subgrupo, string rotulo)
         {
             Subgrupo = subgrupo;
-            PrimeroDelGrupo = primeroDelGrupo;
+            Rotulo = rotulo;
         }
 
+        public static SubgrupoEditable De(SubgrupoMenu subgrupo) => new SubgrupoEditable(subgrupo, null);
+        public static SubgrupoEditable RotuloDe(GrupoMenu grupo) => new SubgrupoEditable(null, grupo.Nombre);
+
+        /// <summary>Null en un rótulo de grupo.</summary>
         public SubgrupoMenu Subgrupo { get; }
-        public bool PrimeroDelGrupo { get; }
-        public string Grupo => Subgrupo.Grupo.Nombre;
-        public string Nombre => Subgrupo.Nombre;
+
+        public string Rotulo { get; }
+        public bool EsRotulo => Subgrupo == null;
+        public bool EsSeleccionable => !EsRotulo;
+        public string Nombre => Subgrupo?.Nombre ?? "";
     }
 
     /// <summary>Casilla «se ve en esta HMI» de una pantalla.</summary>

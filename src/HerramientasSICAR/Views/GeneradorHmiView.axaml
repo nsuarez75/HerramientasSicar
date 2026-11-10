@@ -84,12 +84,18 @@
             <TabItem Header="{l:T 'Pantallas'}">
                 <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
                     <ListBox Classes="table" ItemsSource="{Binding Subgrupos}" SelectedItem="{Binding SubgrupoSeleccionado}">
+                        <ListBox.Styles>
+                            <!-- Los rótulos de grupo no se pueden seleccionar -->
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="IsEnabled" Value="{ReflectionBinding EsSeleccionable}" />
+                            </Style>
+                        </ListBox.Styles>
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:SubgrupoEditable">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Grupo}" Classes="caption" IsVisible="{Binding PrimeroDelGrupo}" Margin="0,6,0,2" />
-                                    <TextBlock Text="{Binding Nombre}" Margin="10,0,0,0" />
-                                </StackPanel>
+                                <Panel>
+                                    <TextBlock Text="{Binding Rotulo}" Classes="caption" IsVisible="{Binding EsRotulo}" Margin="0,6,0,0" />
+                                    <TextBlock Text="{Binding Nombre}" IsVisible="{Binding EsSeleccionable}" Margin="10,0,0,0" />
+                                </Panel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

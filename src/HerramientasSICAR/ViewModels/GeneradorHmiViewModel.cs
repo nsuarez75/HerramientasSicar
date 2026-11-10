@@ -47,9 +47,18 @@ namespace HerramientasSICAR.ViewModels
 
         public GeneradorHmiViewModel(Contexto contexto) : base(contexto)
         {
-            Subgrupos = CatalogoMenus.Subgrupos
-                .Select((s, i) => new SubgrupoEditable(s, i == 0 || CatalogoMenus.Subgrupos[i - 1].Grupo != s.Grupo))
-                .ToList();
+            var subgrupos = new List<SubgrupoEditable>();
+            GrupoMenu grupo = null;
+            foreach (var subgrupo in CatalogoMenus.Subgrupos)
+            {
+                if (subgrupo.Grupo != grupo)
+                {
+                    grupo = subgrupo.Grupo;
+                    subgrupos.Add(SubgrupoEditable.RotuloDe(grupo));
+                }
+                subgrupos.Add(SubgrupoEditable.De(subgrupo));
+            }
+            Subgrupos = subgrupos;
 
             string ultimo = Contexto.Ajustes.UltimoProyectoHmi;
             ProyectoMenus proyecto = null;
@@ -133,7 +142,7 @@ namespace HerramientasSICAR.ViewModels
 
             var anterior = SubgrupoSeleccionado;
             SubgrupoSeleccionado = null;
-            SubgrupoSeleccionado = anterior ?? Subgrupos[0];
+            SubgrupoSeleccionado = anterior ?? Subgrupos.First(s => !s.EsRotulo);
             PantallaSeleccionada = PantallasFunciones[0];
             Cambiado = false;
         }
