@@ -386,8 +386,8 @@ namespace HerramientasSICAR.ViewModels
                         try
                         {
                             string origen = texto.Texto.Trim();
-                            string en = string.IsNullOrWhiteSpace(texto.Ingles) ? await ExcelProcessor.TraducirAsync(origen, "en") : null;
-                            string de = string.IsNullOrWhiteSpace(texto.Aleman) ? await ExcelProcessor.TraducirAsync(origen, "de") : null;
+                            string en = string.IsNullOrWhiteSpace(texto.Ingles) ? await Traductor.TraducirAsync(origen, "en") : null;
+                            string de = string.IsNullOrWhiteSpace(texto.Aleman) ? await Traductor.TraducirAsync(origen, "de") : null;
                             return (texto, en, de);
                         }
                         finally

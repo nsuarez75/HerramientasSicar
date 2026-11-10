@@ -5,55 +5,63 @@
              xmlns:l="using:HerramientasSICAR"
              x:Class="HerramientasSICAR.Views.ComentadorView"
              x:DataType="vm:ComentadorViewModel">
-    <ScrollViewer>
-        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
-        <Grid Margin="24,0,24,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MaxWidth="760" />
-            </Grid.ColumnDefinitions>
-        <StackPanel Spacing="16">
-            <Border Classes="card">
-                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-                    <TextBlock Text="{l:T 'Lista de textos'}" Classes="label" />
-                    <TextBox Grid.Column="1" Text="{Binding RutaEntrada}" IsReadOnly="True" Watermark="{l:T 'Excel exportado de TIA (.xlsx)'}" />
-                    <Button Grid.Column="2" Command="{Binding ElegirEntradaCommand}">
+    <DockPanel Margin="24,0,24,16">
+        <!-- ░░ Opciones y acciones ░░ -->
+        <Border DockPanel.Dock="Top" Classes="card">
+            <StackPanel Spacing="12">
+                <WrapPanel>
+                    <Button Command="{Binding BuscarFbsCommand}" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <c:Icon Kind="folder" />
-                            <TextBlock Text="{l:T 'Elegir…'}" />
+                            <c:Icon Kind="search" />
+                            <TextBlock Text="{l:T 'Buscar FB de secuencia'}" />
                         </StackPanel>
                     </Button>
+                    <TextBlock Text="{Binding Plc}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </WrapPanel>
 
-                    <TextBlock Grid.Row="1" Text="{l:T 'Archivo de salida'}" Classes="label" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NombreSalida}" Watermark="{l:T 'Ej.: TextList_comentada.xlsx'}" />
-
-                    <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding TraducirTextos}"
-                              Content="{l:T 'Traducir los títulos (inglés, alemán y castellano). Necesita conexión a internet.'}" />
-
-                    <Button Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" Classes="accent" Command="{Binding ProcesarCommand}">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12">
+                    <TextBlock Text="{l:T 'Los títulos están en'}" Classes="label" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding Idiomas}" SelectedIndex="{Binding IdiomaIndice}" MinWidth="140" />
+                    <CheckBox Grid.Column="2" IsChecked="{Binding Traducir}" Margin="12,0,0,0"
+                              Content="{l:T 'Traducir a los otros dos idiomas (necesita internet)'}" />
+                    <Button Grid.Column="3" Classes="accent" Command="{Binding ComentarCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <c:Icon Kind="languages" />
-                            <TextBlock Text="{l:T 'Generar comentarios'}" />
+                            <TextBlock Text="{l:T 'Comentar'}" />
                         </StackPanel>
                     </Button>
                 </Grid>
-            </Border>
-            <ProgressBar Value="{Binding Progreso}" Maximum="100" IsVisible="{Binding HayProgreso}" Height="6" />
-            <Border Classes="tip">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
-                    <StackPanel Spacing="6" MaxWidth="660">
-                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
-                                   Text="{l:T '1. En TIA, exporta los textos del proyecto marcando solo «Block comment».'}" />
-                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
-                                   Text="{l:T '2. Elige ese Excel aquí y genera los comentarios. La salida se guarda en la misma carpeta.'}" />
-                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
-                                   Text="{l:T '3. Importa en TIA el archivo generado con «Import source language» marcado y sin ningún FB de secuencia abierto.'}" />
-                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}"
-                                   Text="{l:T 'La traducción usa servicios de terceros (Google Translate): su calidad depende de lo claro que sea el título de cada paso.'}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </StackPanel>
+
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="{l:T 'Cada segmento con título recibe un comentario de tres líneas (Title_english, Title_deutsch y Title_espanol) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra.'}" />
+            </StackPanel>
+        </Border>
+
+        <!-- ░░ FB encontrados ░░ -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,12,0,6" IsVisible="{Binding HayFbs}">
+            <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost" Command="{Binding MarcarTodosCommand}" Content="{l:T 'Marcar todos'}" />
+            <Button Grid.Column="2" Classes="ghost" Command="{Binding MarcarNingunoCommand}" Content="{l:T 'Ninguno'}" />
         </Grid>
-    </ScrollViewer>
+
+        <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,12,0,0" IsVisible="{Binding SinFbs}"
+                   Text="{Binding Ayuda}" />
+
+        <ListBox Classes="table" ItemsSource="{Binding Fbs}" IsVisible="{Binding HayFbs}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:FilaFbComentador">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <CheckBox IsChecked="{Binding Marcado}" IsEnabled="{Binding SePuedeMarcar}" AutomationProperties.Name="{Binding Nombre}" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Nombre}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Carpeta}" Classes="label" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Border Grid.Column="2" Classes="pill warn" IsVisible="{Binding Protegido}" VerticalAlignment="Center">
+                            <TextBlock Text="{l:T 'protegido'}" />
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
 </UserControl>

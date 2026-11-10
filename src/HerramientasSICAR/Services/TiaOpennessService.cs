@@ -410,6 +410,71 @@ namespace HerramientasSICAR.Services
             return exportados;
         }
 
+        /// <summary>
+        /// Bloques _FB de la carpeta 10_Sequence &amp; Messageblocks del PLC y sus subcarpetas, para el Comentador.
+        /// </summary>
+        public List<FbSecuencia> FbsDeSecuencias(string nombrePlc)
+        {
+            var raiz = BuscarPlc(nombrePlc).BlockGroup;
+            var ruta = new List<string>();
+            var carpeta = BuscarCarpeta(raiz, ComentariosSecuencia.CarpetaSecuencias, ruta)
+                ?? throw new InvalidOperationException(L.T("El PLC {0} no tiene la carpeta {1}.", nombrePlc, ComentariosSecuencia.CarpetaSecuencias));
+            var fbs = new List<FbSecuencia>();
+            RecogerFbs(carpeta, ruta, fbs);
+            return fbs;
+        }
+
+        // Busca la carpeta por nombre a cualquier profundidad y deja en «ruta» las carpetas hasta ella (incluida).
+        private static PlcBlockGroup BuscarCarpeta(PlcBlockGroup grupo, string nombre, List<string> ruta)
+        {
+            foreach (PlcBlockGroup sub in grupo.Groups)
+            {
+                ruta.Add(sub.Name);
+                if (sub.Name == nombre)
+                    return sub;
+                var encontrada = BuscarCarpeta(sub, nombre, ruta);
+                if (encontrada != null)
+                    return encontrada;
+                ruta.RemoveAt(ruta.Count - 1);
+            }
+            return null;
+        }
+
+        private static void RecogerFbs(PlcBlockGroup grupo, List<string> ruta, List<FbSecuencia> fbs)
+        {
+            foreach (PlcBlock bloque in grupo.Blocks)
+                if (ComentariosSecuencia.EsFb(bloque.Name))
+                    fbs.Add(new FbSecuencia(bloque.Name, ruta.ToList(), bloque.IsKnowHowProtected));
+            foreach (PlcBlockGroup sub in grupo.Groups)
+            {
+                ruta.Add(sub.Name);
+                RecogerFbs(sub, ruta, fbs);
+                ruta.RemoveAt(ruta.Count - 1);
+            }
+        }
+
+        /// <summary>Exporta un FB de secuencia a la carpeta (compilándolo antes si hace falta) y devuelve la ruta del XML.</summary>
+        public string ExportarFb(string nombrePlc, FbSecuencia fb, string carpeta)
+        {
+            var bloque = BuscarGrupo(nombrePlc, fb.Grupos, crear: false)?.Blocks.Find(fb.Nombre)
+                ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
+            return Exportar(bloque, carpeta);
+        }
+
+        /// <summary>
+        /// Importa el XML de un FB de secuencia en su carpeta, sobrescribiéndolo, y lo compila. Devuelve false si no
+        /// ha compilado (queda importado, pero hay que revisarlo en TIA).
+        /// </summary>
+        public bool ImportarFb(string nombrePlc, FbSecuencia fb, string rutaXml)
+        {
+            var grupo = BuscarGrupo(nombrePlc, fb.Grupos, crear: false)
+                ?? throw new InvalidOperationException(L.T("ya no existe en el proyecto"));
+            grupo.Blocks.Import(new FileInfo(rutaXml), ImportOptions.Override);
+            var bloque = grupo.Blocks.Find(fb.Nombre);
+            bloque?.GetService<ICompilable>()?.Compile();
+            return bloque != null && bloque.IsConsistent;
+        }
+
         private static int IntentarExportar(string nombre, List<string> saltados, Action exportar)
         {
             try

@@ -5,7 +5,7 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 ## Requisitos
 
 - Windows con .NET Framework 4.8.
-- TIA Portal V19 instalado, con Openness. Las herramientas que trabajan con archivos (Comentador y Generador HMI) funcionan sin él.
+- TIA Portal V19 instalado, con Openness. El Generador HMI, que trabaja con archivos, funciona sin él.
 - El usuario de Windows tiene que estar en el grupo **Siemens TIA Openness**.
 
 ## Uso
@@ -61,17 +61,17 @@ Sincro Checker detecta esa situación al programar, con la misma comprobación q
 
 #### Comentador
 
-Genera el comentario de los pasos de secuencia en castellano, inglés y alemán de manera automática, partiendo del título del segmento.
+Escribe en cada segmento de los FB de secuencia un comentario de tres líneas con el título del paso en inglés, alemán y castellano, directamente en el proyecto conectado:
 
-- Exportar los textos del proyecto (seleccionar únicamente "block comment").
-<img width="221" height="145" alt="image" src="https://github.com/user-attachments/assets/ede494a7-db1b-42a5-9757-3196a9f33fe9" />
+```
+Title_english …
+Title_deutsch …
+Title_espanol …
+```
 
-<img width="644" height="697" alt="image" src="https://github.com/user-attachments/assets/66866a69-a1a1-422d-aadb-7123a28c41c6" />
-
-- Elegir el archivo de origen, poner nombre al archivo de salida y pulsar **Generar comentarios**.
-- Si se marca la traducción automática se necesita conexión a internet. La traducción usa servicios de terceros (Google Translate), y su calidad depende de la del título de cada paso de la secuencia.
-- Importar de vuelta los textos generados. Es importante no tener ningún FB de secuencia abierto durante la importación. Marcar "Import source language".
-<img width="502" height="165" alt="image" src="https://github.com/user-attachments/assets/de829597-2f9f-44e3-904e-2bde345b5b46" />
+- **Buscar FB de secuencia** lista los bloques `_FB` de la carpeta `10_Sequence & Messageblocks` y sus subcarpetas (si hay varios PLC, pregunta cuál). Salen marcados los de secuencia de cada estación (bajo `OM1` a `OM8`), sin Summary, Messages ni `50_Safety`; se pueden marcar o desmarcar a mano.
+- **Los títulos están en**: el idioma en que están escritos los títulos (el proyecto está siempre en inglés, pero el texto puede estar en castellano). Esa línea lleva el título tal cual y las otras dos, traducidas desde ese idioma con un traductor en línea (Google Translate y otros), o el mismo texto si no se marca **Traducir**. Los nombres de equipo (con `++`) no se traducen.
+- **Comentar** exporta los FB marcados a una carpeta temporal, escribe el comentario en en-US de cada segmento con título (sin el `S###`; los separadores como `==== SEQUENCE ====` no), sobrescribiendo el que hubiera, los importa en TIA sobrescribiéndolos, los compila y borra la carpeta. Guarda antes el proyecto y cierra los FB que vayas a comentar.
 
 #### Generador HMI
 
@@ -98,7 +98,7 @@ Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR
 El código de la app está en `src/HerramientasSICAR/` y los tests en `tests/HerramientasSICAR.Tests/`. Dentro de `src/HerramientasSICAR/`:
 
 - `Services/TiaOpennessService.cs`: todo lo que habla con TIA (proyectos abiertos, conexión, árbol de bloques, exportar e importar, y las operaciones de cada herramienta en `ProyectoTia`). Va siempre por `HiloOpenness`, un único hilo para las llamadas a Openness.
-- `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, Comentador…). `Logica/`: reglas de archivos de bloque, `sincro.json` de Sincro Checker, comprobación de versión y, en `Logica/MenusHmi/`, el catálogo de menús, el proyecto `.hmimenus` y la generación del FC y las listas del Generador HMI.
+- `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, traductor en línea…). `Logica/`: reglas de archivos de bloque, `sincro.json` de Sincro Checker, comentarios de los FB de secuencia del Comentador (`ComentariosSecuencia.cs`), comprobación de versión y, en `Logica/MenusHmi/`, el catálogo de menús, el proyecto `.hmimenus` y la generación del FC y las listas del Generador HMI.
 - `Nucleo/`: copia del núcleo de GST-Diag (`src/GstDiag.Core`: Lad, Logic, SimaticMl, Sicar, Symbols, Programs y `Diagnostics/ValueSource.cs`) con lo que lee el programa exportado y comprueba la doble sincronización. Es el mismo código con el espacio de nombres `HerramientasSICAR.Nucleo` y los cambios mínimos para .NET Framework 4.8: `GeneratedRegex` pasa a `Regex` normal, unos pocos métodos que 4.8 no tiene (`Compat.cs`) y PolySharp para lo que le falta al lenguaje. Sus tests son los de GST-Diag (`tests/HerramientasSICAR.Tests/Nucleo/`). Si se cambia la sincro en GST-Diag, se vuelve a copiar.
 - `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8, que es lo que pide Openness) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide).
 - `L.cs` y `Textos.en.cs`: los textos se escriben en castellano y se traducen al inglés con `L.T`. Al añadir un texto, añadir su traducción (el test lo comprueba).

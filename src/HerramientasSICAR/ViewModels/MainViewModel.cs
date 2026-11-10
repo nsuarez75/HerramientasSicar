@@ -48,10 +48,10 @@ namespace HerramientasSICAR.ViewModels
                 new NumeradorViewModel(Contexto),
                 new RenombrarArrayViewModel(Contexto),
                 new SincroCheckerViewModel(Contexto),
+                new ComentadorViewModel(Contexto),
             };
             var conArchivos = new Herramienta[]
             {
-                new ComentadorViewModel(Contexto),
                 new GeneradorHmiViewModel(Contexto),
             };
 
