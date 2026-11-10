@@ -85,6 +85,17 @@ Siempre todo, sin elegir HMI ni componentes, en la carpeta que se elija:
 <carpeta>/Listas de textos/<lista>.xml   (46 listas: 14 de menús y funciones + 32 de Production data)
 ```
 
+## Importar en TIA (añadido el 10/11/2026, issue #31)
+
+Pestaña «Importar en TIA» (botón «Importar en TIA…» de la barra), con el proyecto conectado:
+
+- Qué importar, con casillas y «Todas / Ninguna» por grupo: el FC `CallHMIMenusConfig_FC`, las 14 listas de menús
+  y funciones, las 32 listas de Production data.
+- PLC del FC (uno de los PLC del proyecto) y HMI de las listas (varias: las listas son iguales para todas).
+- Se genera en una carpeta temporal, se importa y se borra. Si el PLC ya tiene el FC, se sobrescribe en su carpeta;
+  si no, se crea en `08_HMI_Management › 01_HMI_Configuration`. Las listas van a la raíz de «Listas de textos» de
+  cada HMI y sobrescriben las que tengan el mismo nombre.
+
 ## Comprobado
 
 Con el Excel de un proyecto real convertido a `.hmimenus` (una sola vez, fuera del repo), el FC generado coincide con

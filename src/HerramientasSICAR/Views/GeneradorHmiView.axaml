@@ -35,10 +35,16 @@
                             <TextBlock Text="{l:T 'Traducir'}" />
                         </StackPanel>
                     </Button>
-                    <Button Classes="accent" Command="{Binding GenerarCommand}">
+                    <Button Command="{Binding GenerarCommand}" ToolTip.Tip="{l:T 'Guarda el FC y las listas en XML en una carpeta'}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <c:Icon Kind="file-code" />
                             <TextBlock Text="{l:T 'Generar FC y listas'}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="accent" Command="{Binding IrAImportarCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="upload" />
+                            <TextBlock Text="{l:T 'Importar en TIA…'}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -80,7 +86,7 @@
             </StackPanel>
         </Border>
 
-        <TabControl Classes="compact" Margin="0,12,0,0">
+        <TabControl Classes="compact" Margin="0,12,0,0" SelectedIndex="{Binding Pestana}">
             <!-- ░░ Pantallas de los menús ░░ -->
             <TabItem Header="{l:T 'Pantallas'}">
                 <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
@@ -247,6 +253,75 @@
                         </ScrollViewer>
                     </DockPanel>
                 </Grid>
+            </TabItem>
+            <!-- Importar en TIA -->
+            <TabItem Header="{l:T 'Importar en TIA'}">
+                <ScrollViewer Margin="0,8,0,0">
+                    <StackPanel Spacing="12" MaxWidth="900" HorizontalAlignment="Left">
+                        <Border Classes="tip" IsVisible="{Binding Contexto.SinConectar}">
+                            <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" TextWrapping="Wrap"
+                                       Text="{l:T 'Conecta con el proyecto en la barra superior para importar en sus PLC y HMI.'}" />
+                        </Border>
+
+                        <!-- Qué importar -->
+                        <ItemsControl ItemsSource="{Binding GruposImportar}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GrupoImportar">
+                                    <Border Classes="card" Margin="0,0,0,12">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                                <TextBlock Text="{Binding Titulo}" Classes="h2" VerticalAlignment="Center" />
+                                                <Button Grid.Column="1" Classes="ghost" Command="{Binding TodosCommand}" Content="{l:T 'Todas'}" />
+                                                <Button Grid.Column="2" Classes="ghost" Command="{Binding NingunoCommand}" Content="{l:T 'Ninguna'}" />
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Componentes}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ComponenteImportar">
+                                                        <CheckBox IsChecked="{Binding Marcado}" Content="{Binding Nombre}" Width="290" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Dónde -->
+                        <Border Classes="card" IsVisible="{Binding HayDispositivos}">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="{l:T 'Destino'}" Classes="h2" />
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <TextBlock Text="{l:T 'PLC del FC'}" Classes="label" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding Plcs}" SelectedItem="{Binding PlcDestino}" MinWidth="220" />
+                                </Grid>
+                                <TextBlock Classes="muted" TextWrapping="Wrap"
+                                           Text="{l:T 'Si el PLC ya tiene el FC, se sobrescribe en su carpeta; si no, se crea en 08_HMI_Management › 01_HMI_Configuration.'}" />
+                                <TextBlock Text="{l:T 'HMI de las listas de textos'}" Classes="label" />
+                                <ItemsControl ItemsSource="{Binding HmisDestino}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:DestinoHmi">
+                                            <CheckBox IsChecked="{Binding Marcado}" Content="{Binding Nombre}" Margin="0,0,16,0" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Classes="accent" Command="{Binding ImportarEnTiaCommand}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:Icon Kind="upload" />
+                                <TextBlock Text="{l:T 'Importar'}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </DockPanel>

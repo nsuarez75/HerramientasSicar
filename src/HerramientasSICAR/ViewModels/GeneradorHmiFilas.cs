@@ -219,6 +219,58 @@ namespace HerramientasSICAR.ViewModels
         }
     }
 
+    /// <summary>Algo generado que se puede importar en TIA: el FC o una lista de textos.</summary>
+    public sealed partial class ComponenteImportar : ObservableObject
+    {
+        public ComponenteImportar(string nombre)
+        {
+            Nombre = nombre;
+        }
+
+        public string Nombre { get; }
+
+        [ObservableProperty]
+        private bool _marcado = true;
+    }
+
+    /// <summary>Grupo de componentes a importar, con «todos» y «ninguno».</summary>
+    public sealed class GrupoImportar
+    {
+        public GrupoImportar(string titulo, IEnumerable<string> nombres)
+        {
+            Titulo = titulo;
+            Componentes = nombres.Select(n => new ComponenteImportar(n)).ToList();
+            TodosCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => Marcar(true));
+            NingunoCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => Marcar(false));
+        }
+
+        public string Titulo { get; }
+        public IReadOnlyList<ComponenteImportar> Componentes { get; }
+        public CommunityToolkit.Mvvm.Input.IRelayCommand TodosCommand { get; }
+        public CommunityToolkit.Mvvm.Input.IRelayCommand NingunoCommand { get; }
+
+        private void Marcar(bool marcado)
+        {
+            foreach (var componente in Componentes)
+                componente.Marcado = marcado;
+        }
+    }
+
+    /// <summary>Una HMI del proyecto conectado, como destino de las listas de textos.</summary>
+    public sealed partial class DestinoHmi : ObservableObject
+    {
+        public DestinoHmi(string nombre, bool marcado)
+        {
+            Nombre = nombre;
+            _marcado = marcado;
+        }
+
+        public string Nombre { get; }
+
+        [ObservableProperty]
+        private bool _marcado;
+    }
+
     /// <summary>Un dataset de Production data (una posición del menú) con los textos de sus filas.</summary>
     public sealed class DatasetProduccion : ObservableObject
     {

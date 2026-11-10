@@ -27,9 +27,6 @@ namespace HerramientasSICAR.ViewModels
         public abstract string Descripcion { get; }
         public abstract string Icono { get; }
 
-        /// <summary>En la lista lateral se puede seleccionar (los rótulos de grupo no).</summary>
-        public bool EsSeleccionable => true;
-
         /// <summary>Necesita estar conectado con un proyecto de TIA.</summary>
         public abstract bool UsaTia { get; }
 
