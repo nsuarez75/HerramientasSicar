@@ -12,6 +12,7 @@
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosHmi.cs" Link="Logica\ArchivosHmi.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivoSincro.cs" Link="Logica\ArchivoSincro.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\MenusHmi\*.cs" LinkBase="Logica\MenusHmi" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Services\ModelosTia.cs" Link="Services\ModelosTia.cs" />

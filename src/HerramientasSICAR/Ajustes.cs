@@ -19,6 +19,12 @@ namespace HerramientasSICAR
 
         public string UltimaCarpeta { get; set; }
 
+        /// <summary>Proyecto del Generador HMI que se abre al arrancar.</summary>
+        public string UltimoProyectoHmi { get; set; }
+
+        /// <summary>Carpeta donde se generaron por última vez el FC y las listas de textos.</summary>
+        public string UltimaCarpetaHmiGenerada { get; set; }
+
         /// <summary>Por ruta de proyecto, los PLC y HMI que se eligieron leer al conectar la última vez.</summary>
         public Dictionary<string, List<string>> DispositivosLeidos { get; set; } = new Dictionary<string, List<string>>();
 

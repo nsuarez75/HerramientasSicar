@@ -5,42 +5,249 @@
              xmlns:l="using:HerramientasSICAR"
              x:Class="HerramientasSICAR.Views.GeneradorHmiView"
              x:DataType="vm:GeneradorHmiViewModel">
-    <ScrollViewer>
-        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
-        <Grid Margin="24,0,24,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MaxWidth="760" />
-            </Grid.ColumnDefinitions>
-        <StackPanel Spacing="16">
-            <Border Classes="card">
-                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-                    <TextBlock Text="{l:T 'Excel de origen'}" Classes="label" />
-                    <TextBox Grid.Column="1" Text="{Binding RutaOrigen}" IsReadOnly="True" Watermark="{l:T 'Configuración de pantallas HMI (.xlsx)'}" />
-                    <Button Grid.Column="2" Command="{Binding ElegirOrigenCommand}">
+    <DockPanel Margin="24,0,24,16">
+        <!-- ░░ Proyecto: archivo, idioma, traducir y generar ░░ -->
+        <Border DockPanel.Dock="Top" Classes="card">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="ghost" Command="{Binding NuevoCommand}" ToolTip.Tip="{l:T 'Proyecto nuevo'}" AutomationProperties.Name="{l:T 'Proyecto nuevo'}">
+                        <c:Icon Kind="file-plus" />
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding AbrirCommand}" ToolTip.Tip="{l:T 'Abrir un proyecto…'}" AutomationProperties.Name="{l:T 'Abrir un proyecto…'}">
+                        <c:Icon Kind="folder" />
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding GuardarCommand}" ToolTip.Tip="{l:T 'Guardar'}" AutomationProperties.Name="{l:T 'Guardar'}">
+                        <c:Icon Kind="save" />
+                    </Button>
+                    <Button Classes="ghost" Command="{Binding GuardarComoCommand}" ToolTip.Tip="{l:T 'Guardar como… (exportar la configuración)'}">
+                        <TextBlock Text="{l:T 'Guardar como…'}" />
+                    </Button>
+                </StackPanel>
+                <!-- El nombre ocupa lo que sobra y se recorta: así no empuja los botones de la derecha fuera de la tarjeta -->
+                <TextBlock Grid.Column="1" Text="{Binding NombreArchivo}" FontWeight="SemiBold" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding RutaProyecto}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{l:T 'Editar'}" Classes="label" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding Idiomas}" SelectedIndex="{Binding IdiomaIndice}" MinWidth="200" />
+                    <Button Command="{Binding TraducirCommand}" ToolTip.Tip="{l:T 'Rellena el inglés y el alemán que falten con un traductor en línea'}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <c:Icon Kind="folder" />
-                            <TextBlock Text="{l:T 'Elegir…'}" />
+                            <c:Icon Kind="languages" />
+                            <TextBlock Text="{l:T 'Traducir'}" />
                         </StackPanel>
                     </Button>
+                    <Button Classes="accent" Command="{Binding GenerarCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="file-code" />
+                            <TextBlock Text="{l:T 'Generar FC y listas'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-                    <TextBlock Grid.Row="1" Text="{l:T 'Excel generado'}" Classes="label" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RutaDestino}" Watermark="{l:T 'Dónde guardar el resultado (.xlsx)'}" />
-                    <Button Grid.Row="1" Grid.Column="2" Command="{Binding ElegirDestinoCommand}">
+        <!-- ░░ HMIs del PLC ░░ -->
+        <Border DockPanel.Dock="Top" Classes="card" Margin="0,12,0,0">
+            <StackPanel Spacing="8">
+                <TextBlock Classes="h2" Text="{l:T 'HMI'}" />
+                <WrapPanel>
+                    <ItemsControl ItemsSource="{Binding Hmis}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HmiEditable">
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,6">
+                                    <TextBox Text="{Binding Nombre}" Width="120" AutomationProperties.Name="{l:T 'Nombre de la HMI'}" />
+                                    <NumericUpDown Value="{Binding Numero}" Minimum="1" Maximum="8" Increment="1" FormatString="0" Width="100"
+                                                   ToolTip.Tip="{Binding Idb}" AutomationProperties.Name="{l:T 'Número de IDB'}" />
+                                    <Button Classes="ghost danger" ToolTip.Tip="{l:T 'Quitar esta HMI'}" AutomationProperties.Name="{l:T 'Quitar esta HMI'}"
+                                            Command="{Binding $parent[UserControl].((vm:GeneradorHmiViewModel)DataContext).QuitarHmiCommand}" CommandParameter="{Binding}">
+                                        <c:Icon Kind="trash" />
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Command="{Binding AnadirHmiCommand}" VerticalAlignment="Top">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <c:Icon Kind="save" />
-                            <TextBlock Text="{l:T 'Guardar como…'}" />
+                            <c:Icon Kind="plus" />
+                            <TextBlock Text="{l:T 'Añadir HMI'}" />
                         </StackPanel>
                     </Button>
+                </WrapPanel>
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="{l:T 'El número de cada HMI elige su IDB (HMIMenusConfigNN_IDB). El FC lleva siempre todas las HMI.'}" />
+            </StackPanel>
+        </Border>
 
-                    <Button Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" Classes="accent" Command="{Binding GenerarCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <c:Icon Kind="file-sheet" />
-                            <TextBlock Text="{l:T 'Generar Excel'}" />
+        <TabControl Classes="compact" Margin="0,12,0,0">
+            <!-- ░░ Pantallas de los menús ░░ -->
+            <TabItem Header="{l:T 'Pantallas'}">
+                <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
+                    <!-- Grupos plegables con sus subgrupos -->
+                    <TreeView ItemsSource="{Binding Grupos}" SelectedItem="{Binding NodoSeleccionado}">
+                        <TreeView.Styles>
+                            <Style Selector="TreeViewItem" x:DataType="vm:NodoMenu">
+                                <Setter Property="IsExpanded" Value="{Binding Expandido, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate x:DataType="vm:NodoMenu" ItemsSource="{Binding Hijos}">
+                                <Panel>
+                                    <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" IsVisible="{Binding EsGrupo}" />
+                                    <TextBlock Text="{Binding Nombre}" IsVisible="{Binding !EsGrupo}" />
+                                </Panel>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+
+                    <DockPanel Grid.Column="1">
+                        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
+                            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding NotaSubgrupo}" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" IsVisible="{Binding EsOem}">
+                                <TextBlock Text="{l:T 'Título del grupo OEM'}" Classes="label" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="1" MaxWidth="360" HorizontalAlignment="Left" Width="360"
+                                         Text="{Binding TituloOem.Valor, FallbackValue=''}" Watermark="{Binding TituloOem.MarcaDeAgua, FallbackValue=''}" />
+                            </Grid>
                         </StackPanel>
-                    </Button>
+
+                        <!-- Cabecera: una columna por HMI; al pulsarla se marcan o desmarcan todas -->
+                        <Border DockPanel.Dock="Top" Classes="tablehead">
+                            <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="8">
+                                <TextBlock Text="{l:T 'Pos.'}" Classes="columnHeader" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{l:T 'Nombre de la pantalla'}" Classes="columnHeader" VerticalAlignment="Center" />
+                                <ItemsControl Grid.Column="2" ItemsSource="{Binding Hmis}" IsVisible="{Binding TieneCasillas}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:HmiEditable">
+                                            <Button Classes="ghost" Width="84" Padding="2" HorizontalContentAlignment="Center"
+                                                    ToolTip.Tip="{l:T 'Marcar o desmarcar todas en esta HMI'}"
+                                                    Command="{Binding $parent[UserControl].((vm:GeneradorHmiViewModel)DataContext).AlternarColumnaCommand}" CommandParameter="{Binding}">
+                                                <TextBlock Text="{Binding Nombre}" Classes="columnHeader" TextTrimming="CharacterEllipsis" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Filas}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FilaPantalla">
+                                        <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="8" Margin="14,2">
+                                            <TextBlock Text="{Binding Posicion}" Classes="mono" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor, FallbackValue=''}" Watermark="{Binding Nombre.MarcaDeAgua, FallbackValue=''}"
+                                                     IsVisible="{Binding TieneNombre}" />
+                                            <ItemsControl Grid.Column="2" ItemsSource="{Binding Casillas}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:CasillaVisible">
+                                                        <Panel Width="84">
+                                                            <CheckBox IsChecked="{Binding Visible}" IsVisible="{Binding Existe}" HorizontalAlignment="Center"
+                                                                      ToolTip.Tip="{l:T 'Se ve en esta HMI'}" />
+                                                        </Panel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
                 </Grid>
-            </Border>
-        </StackPanel>
-        </Grid>
-    </ScrollViewer>
+            </TabItem>
+
+            <!-- ░░ Funciones de usuario ░░ -->
+            <TabItem Header="{l:T 'Funciones de usuario'}">
+                <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
+                    <ListBox Classes="table" ItemsSource="{Binding PantallasFunciones}" SelectedItem="{Binding PantallaSeleccionada}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PantallaFunciones">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Titulo}" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Classes="pill"><TextBlock Text="{Binding Configuradas}" /></Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <DockPanel Grid.Column="1">
+                        <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:T 'El título de cada pantalla es el nombre de su posición en Manual operations › User functions. Una función sin ningún texto sale con los textos estándar; si tiene alguno, lo vacío sale vacío.'}" />
+                        <Border DockPanel.Dock="Top" Classes="tablehead">
+                            <Grid ColumnDefinitions="30,2*,*,*,*,*" ColumnSpacing="8">
+                                <TextBlock Text="#" Classes="columnHeader" />
+                                <TextBlock Grid.Column="1" Text="{l:T 'Nombre'}" Classes="columnHeader" />
+                                <TextBlock Grid.Column="2" Text="{l:T 'Acción izquierda'}" Classes="columnHeader" />
+                                <TextBlock Grid.Column="3" Text="{l:T 'Acción derecha'}" Classes="columnHeader" />
+                                <TextBlock Grid.Column="4" Text="{l:T 'Feedback izquierda'}" Classes="columnHeader" />
+                                <TextBlock Grid.Column="5" Text="{l:T 'Feedback derecha'}" Classes="columnHeader" />
+                            </Grid>
+                        </Border>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding PantallaSeleccionada.Funciones, FallbackValue={x:Null}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FilaFuncion">
+                                        <Grid ColumnDefinitions="30,2*,*,*,*,*" ColumnSpacing="8" Margin="14,2">
+                                            <TextBlock Text="{Binding Numero}" Classes="mono" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor}" Watermark="{Binding Nombre.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="2" Text="{Binding AccionIzquierda.Valor}" Watermark="{Binding AccionIzquierda.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="3" Text="{Binding AccionDerecha.Valor}" Watermark="{Binding AccionDerecha.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="4" Text="{Binding FeedbackIzquierda.Valor}" Watermark="{Binding FeedbackIzquierda.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="5" Text="{Binding FeedbackDerecha.Valor}" Watermark="{Binding FeedbackDerecha.MarcaDeAgua}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+            <!-- Production data -->
+            <TabItem Header="{l:T 'Production data'}">
+                <Grid ColumnDefinitions="250,*" ColumnSpacing="14" Margin="0,8,0,0">
+                    <ListBox Classes="table" ItemsSource="{Binding DatasetsProduccion}" SelectedItem="{Binding DatasetSeleccionado}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DatasetProduccion">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Classes="pill"><TextBlock Text="{Binding Configuradas}" /></Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <DockPanel Grid.Column="1">
+                        <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="{l:T 'Cada posición de Production data es un dataset con su lista de textos, una fila por elemento de la pantalla. Un dataset sin ningún texto sale con los textos estándar; si tiene alguno, lo vacío sale vacío.'}" />
+                        <TextBlock DockPanel.Dock="Top" Classes="label" Margin="0,0,0,8" Text="{Binding DatasetSeleccionado.Lista, FallbackValue=''}" />
+                        <Border DockPanel.Dock="Top" Classes="tablehead">
+                            <Grid ColumnDefinitions="44,*" ColumnSpacing="8">
+                                <TextBlock Text="#" Classes="columnHeader" />
+                                <TextBlock Grid.Column="1" Text="{l:T 'Texto'}" Classes="columnHeader" />
+                            </Grid>
+                        </Border>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding DatasetSeleccionado.Filas, FallbackValue={x:Null}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FilaDataset">
+                                        <Grid ColumnDefinitions="44,*" ColumnSpacing="8" Margin="14,2">
+                                            <TextBlock Text="{Binding Numero}" Classes="mono" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Text="{Binding Texto.Valor}" Watermark="{Binding Texto.MarcaDeAgua}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </UserControl>
