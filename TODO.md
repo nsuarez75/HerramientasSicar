@@ -27,5 +27,3 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 ## Generador HMI (issue #23)
 
 - Probar en TIA la importación de `CallHMIMenusConfig_FC.xml` y de las listas de textos generadas.
-- El proyecto convertido del Excel de PLC2 tiene nombres distintos de los que hay hoy en TIA en algunas pantallas OEM,
-  Traceability 7–8 y Web server 1; el usuario decide cuáles valen.
