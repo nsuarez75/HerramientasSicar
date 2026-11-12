@@ -18,14 +18,14 @@ namespace HerramientasSICAR.Tests
         {
             string root = RepoRoot();
             var texts = new List<string>();
-            foreach (var file in Fonts(root, "*.cs").Where(a => Path.GetFileName(a) != "Textos.en.cs"))
+            foreach (var file in SourceFiles(root, "*.cs").Where(a => Path.GetFileName(a) != "Texts.en.cs"))
                 texts.AddRange(InCode.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => Regex.Unescape(m.Groups[1].Value)));
-            foreach (var file in Fonts(root, "*.axaml"))
+            foreach (var file in SourceFiles(root, "*.axaml"))
                 texts.AddRange(InViews.Matches(File.ReadAllText(file)).Cast<Match>().Select(m => m.Groups[1].Value));
 
             Assert.NotEmpty(texts);
             var untranslated = texts.Distinct().Where(t => !L.EnglishTexts.ContainsKey(t)).ToList();
-            Assert.True(untranslated.Count == 0, "Sin traducción en Textos.en.cs:\n" + string.Join("\n", untranslated));
+            Assert.True(untranslated.Count == 0, "Sin traducción en Texts.en.cs:\n" + string.Join("\n", untranslated));
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace HerramientasSICAR.Tests
         }
 
         // Fuentes de la app, sin las carpetas de compilación.
-        private static IEnumerable<string> Fonts(string root, string pattern) =>
+        private static IEnumerable<string> SourceFiles(string root, string pattern) =>
             Directory.GetFiles(root, pattern, SearchOption.AllDirectories)
                 .Where(a => !a.Split(Path.DirectorySeparatorChar).Any(c => c == "bin" || c == "obj"));
 

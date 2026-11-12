@@ -200,6 +200,12 @@
     <Style Selector="Border.pill.good TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource App.Good}" />
     </Style>
+    <Style Selector="Border.pill.bad">
+        <Setter Property="Background" Value="{DynamicResource App.BadSoft}" />
+    </Style>
+    <Style Selector="Border.pill.bad TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource App.Bad}" />
+    </Style>
     <!-- Nota de ayuda dentro de un editor -->
     <Style Selector="Border.tip">
         <Setter Property="Background" Value="{DynamicResource App.AccentSoft}" />
