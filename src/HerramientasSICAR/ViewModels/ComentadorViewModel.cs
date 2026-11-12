@@ -2,13 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
 using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -24,7 +24,7 @@ namespace HerramientasSICAR.ViewModels
             _idiomaIndice = Math.Max(0, Math.Min(2, contexto.Ajustes.IdiomaTitulosComentador));
             // Los _FB de la carpeta de secuencias, plegables por OM; salen marcados los de secuencia de las estaciones.
             Selector = new SelectorBloques(contexto, VistaSelector.Secuencias,
-                (_, b) => ComentariosSecuencia.EsFb(b.Nombre) && !b.Protegido,
+                (_, b) => ComentariosSecuencia.EsFb(b.Name) && !b.IsProtected,
                 conCasillas: true, marcadoInicial: ComentariosSecuencia.MarcadoPorDefecto);
             Selector.Cambiado += () =>
             {
@@ -71,38 +71,47 @@ namespace HerramientasSICAR.ViewModels
             bool traducir = Traducir;
             await Contexto.Trabajar(L.T("Exportando los FB…"), async () =>
             {
-                var progreso = ProgresoEnEstado();
-                var resultado = new ResultadoOperacion();
+                var tia = await Contexto.TiaAsync();
+                var progresoTia = Contexto.ProgresoTia();
                 int segmentos = 0;
-                using (var temporal = new CarpetaTemporal())
+                List<string> fallos;
+                int comentadosFb;
+                using (var temporal = new TempFolder())
                 {
-                    // 1. Exportar (en el hilo de Openness).
-                    var exportados = await Contexto.Tia().EnProyecto(p => p.ExportarVarios(fbs, temporal.Ruta, progreso, resultado));
+                    // 1. Exportar, cada FB en su subcarpeta (no chocan nombres de PLC distintos).
+                    var exportacion = await tia.ExportBlocksAsync(
+                        new ExportBlocksArgs { Blocks = fbs, Folder = temporal.Path, Layout = ExportLayout.PerBlock }, progresoTia);
+                    var exportados = exportacion.Files;
 
-                    // 2. Traducir los títulos distintos y reescribir los comentarios. Esto va fuera del hilo de Openness
-                    //    porque el traductor está en internet.
-                    var xmls = await Task.Run(() => exportados.Select(e => File.ReadAllText(e.Ruta)).ToList());
+                    // 2. Traducir los títulos distintos de todos los FB de una vez (el traductor está en internet) y
+                    //    reescribir los comentarios.
+                    var xmls = await Task.Run(() => exportados.Select(e => File.ReadAllText(e.Path)).ToList());
                     var titulos = xmls.SelectMany(ComentariosSecuencia.Titulos).Distinct().ToList();
-                    var textos = await TextosAsync(titulos, idioma, traducir, progreso);
+                    var textos = await TextosAsync(titulos, idioma, traducir, ProgresoEnEstado());
                     await Task.Run(() =>
                     {
                         for (int i = 0; i < exportados.Count; i++)
                         {
                             var (xml, comentados) = ComentariosSecuencia.Comentar(xmls[i], t => textos[t]);
-                            File.WriteAllText(exportados[i].Ruta, xml, new UTF8Encoding(true));
+                            File.WriteAllText(exportados[i].Path, xml, new UTF8Encoding(true));
                             segmentos += comentados;
                         }
                     });
 
-                    // 3. Importar en TIA, sobrescribiendo, y compilar.
-                    await Contexto.Tia().EnProyecto(p => p.ImportarVarios(exportados, compilar: true, progreso, resultado));
+                    // 3. Importar en TIA encima de cada FB, en su carpeta, y compilar (nada si TIA se cerró al exportar).
+                    var importacion = exportacion.Stopped ? new BatchResult() : await tia.ImportBlocksAsync(new ImportBlocksArgs
+                    {
+                        Files = exportados.Select(e => new ImportFile { Path = e.Path, Plc = fbs[e.Index].Plc, Folders = fbs[e.Index].Folders.ToList() }).ToList(),
+                        CompileAfter = true
+                    }, progresoTia);
+                    comentadosFb = importacion.Succeeded;
+                    fallos = TextosTia.Fallos(exportacion).Concat(TextosTia.Fallos(importacion, importando: true)).ToList();
                 }
 
-                var fallos = resultado.Fallos;
                 Contexto.PonerFallos(fallos);
                 Contexto.MostrarEstado(fallos.Count == 0
-                    ? L.T("Comentados {0} segmentos en {1} FB.", segmentos, resultado.Correctos)
-                    : L.T("Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo).", segmentos, resultado.Correctos, fallos.Count),
+                    ? L.T("Comentados {0} segmentos en {1} FB.", segmentos, comentadosFb)
+                    : L.T("Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo).", segmentos, comentadosFb, fallos.Count),
                     error: fallos.Count > 0);
             });
         }

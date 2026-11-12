@@ -1,11 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HerramientasSICAR.Helpers;
 using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -36,12 +37,12 @@ namespace HerramientasSICAR.ViewModels
     public partial class RenombrarArrayViewModel : Herramienta
     {
         // Para no leer dos veces el mismo bloque.
-        private BloqueRef _leido;
+        private BlockRef _leido;
 
         public RenombrarArrayViewModel(Contexto contexto) : base(contexto)
         {
             Selector = new SelectorBloques(contexto, VistaSelector.Completa,
-                (_, b) => (b.Tipo == "FB" || b.Tipo == "FC") && !b.Protegido);
+                (_, b) => (b.Type == "FB" || b.Type == "FC") && !b.IsProtected);
             Selector.Cambiado += AlCambiarBloque;
             _estadoBloque = L.T("Elige en el árbol el FB o FC.");
         }
@@ -62,12 +63,12 @@ namespace HerramientasSICAR.ViewModels
         [ObservableProperty]
         private string _estadoBloque;
 
-        public string NombreBloque => Selector.BloqueSeleccionado?.Nombre;
+        public string NombreBloque => Selector.BloqueSeleccionado?.Name;
         public bool HayBloque => Selector.BloqueSeleccionado != null;
         public bool HayArrays => Arrays.Count > 0;
 
-        private static bool MismoBloque(BloqueRef a, BloqueRef b) =>
-            a != null && b != null && a.Plc == b.Plc && a.Nombre == b.Nombre && a.Grupos.SequenceEqual(b.Grupos);
+        private static bool MismoBloque(BlockRef a, BlockRef b) =>
+            a != null && b != null && a.Plc == b.Plc && a.Name == b.Name && a.Folders.SequenceEqual(b.Folders);
 
         // Al elegir un bloque se exporta (a una carpeta temporal) y se listan sus arrays con índice fijo.
         private async void AlCambiarBloque()
@@ -88,22 +89,22 @@ namespace HerramientasSICAR.ViewModels
             await LeerArrays(bloque);
         }
 
-        private async Task LeerArrays(BloqueRef bloque)
+        private async Task LeerArrays(BlockRef bloque)
         {
             _leido = bloque;
             PonerArrays(null);
-            EstadoBloque = L.T("Leyendo {0}…", bloque.Nombre);
-            await Contexto.Trabajar(L.T("Leyendo {0}…", bloque.Nombre), async () =>
+            EstadoBloque = L.T("Leyendo {0}…", bloque.Name);
+            await Contexto.Trabajar(L.T("Leyendo {0}…", bloque.Name), async () =>
             {
-                string xml = await Contexto.Tia().EnProyecto(p => p.LeerXml(bloque));
+                string xml = await (await Contexto.TiaAsync()).ReadBlockXmlAsync(bloque);
                 var arrays = await Task.Run(() => ArraysBloque.Listar(xml));
                 if (!MismoBloque(Selector.BloqueSeleccionado, bloque))
                     return;
                 PonerArrays(arrays);
                 EstadoBloque = arrays.Count == 0
-                    ? L.T("{0} no usa ningún array con índice fijo.", bloque.Nombre)
+                    ? L.T("{0} no usa ningún array con índice fijo.", bloque.Name)
                     : L.T("Elige el array que quieres renumerar.");
-                Contexto.MostrarEstado(L.T("{0}: {1} array(s) con índice fijo.", bloque.Nombre, arrays.Count));
+                Contexto.MostrarEstado(L.T("{0}: {1} array(s) con índice fijo.", bloque.Name, arrays.Count));
             });
             if (Arrays.Count == 0 && MismoBloque(_leido, bloque) && Contexto.EstadoError)
             {
@@ -128,15 +129,17 @@ namespace HerramientasSICAR.ViewModels
             string array = ArraySeleccionado.Nombre;
             bool hecho = false;
             int cambios = 0;
-            await Contexto.Trabajar(L.T("Exportando {0}…", bloque.Nombre), async () =>
+            await Contexto.Trabajar(L.T("Exportando {0}…", bloque.Name), async () =>
             {
                 // Se exporta, se renumera y se importa encima del original, en su mismo grupo.
-                var resultado = await Contexto.Tia().EnProyecto(p =>
-                    p.ModificarBloques(new[] { bloque }, (_, xml) => ArraysBloque.Renumerar(xml, array, out cambios), compilar: false, ProgresoEnEstado()));
-                if (resultado.Fallos.Count > 0)
+                var tia = await Contexto.TiaAsync();
+                var resultado = await tia.ModifyBlocksAsync(new[] { bloque },
+                    (_, xml) => Task.FromResult(ArraysBloque.Renumerar(xml, array, out cambios)), compile: false, Contexto.ProgresoTia());
+                var fallos = TextosTia.Fallos(resultado, importando: true);
+                if (fallos.Count > 0)
                 {
-                    Contexto.PonerFallos(resultado.Fallos);
-                    Contexto.MostrarEstado(resultado.Fallos[0], error: true);
+                    Contexto.PonerFallos(fallos);
+                    Contexto.MostrarEstado(fallos[0], error: true);
                     return;
                 }
                 hecho = true;
@@ -147,7 +150,7 @@ namespace HerramientasSICAR.ViewModels
             // Se vuelve a leer el bloque para ver los índices nuevos.
             await LeerArrays(bloque);
             ArraySeleccionado = Arrays.FirstOrDefault(a => a.Nombre == array) ?? ArraySeleccionado;
-            Contexto.MostrarEstado(L.T("{0}: {1} uso(s) de {2} renumerados. Guarda el proyecto en TIA para conservarlos.", bloque.Nombre, cambios, array));
+            Contexto.MostrarEstado(L.T("{0}: {1} uso(s) de {2} renumerados. Guarda el proyecto en TIA para conservarlos.", bloque.Name, cambios, array));
         }
 
         private bool PuedeRenumerar() => PuedeUsarTia && Selector.BloqueSeleccionado != null && ArraySeleccionado != null;

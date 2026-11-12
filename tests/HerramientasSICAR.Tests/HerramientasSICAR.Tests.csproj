@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Solo la lógica sin TIA ni ventanas: así los tests no necesitan Openness ni Avalonia -->
+    <!-- Solo la lógica sin TIA ni ventanas: así los tests no necesitan Openness ni Avalonia. Los modelos son los
+         de TIA-Connector (Contracts, sin Openness) -->
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosHmi.cs" Link="Logica\ArchivosHmi.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
@@ -17,10 +18,13 @@
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArraysBloque.cs" Link="Logica\ArraysBloque.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Services\ModelosTia.cs" Link="Services\ModelosTia.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\ViewModels\NodoArbol.cs" Link="ViewModels\NodoArbol.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Nucleo\**\*.cs" LinkBase="Nucleo" />
     <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\external\TIA-Connector\src\TiaConnector.Contracts\TiaConnector.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

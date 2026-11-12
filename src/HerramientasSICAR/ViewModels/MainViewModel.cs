@@ -1,7 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -155,7 +155,8 @@ namespace HerramientasSICAR.ViewModels
         {
             await Contexto.Trabajar(L.T("Buscando proyectos abiertos en TIA Portal…"), async () =>
             {
-                var rutas = await Contexto.Tia().ListarProyectosAbiertosAsync();
+                var abiertos = await (await Contexto.TiaAsync()).GetOpenProjectsAsync();
+                var rutas = abiertos.Select(p => p.ProjectPath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 Proyectos.Clear();
                 foreach (var ruta in rutas)
                     Proyectos.Add(ruta);
@@ -175,12 +176,10 @@ namespace HerramientasSICAR.ViewModels
             string ruta = ProyectoSeleccionado;
             await Contexto.Trabajar(L.T("Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"), async () =>
             {
-                Contexto.ProyectoConectado = null;
-                Contexto.PonerArbol(new List<DispositivoInfo>(), new ArbolProyecto());
-                var dispositivos = await Contexto.Tia().ConectarAsync(ruta);
-                Contexto.ProyectoConectado = ruta;
+                Contexto.PonerArbol(new List<DeviceInfo>(), new ProjectTree());
+                var dispositivos = (await Contexto.ConectarAsync(ruta)).Devices;
                 // Primero salen todos sin leer: si la lectura falla, se puede leer cada uno con el botón Leer.
-                Contexto.PonerArbol(dispositivos, new ArbolProyecto());
+                Contexto.PonerArbol(dispositivos, new ProjectTree());
                 if (dispositivos.Count == 0)
                 {
                     Contexto.MostrarEstado(L.T("Conectado, pero el proyecto no tiene ningún PLC ni HMI."));
@@ -191,8 +190,10 @@ namespace HerramientasSICAR.ViewModels
                 if (elegidos.Count > 0)
                 {
                     Contexto.MostrarEstado(L.T("Leyendo el árbol del proyecto…"));
-                    var progreso = new Progress<string>(texto => Contexto.MostrarEstado(texto));
-                    Contexto.PonerArbol(dispositivos, await Contexto.Tia().LeerArbolAsync(elegidos, progreso));
+                    var arbol = await (await Contexto.TiaAsync()).ReadTreeAsync(
+                        elegidos.Where(d => d.Kind == DeviceKind.Plc).Select(d => d.Name),
+                        elegidos.Where(d => d.Kind == DeviceKind.Hmi).Select(d => d.Name), Contexto.ProgresoTia());
+                    Contexto.PonerArbol(dispositivos, arbol);
                 }
 
                 int sinLeer = dispositivos.Count - elegidos.Count;
@@ -206,21 +207,21 @@ namespace HerramientasSICAR.ViewModels
         /// Si el proyecto tiene más de un PLC o HMI, pregunta cuáles leer: leer el árbol de todos tarda minutos en
         /// un proyecto grande. Recuerda la elección por proyecto; la primera vez van todos marcados.
         /// </summary>
-        private async Task<List<DispositivoInfo>> ElegirDispositivos(string ruta, List<DispositivoInfo> dispositivos)
+        private async Task<List<DeviceInfo>> ElegirDispositivos(string ruta, List<DeviceInfo> dispositivos)
         {
             if (dispositivos.Count == 1)
                 return dispositivos;
 
             Contexto.Ajustes.DispositivosLeidos.TryGetValue(ruta, out var anteriores);
-            var marcadas = dispositivos.Select(d => anteriores == null || anteriores.Contains(d.Nombre)).ToList();
-            var opciones = dispositivos.Select(d => d.Nombre + " · " + (d.EsHmi ? "HMI" : "PLC")).ToList();
+            var marcadas = dispositivos.Select(d => anteriores == null || anteriores.Contains(d.Name)).ToList();
+            var opciones = dispositivos.Select(d => d.Name + " · " + (d.Kind == DeviceKind.Hmi ? "HMI" : "PLC")).ToList();
 
             var elegidas = await Dialogos.ElegirVarios(L.T("¿Qué quieres leer del proyecto?"),
                 L.T("Leer el árbol de cada PLC o HMI lleva un rato en proyectos grandes. Los que no marques salen en el árbol sin leer; luego puedes leerlos seleccionándolos y pulsando Leer."),
                 opciones, marcadas, L.T("Leer"), L.T("No leer ninguno"));
 
             var elegidos = (elegidas ?? new int[0]).Select(i => dispositivos[i]).ToList();
-            Contexto.Ajustes.DispositivosLeidos[ruta] = elegidos.Select(d => d.Nombre).ToList();
+            Contexto.Ajustes.DispositivosLeidos[ruta] = elegidos.Select(d => d.Name).ToList();
             Contexto.Ajustes.Guardar();
             return elegidos;
         }
