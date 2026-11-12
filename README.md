@@ -46,16 +46,19 @@ Las listas llevan siempre todas las entradas: una pantalla sin nombre lleva el t
 
 ### Comentador
 
-Escribe en cada segmento de los FB de secuencia un comentario de tres líneas con el título del paso en inglés, alemán y castellano, directamente en el proyecto conectado:
+Escribe en cada segmento de los FB de secuencia un comentario con el título del paso en inglés, alemán y castellano y, si se traduce, también en polaco, turco y francés, directamente en el proyecto conectado:
 
 ```
 Title_english …
 Title_deutsch …
 Title_espanol …
+Title_polski …
+Title_tuerk …
+Title_francais …
 ```
 
 - A la izquierda, el árbol con los bloques `_FB` de la carpeta `10_Sequence & Messageblocks` de cada PLC, plegables por OM, con casillas. Salen marcados los de secuencia de cada estación (bajo `OM1` a `OM8`), sin Summary, Messages ni `50_Safety`; se pueden marcar o desmarcar a mano.
-- **Los títulos están en**: el idioma en que están escritos los títulos (el proyecto está siempre en inglés, pero el texto puede estar en castellano). Esa línea lleva el título tal cual y las otras dos, traducidas desde ese idioma con un traductor en línea (Google Translate y otros), o el mismo texto si no se marca **Traducir**. Los nombres de equipo (con `++`) no se traducen. El idioma elegido se recuerda.
+- **Los títulos están en**: el idioma en que están escritos los títulos, uno de los seis (el proyecto está siempre en inglés, pero el texto puede estar en castellano). Esa línea lleva el título tal cual y las demás, traducidas desde ese idioma con un traductor en línea (Google Translate y otros). Si no se marca **Traducir**, el comentario lleva solo las tres líneas de inglés, alemán y castellano (más la del idioma del título, si es otro) con el mismo texto. Los nombres de equipo (con `++`) no se traducen. El idioma elegido se recuerda.
 - **Comentar** exporta los FB marcados a una carpeta temporal, escribe el comentario en en-US de cada segmento con título (sin el `S###`; los separadores como `==== SEQUENCE ====` no), sobrescribiendo el que hubiera, los importa en TIA sobrescribiéndolos, los compila y borra la carpeta. Guarda antes el proyecto y cierra los FB que vayas a comentar.
 
 ### Sincro Checker

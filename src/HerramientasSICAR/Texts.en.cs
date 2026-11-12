@@ -241,6 +241,9 @@ namespace HerramientasSICAR
             ["Castellano"] = "Spanish",
             ["Inglés"] = "English",
             ["Alemán"] = "German",
+            ["Polaco"] = "Polish",
+            ["Turco"] = "Turkish",
+            ["Francés"] = "French",
             ["{0} de {1} FB marcados"] = "{0} of {1} FBs checked",
             ["Pulsa «Buscar FB de secuencia» para ver los bloques _FB de la carpeta {0}. Salen marcados los de secuencia de cada estación (OM1 a OM8), sin Summary, Messages ni 50_Safety."] =
                 "Press «Find sequence FBs» to list the _FB blocks of the {0} folder. The sequence FBs of each station (OM1 to OM8) come checked, without Summary, Messages or 50_Safety.",
@@ -258,9 +261,10 @@ namespace HerramientasSICAR
             ["Comentados {0} segmentos en {1} FB. Hay {2} aviso(s) (ver abajo)."] = "Commented {0} networks in {1} FBs. There are {2} warning(s) (see below).",
             ["El PLC {0} no tiene la carpeta {1}."] = "PLC {0} has no {1} folder.",
             ["Los títulos están en"] = "Titles are in",
-            ["Traducir a los otros dos idiomas (necesita internet)"] = "Translate into the other two languages (needs internet)",
-            ["Cada segmento con título recibe un comentario de tres líneas (Title_english, Title_deutsch y Title_espanol) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra."] =
-                "Every network with a title gets a three-line comment (Title_english, Title_deutsch and Title_espanol) with the title without the step number, in the project language (en-US). Any existing comment is overwritten. The FBs are exported to a temporary folder, imported back into TIA overwriting them, and the folder is deleted.",
+            ["Traducir a los demás idiomas (necesita internet)"] =
+                "Translate into the other languages (needs internet)",
+            ["Cada segmento con título recibe un comentario con una línea por idioma (Title_english, Title_deutsch, Title_espanol y, si se traduce, Title_polski, Title_tuerk y Title_francais) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra."] =
+                "Each network with a title gets a comment with one line per language (Title_english, Title_deutsch, Title_espanol and, when translating, Title_polski, Title_tuerk and Title_francais) with the title without the step number, in the project language (en-US). Any existing comment is overwritten. The FBs are exported to a temporary folder, imported into TIA overwriting them and the folder is deleted.",
             ["Marcar todos"] = "Check all",
             ["Ninguno"] = "None",
             ["protegido"] = "protected",

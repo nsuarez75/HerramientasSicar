@@ -7,26 +7,35 @@ using System.Xml.Linq;
 
 namespace HerramientasSICAR.Logic
 {
-    /// <summary>Idioma en que están escritos los títulos de los segmentos.</summary>
-    public enum TitleLanguage { Castellano, English, German }
+    /// <summary>
+    /// Idioma de un título. El orden es el de la lista de la app y lo que se guarda en los ajustes: los nuevos van al final.
+    /// </summary>
+    public enum TitleLanguage { Castellano, English, German, Polish, Turkish, French }
 
-    /// <summary>Las tres líneas del comentario de un segmento.</summary>
+    /// <summary>Las líneas del comentario de un segmento, una por idioma.</summary>
     public sealed class CommentTexts
     {
-        public CommentTexts(string english, string german, string spanish)
+        private readonly IReadOnlyDictionary<TitleLanguage, string> _texts;
+
+        public CommentTexts(IReadOnlyDictionary<TitleLanguage, string> texts)
         {
-            English = english;
-            German = german;
-            Castellano = spanish;
+            _texts = texts;
         }
 
-        public string English { get; }
-        public string German { get; }
-        public string Castellano { get; }
+        public CommentTexts(string english, string german, string spanish)
+            : this(new Dictionary<TitleLanguage, string>
+            {
+                [TitleLanguage.English] = english,
+                [TitleLanguage.German] = german,
+                [TitleLanguage.Castellano] = spanish,
+            })
+        {
+        }
 
-        /// <summary>Comentario del segmento, en el formato de SICAR.</summary>
+        /// <summary>Comentario del segmento, en el formato de SICAR: una línea por idioma, en el orden de SICAR.</summary>
         public string CommentText() =>
-            $"Title_english {English}\nTitle_deutsch {German}\nTitle_espanol {Castellano}";
+            string.Join("\n", SequenceComments.CommentOrder.Where(_texts.ContainsKey)
+                .Select(l => "Title_" + SequenceComments.Tag(l) + " " + _texts[l]));
     }
 
     /// <summary>
@@ -44,9 +53,50 @@ namespace HerramientasSICAR.Logic
         private static readonly Regex StepNetwork = new Regex(@"\bS\d{3}\b");
         private static readonly Regex Om = new Regex(@"^OM[1-8]$");
 
+        /// <summary>Orden de las líneas en el comentario.</summary>
+        public static readonly IReadOnlyList<TitleLanguage> CommentOrder = new[]
+        {
+            TitleLanguage.English, TitleLanguage.German, TitleLanguage.Castellano,
+            TitleLanguage.Polish, TitleLanguage.Turkish, TitleLanguage.French,
+        };
+
+        /// <summary>Las tres líneas que lleva siempre el comentario; las demás, solo si se traduce.</summary>
+        private static readonly TitleLanguage[] BaseLanguages = { TitleLanguage.English, TitleLanguage.German, TitleLanguage.Castellano };
+
         /// <summary>Código del traductor para cada idioma de los títulos.</summary>
-        public static string Code(TitleLanguage language) =>
-            language == TitleLanguage.English ? "en" : language == TitleLanguage.German ? "de" : "es";
+        public static string Code(TitleLanguage language)
+        {
+            switch (language)
+            {
+                case TitleLanguage.English: return "en";
+                case TitleLanguage.German: return "de";
+                case TitleLanguage.Polish: return "pl";
+                case TitleLanguage.Turkish: return "tr";
+                case TitleLanguage.French: return "fr";
+                default: return "es";
+            }
+        }
+
+        /// <summary>Lo que va tras «Title_» en la línea de cada idioma.</summary>
+        public static string Tag(TitleLanguage language)
+        {
+            switch (language)
+            {
+                case TitleLanguage.English: return "english";
+                case TitleLanguage.German: return "deutsch";
+                case TitleLanguage.Polish: return "polski";
+                case TitleLanguage.Turkish: return "tuerk";
+                case TitleLanguage.French: return "francais";
+                default: return "espanol";
+            }
+        }
+
+        /// <summary>
+        /// Idiomas que lleva el comentario: traduciendo, todos; sin traducir, los tres de siempre más el del título (con el
+        /// mismo texto en todos).
+        /// </summary>
+        public static IReadOnlyList<TitleLanguage> Languages(TitleLanguage source, bool translate) =>
+            CommentOrder.Where(l => translate || BaseLanguages.Contains(l) || l == source).ToList();
 
         /// <summary>Un bloque entra en la lista del Comentador si su nombre acaba en _FB.</summary>
         public static bool IsFb(string name) => name.EndsWith("_FB", StringComparison.Ordinal);

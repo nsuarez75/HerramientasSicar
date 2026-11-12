@@ -138,6 +138,32 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void CommentText_AllLanguages_SicarOrder()
+        {
+            var texts = new CommentTexts(new System.Collections.Generic.Dictionary<TitleLanguage, string>
+            {
+                [TitleLanguage.French] = "FR",
+                [TitleLanguage.Castellano] = "ES",
+                [TitleLanguage.Polish] = "PL",
+                [TitleLanguage.English] = "EN",
+                [TitleLanguage.Turkish] = "TR",
+                [TitleLanguage.German] = "DE",
+            });
+
+            Assert.Equal("Title_english EN\nTitle_deutsch DE\nTitle_espanol ES\nTitle_polski PL\nTitle_tuerk TR\nTitle_francais FR",
+                texts.CommentText());
+        }
+
+        [Theory]
+        [InlineData(TitleLanguage.English, true, "en de es pl tr fr")]
+        [InlineData(TitleLanguage.Castellano, false, "en de es")]
+        [InlineData(TitleLanguage.Polish, false, "en de es pl")]
+        public void Languages_SourceAndTranslate_ReturnsLines(TitleLanguage source, bool translate, string codes)
+        {
+            Assert.Equal(codes, string.Join(" ", SequenceComments.Languages(source, translate).Select(SequenceComments.Code)));
+        }
+
+        [Fact]
         public void Comment_NetworkWithoutComment_CreatesWithNewIds()
         {
             var (xml, _) = SequenceComments.Comment(Fb, t => new CommentTexts(t, t, t));
