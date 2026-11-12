@@ -25,7 +25,7 @@
                 </WrapPanel>
                 <TextBlock Text="{Binding Carpeta}" Classes="label" TextTrimming="LeadingCharacterEllipsis" ToolTip.Tip="{Binding Carpeta}" />
                 <TextBlock Classes="muted" TextWrapping="Wrap"
-                           Text="{l:T 'Se lee el programa entero del PLC, como en GST-Diag: así se siguen las condiciones de activación de las señales y salen los mismos pares en las dos apps.'}" />
+                           Text="{l:T 'Se lee el programa entero del PLC: así se siguen las condiciones de activación de las señales.'}" />
             </StackPanel>
         </Border>
 
