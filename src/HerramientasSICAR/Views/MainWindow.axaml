@@ -157,7 +157,7 @@
                     <ListBox Classes="cards nav" ItemsSource="{Binding Sidebar}" SelectedItem="{Binding SelectedTool}" Margin="0,2,0,8">
                         <ListBox.DataTemplates>
                             <DataTemplate DataType="vm:Tool">
-                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                <StackPanel Orientation="Horizontal" Spacing="10" ToolTip.Tip="{Binding Description}">
                                     <c:Icon Kind="{Binding Icon}" Width="16" Height="16" />
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
@@ -175,7 +175,7 @@
                     <c:Icon Kind="panel-left-open" Width="16" Height="16" />
                 </Button>
                 <ComboBox ItemsSource="{Binding Sidebar}" SelectedItem="{Binding SelectedTool}" MinWidth="240"
-                          ToolTip.Tip="{l:T 'Cambiar de herramienta'}">
+                          ToolTip.Tip="{Binding Current.Description}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate DataType="vm:Tool">
                             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -189,13 +189,9 @@
 
             <!-- ░░ Panel principal: cabecera de la herramienta y su pantalla ░░ -->
             <DockPanel DataContext="{Binding Current}" x:DataType="vm:Tool">
-                <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="24,20,24,12">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <c:Icon Kind="{Binding Icon}" Width="20" Height="20" Foreground="{DynamicResource App.Accent}" />
-                        <TextBlock Text="{Binding Name}" Classes="h1" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Description}" Classes="muted" MaxWidth="820" HorizontalAlignment="Left" />
-                    <Border Classes="tip" IsVisible="{Binding NeedsConnection}" HorizontalAlignment="Left" Margin="0,6,0,0">
+                <!-- El nombre de la herramienta ya se ve en el lateral o en el desplegable, y su descripción en su tooltip -->
+                <StackPanel DockPanel.Dock="Top" Margin="24,12,24,0">
+                    <Border Classes="tip" IsVisible="{Binding NeedsConnection}" HorizontalAlignment="Left" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <c:Icon Kind="link" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" />
                             <TextBlock Foreground="{DynamicResource App.AccentText}" FontWeight="Medium" TextWrapping="Wrap" MaxWidth="700"
