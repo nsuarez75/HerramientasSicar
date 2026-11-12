@@ -370,6 +370,7 @@ namespace HerramientasSICAR
             ["Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato; con clic derecho, añádela a la lista de excluyentes."] =
                 "Signal state in which both steps are candidates at the same time: green conducts, red does not. Click a contact to change its signal and see which step stops being a candidate; right-click to add it to the list of exclusive signals.",
             ["Volver al estado encontrado"] = "Back to the state found",
+            ["Sin OM"] = "No OM",
             ["Añadir a la lista de excluyentes"] = "Add to the list of exclusive signals",
             ["candidato"] = "candidate",
             ["no candidato"] = "not a candidate",
