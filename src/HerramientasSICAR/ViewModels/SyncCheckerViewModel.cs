@@ -356,12 +356,32 @@ namespace HerramientasSICAR.ViewModels
             {
                 var checker = _program.SyncChecker(_file.Groups());
                 foreach (string signal in checker.ExclusionCandidates(value.Conflict, SelectedSequence.SequenceBlock.Permanent))
-                {
-                    var candidate = new CandidateRow(signal, CommentText(signal));
-                    candidate.PropertyChanged += (_, __) => MarkExclusiveCommand.NotifyCanExecuteChanged();
-                    CandidateRows.Add(candidate);
-                }
+                    AddCandidateRow(signal);
             }
+            CandidatesChanged();
+        }
+
+        // Clic derecho en un contacto del ladder: la señal pasa a la lista de excluyentes del par, sin marcar, para
+        // formar a mano un grupo con las propuestas o con otras señales.
+        [RelayCommand]
+        private void AddCandidate(string signal)
+        {
+            if (SelectedPair == null || string.IsNullOrEmpty(signal) || SyncChecker.FixedValue(signal).HasValue
+                || CandidateRows.Any(c => c.Signal == signal))
+                return;
+            AddCandidateRow(signal);
+            CandidatesChanged();
+        }
+
+        private void AddCandidateRow(string signal)
+        {
+            var candidate = new CandidateRow(signal, CommentText(signal));
+            candidate.PropertyChanged += (_, __) => MarkExclusiveCommand.NotifyCanExecuteChanged();
+            CandidateRows.Add(candidate);
+        }
+
+        private void CandidatesChanged()
+        {
             MarkExclusiveCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(HasCandidates));
             OnPropertyChanged(nameof(NoCandidates));
