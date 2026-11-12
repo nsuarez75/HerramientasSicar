@@ -1,7 +1,8 @@
-using HerramientasSICAR.Logica;
+﻿using HerramientasSICAR.Logica;
 using System;
 using System.IO;
 using System.Linq;
+using TiaConnector.Contracts;
 using Xunit;
 
 namespace HerramientasSICAR.Tests
@@ -31,38 +32,6 @@ namespace HerramientasSICAR.Tests
             return ruta;
         }
 
-        [Theory]
-        [InlineData("Hmi.Screen.Screen", RamaHmi.Pantallas)]
-        [InlineData("Hmi.Screen.ScreenTemplate", RamaHmi.Plantillas)]
-        [InlineData("Hmi.Screen.ScreenPopup", RamaHmi.PopUps)]
-        [InlineData("Hmi.Screen.ScreenSlidein", RamaHmi.SlideIns)]
-        [InlineData("Hmi.Screen.ScreenGlobalElements", RamaHmi.ElementosGlobales)]
-        [InlineData("Hmi.Screen.ScreenOverview", RamaHmi.VistaGeneral)]
-        [InlineData("Hmi.Tag.TagTable", RamaHmi.Variables)]
-        [InlineData("Hmi.Communication.Connection", RamaHmi.Conexiones)]
-        [InlineData("Hmi.Cycle.Cycle", RamaHmi.Ciclos)]
-        [InlineData("Hmi.TextGraphicList.TextList", RamaHmi.ListasTextos)]
-        [InlineData("Hmi.TextGraphicList.GraphicList", RamaHmi.ListasGraficos)]
-        [InlineData("Hmi.RuntimeScripting.VBScript", RamaHmi.Scripts)]
-        public void Detecta_la_rama_del_xml(string elemento, RamaHmi esperada)
-        {
-            Assert.Equal(esperada, ArchivosHmi.DetectarRama(CrearXml("elemento.xml", elemento)));
-        }
-
-        [Theory]
-        [InlineData("SW.Blocks.FB")]
-        [InlineData("Hmi.Alarm.DiscreteAlarm")]
-        public void Los_bloques_y_lo_que_no_se_importa_no_son_de_hmi(string elemento)
-        {
-            Assert.Null(ArchivosHmi.DetectarRama(CrearXml("otro.xml", elemento)));
-        }
-
-        [Fact]
-        public void Lee_el_nombre_del_elemento()
-        {
-            Assert.Equal("Ejemplo", ArchivosHmi.LeerNombre(CrearXml("tabla.xml", "Hmi.Tag.TagTable")));
-        }
-
         [Fact]
         public void Importa_primero_lo_que_usan_las_pantallas()
         {
@@ -86,8 +55,8 @@ namespace HerramientasSICAR.Tests
 
             var archivos = ArchivosHmi.PrepararCarpeta(_carpeta, out _);
 
-            Assert.Equal(new[] { "Estacion 10", "Manual" }, archivos.Single(a => a.Rama == RamaHmi.Pantallas).Grupos);
-            Assert.Empty(archivos.Single(a => a.Rama == RamaHmi.Variables).Grupos);
+            Assert.Equal(new[] { "Estacion 10", "Manual" }, archivos.Single(a => a.Rama == HmiBranch.Screens).Grupos);
+            Assert.Empty(archivos.Single(a => a.Rama == HmiBranch.Tags).Grupos);
         }
 
         [Fact]
@@ -123,9 +92,9 @@ namespace HerramientasSICAR.Tests
         [Fact]
         public void Si_lo_seleccionado_es_de_su_rama_cuelga_de_ahi()
         {
-            var pantalla = new ArchivoHmi("Auto.xml", RamaHmi.Pantallas, new[] { "Manual" });
+            var pantalla = new ArchivoHmi("Auto.xml", HmiBranch.Screens, new[] { "Manual" });
 
-            var carpetas = ArchivosHmi.CarpetasDestino(RamaHmi.Pantallas, new[] { "Estacion 30" }, pantalla);
+            var carpetas = ArchivosHmi.CarpetasDestino(HmiBranch.Screens, new[] { "Estacion 30" }, pantalla);
 
             Assert.Equal(new[] { "Estacion 30", "Manual" }, carpetas);
         }
@@ -133,19 +102,10 @@ namespace HerramientasSICAR.Tests
         [Fact]
         public void Si_lo_seleccionado_es_de_otra_rama_va_a_la_raiz_de_la_suya()
         {
-            var tabla = new ArchivoHmi("Tabla.xml", RamaHmi.Variables, new string[0]);
+            var tabla = new ArchivoHmi("Tabla.xml", HmiBranch.Tags, new string[0]);
 
-            Assert.Empty(ArchivosHmi.CarpetasDestino(RamaHmi.Pantallas, new[] { "Estacion 30" }, tabla));
+            Assert.Empty(ArchivosHmi.CarpetasDestino(HmiBranch.Screens, new[] { "Estacion 30" }, tabla));
             Assert.Empty(ArchivosHmi.CarpetasDestino(null, new string[0], tabla));
-        }
-
-        [Fact]
-        public void Todas_las_ramas_salen_en_el_arbol_y_tienen_nombre()
-        {
-            var todas = Enum.GetValues(typeof(RamaHmi)).Cast<RamaHmi>().ToList();
-
-            Assert.Equal(todas.OrderBy(r => r), ArchivosHmi.OrdenArbol.OrderBy(r => r));
-            Assert.All(todas, r => Assert.False(string.IsNullOrEmpty(ArchivosHmi.Nombre(r))));
         }
     }
 }

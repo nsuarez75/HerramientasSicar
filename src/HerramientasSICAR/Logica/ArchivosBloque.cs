@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.Logica
 {
@@ -37,7 +38,8 @@ namespace HerramientasSICAR.Logica
     }
 
     /// <summary>
-    /// Reglas de nombres de archivo y de orden de importación. No depende de TIA Portal.
+    /// Tipo y orden de importación de los XML de bloques. Las reglas de nombres y rutas están en <see cref="FileRules"/>
+    /// de TIA-Connector. No depende de TIA Portal.
     /// </summary>
     public static class ArchivosBloque
     {
@@ -80,7 +82,7 @@ namespace HerramientasSICAR.Logica
         public static List<ArchivoImportar> PrepararCarpeta(string carpeta, out List<string> descartados)
         {
             var archivos = Directory.GetFiles(carpeta, "*.xml", SearchOption.AllDirectories)
-                .Select(ruta => new ArchivoImportar(ruta, DetectarTipo(ruta), GruposRelativos(carpeta, ruta)));
+                .Select(ruta => new ArchivoImportar(ruta, DetectarTipo(ruta), FileRules.RelativeFolders(carpeta, ruta)));
             return Separar(archivos, out descartados);
         }
 
@@ -99,37 +101,6 @@ namespace HerramientasSICAR.Logica
                 .ThenBy(a => string.Join("\\", a.Grupos), StringComparer.OrdinalIgnoreCase)
                 .ThenBy(a => Path.GetFileName(a.Ruta), StringComparer.OrdinalIgnoreCase)
                 .ToList();
-        }
-
-        /// <summary>Carpetas entre la carpeta base y el archivo, que se recrean como grupos en TIA.</summary>
-        public static IReadOnlyList<string> GruposRelativos(string carpetaBase, string rutaArchivo)
-        {
-            string baseCompleta = Path.GetFullPath(carpetaBase).TrimEnd('\\', '/') + "\\";
-            string carpetaArchivo = Path.GetDirectoryName(Path.GetFullPath(rutaArchivo)) + "\\";
-
-            if (!carpetaArchivo.StartsWith(baseCompleta, StringComparison.OrdinalIgnoreCase))
-                return new string[0];
-
-            return carpetaArchivo.Substring(baseCompleta.Length)
-                .Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        /// <summary>
-        /// Si la ruta del archivo pasa del límite de Windows (y de TIA): 259 caracteres el archivo, 247 su carpeta.
-        /// Las carpetas de una HMI suelen ser profundas y con nombres largos.
-        /// </summary>
-        public static bool RutaDemasiadoLarga(string rutaArchivo)
-        {
-            int barra = rutaArchivo.LastIndexOfAny(new[] { '\\', '/' });
-            return rutaArchivo.Length >= 260 || barra >= 248;
-        }
-
-        /// <summary>Cambia por '_' los caracteres que Windows no admite en nombres de archivo o carpeta.</summary>
-        public static string NombreSeguro(string nombre)
-        {
-            var invalidos = Path.GetInvalidFileNameChars();
-            var limpio = new string(nombre.Select(c => invalidos.Contains(c) ? '_' : c).ToArray()).Trim();
-            return limpio.Length == 0 ? "_" : limpio;
         }
 
         private static List<ArchivoImportar> Separar(IEnumerable<ArchivoImportar> archivos, out List<string> descartados)

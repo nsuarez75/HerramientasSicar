@@ -2,6 +2,13 @@
 
 Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda abierto sin issue.
 
+## TIA-Connector (issue #43)
+
+- Probar con TIA todo lo que pasa ahora por TIA-Connector: buscar proyectos y conectar (aviso de permiso de TIA),
+  leer el árbol de PLC y HMI, Importar / Exportar (bloques y HMI), Generador HMI «Importar en TIA…», Comentador,
+  Numerador, Renumerar Array, DiagExpected y Sincro Checker «Exportar el PLC desde TIA y comprobar».
+- Comprobar que al cerrar la app ya no sale el cierre con error de Windows (`0xc0020001`) y que TIA sigue abierto.
+
 ## Versión 2.0 (issue #6)
 
 - Los botones que solo llevan icono no tienen nombre accesible (lectores de pantalla, automatización):

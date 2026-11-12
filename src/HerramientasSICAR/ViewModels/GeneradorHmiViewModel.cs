@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
 using HerramientasSICAR.Logica;
 using HerramientasSICAR.Logica.MenusHmi;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -126,14 +126,14 @@ namespace HerramientasSICAR.ViewModels
             HmisDestino.Clear();
             foreach (var dispositivo in Contexto.Dispositivos)
             {
-                if (dispositivo.EsHmi)
+                if (dispositivo.Kind == DeviceKind.Hmi)
                 {
-                    var destino = new DestinoHmi(dispositivo.Nombre, primeraVez || hmisMarcadas.Contains(dispositivo.Nombre));
+                    var destino = new DestinoHmi(dispositivo.Name, primeraVez || hmisMarcadas.Contains(dispositivo.Name));
                     destino.PropertyChanged += (_, __) => ImportarEnTiaCommand.NotifyCanExecuteChanged();
                     HmisDestino.Add(destino);
                 }
                 else
-                    Plcs.Add(dispositivo.Nombre);
+                    Plcs.Add(dispositivo.Name);
             }
             PlcDestino = Plcs.Contains(plc) ? plc : Plcs.FirstOrDefault();
             OnPropertyChanged(nameof(HayDispositivos));
@@ -177,26 +177,41 @@ namespace HerramientasSICAR.ViewModels
             var proyecto = _proyecto;
             await Contexto.Trabajar(L.T("Generando…"), async () =>
             {
-                var progreso = ProgresoEnEstado();
-                var resultado = new ResultadoOperacion();
-                using (var temporal = new CarpetaTemporal())
+                var tia = await Contexto.TiaAsync();
+                var progreso = Contexto.ProgresoTia();
+                int importados = 0;
+                var fallos = new List<string>();
+                using (var temporal = new TempFolder())
                 {
-                    await Task.Run(() => GeneradorMenus.Generar(proyecto, temporal.Ruta));
+                    await Task.Run(() => GeneradorMenus.Generar(proyecto, temporal.Path));
 
                     if (plc != null)
                     {
-                        progreso.Report(L.T("Importando {0} en {1}…", GeneradorMenus.NombreFc, plc));
-                        string ruta = Path.Combine(temporal.Ruta, GeneradorMenus.NombreFc + ".xml");
-                        await Contexto.Tia().EnProyecto(p => p.ImportarBloqueEnPlc(plc, GeneradorMenus.NombreFc, ruta, CarpetaFc, resultado));
+                        // En su carpeta si el PLC ya tiene el FC (sobrescribiéndolo); si no, en la de la plantilla.
+                        var r = await tia.ImportBlocksAsync(new ImportBlocksArgs
+                        {
+                            Files =
+                            {
+                                new ImportFile
+                                {
+                                    Path = Path.Combine(temporal.Path, GeneradorMenus.NombreFc + ".xml"), Plc = plc,
+                                    Folders = CarpetaFc.ToList(), UseExistingFolder = true
+                                }
+                            }
+                        }, progreso);
+                        importados += r.Succeeded;
+                        fallos.AddRange(TextosTia.Fallos(r, importando: true));
                     }
 
-                    var archivos = listas.Select(l => new ArchivoHmi(Path.Combine(temporal.Ruta, GeneradorMenus.CarpetaListas, l + ".xml"),
-                        RamaHmi.ListasTextos, new string[0])).ToList();
+                    var archivos = listas.Select(l => new HmiImportFile
+                    {
+                        Path = Path.Combine(temporal.Path, GeneradorMenus.CarpetaListas, l + ".xml"), Branch = HmiBranch.TextLists
+                    }).ToList();
                     foreach (string hmi in hmis)
                     {
-                        var r = await Contexto.Tia().ImportarHmiAsync(hmi, null, new string[0], archivos, progreso);
-                        resultado.Correctos += r.Correctos;
-                        resultado.Fallos.AddRange(r.Fallos.Select(f => hmi + " · " + f));
+                        var r = await tia.ImportHmiAsync(new ImportHmiArgs { Hmi = hmi, Files = archivos }, progreso);
+                        importados += r.Succeeded;
+                        fallos.AddRange(TextosTia.Fallos(r).Select(f => hmi + " · " + f));
                     }
                 }
 
@@ -204,10 +219,10 @@ namespace HerramientasSICAR.ViewModels
                 if (plc != null && Contexto.PlcLeido(plc) != null)
                     await Contexto.LeerPlcAsync(plc);
 
-                Contexto.PonerFallos(resultado.Fallos);
-                string mensaje = L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos);
-                Contexto.MostrarEstado(resultado.Fallos.Count == 0 ? mensaje : mensaje + " " + L.T("{0} con error (ver abajo).", resultado.Fallos.Count),
-                    error: resultado.Fallos.Count > 0);
+                Contexto.PonerFallos(fallos);
+                string mensaje = L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", importados);
+                Contexto.MostrarEstado(fallos.Count == 0 ? mensaje : mensaje + " " + L.T("{0} con error (ver abajo).", fallos.Count),
+                    error: fallos.Count > 0);
             });
         }
 

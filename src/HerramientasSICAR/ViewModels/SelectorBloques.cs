@@ -1,13 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -30,7 +30,7 @@ namespace HerramientasSICAR.ViewModels
     {
         private readonly Contexto _contexto;
         private readonly VistaSelector _vista;
-        private readonly Func<IReadOnlyList<string>, BloqueInfo, bool> _filtro;
+        private readonly Func<IReadOnlyList<string>, BlockInfo, bool> _filtro;
         private readonly Func<IReadOnlyList<string>, string, bool> _marcadoInicial;
         private readonly Dictionary<string, bool> _marcas = new Dictionary<string, bool>();
         private bool _reconstruyendo;
@@ -38,7 +38,7 @@ namespace HerramientasSICAR.ViewModels
         /// <param name="filtro">Bloques que salen: carpetas desde la raíz del PLC y el bloque.</param>
         /// <param name="conCasillas">Elegir varios con casillas (si no, se elige uno seleccionándolo).</param>
         /// <param name="marcadoInicial">Con casillas, si un bloque sale marcado la primera vez que aparece.</param>
-        public SelectorBloques(Contexto contexto, VistaSelector vista, Func<IReadOnlyList<string>, BloqueInfo, bool> filtro,
+        public SelectorBloques(Contexto contexto, VistaSelector vista, Func<IReadOnlyList<string>, BlockInfo, bool> filtro,
             bool conCasillas = false, Func<IReadOnlyList<string>, string, bool> marcadoInicial = null)
         {
             _contexto = contexto;
@@ -69,9 +69,9 @@ namespace HerramientasSICAR.ViewModels
         public event Action Cambiado;
 
         /// <summary>El bloque seleccionado, o null si lo seleccionado no es un bloque.</summary>
-        public BloqueRef BloqueSeleccionado => Seleccionado?.Tipo == TipoNodo.Bloque ? Referencia(Seleccionado) : null;
+        public BlockRef BloqueSeleccionado => Seleccionado?.Tipo == TipoNodo.Bloque ? Referencia(Seleccionado) : null;
 
-        public List<BloqueRef> Marcados() => Raices.SelectMany(r => r.HojasMarcadas()).Select(Referencia).ToList();
+        public List<BlockRef> Marcados() => Raices.SelectMany(r => r.HojasMarcadas()).Select(Referencia).ToList();
 
         public int NumeroMarcados => Raices.Sum(r => r.HojasMarcadas().Count());
 
@@ -119,24 +119,24 @@ namespace HerramientasSICAR.ViewModels
             _reconstruyendo = true;
             var seleccionado = Seleccionado;
             Raices.Clear();
-            foreach (var dispositivo in _contexto.Dispositivos.Where(d => !d.EsHmi))
+            foreach (var dispositivo in _contexto.Dispositivos.Where(d => d.Kind == DeviceKind.Plc))
             {
-                var plc = _contexto.PlcLeido(dispositivo.Nombre);
+                var plc = _contexto.PlcLeido(dispositivo.Name);
                 if (plc == null)
                 {
                     Raices.Add(NodoArbol.SinLeer(dispositivo, AlMarcar));
                     continue;
                 }
 
-                var raiz = plc.Raiz;
+                var raiz = plc.Root;
                 var ruta = new List<string>();
                 if (_vista == VistaSelector.Secuencias)
-                    raiz = BuscarCarpeta(plc.Raiz, ComentariosSecuencia.CarpetaSecuencias, ruta);
-                var podado = raiz == null ? new GrupoInfo { Nombre = plc.Raiz.Nombre } : Podar(raiz, ruta.ToList());
-                var nodo = NodoArbol.DesdePlc(new PlcInfo { Nombre = plc.Nombre, Raiz = podado }, AlMarcar, ruta);
+                    raiz = BuscarCarpeta(plc.Root, ComentariosSecuencia.CarpetaSecuencias, ruta);
+                var podado = raiz == null ? new BlockFolder { Name = plc.Root.Name } : Podar(raiz, ruta.ToList());
+                var nodo = NodoArbol.DesdePlc(new PlcTree { Name = plc.Name, Root = podado }, AlMarcar, ruta);
                 if (raiz == null)
                     nodo.Detalle = L.T("sin la carpeta {0}", ComentariosSecuencia.CarpetaSecuencias);
-                else if (podado.Grupos.Count == 0 && podado.Bloques.Count == 0)
+                else if (podado.Folders.Count == 0 && podado.Blocks.Count == 0)
                     nodo.Detalle = L.T("ningún bloque");
                 if (ConCasillas)
                     PonerMarcas(nodo);
@@ -151,29 +151,29 @@ namespace HerramientasSICAR.ViewModels
         }
 
         // Solo los bloques que valen, y las carpetas que tienen alguno.
-        private GrupoInfo Podar(GrupoInfo grupo, List<string> ruta)
+        private BlockFolder Podar(BlockFolder grupo, List<string> ruta)
         {
-            var podado = new GrupoInfo { Nombre = grupo.Nombre };
-            foreach (var sub in grupo.Grupos)
+            var podado = new BlockFolder { Name = grupo.Name };
+            foreach (var sub in grupo.Folders)
             {
-                ruta.Add(sub.Nombre);
+                ruta.Add(sub.Name);
                 var hijo = Podar(sub, ruta);
                 ruta.RemoveAt(ruta.Count - 1);
-                if (hijo.Grupos.Count > 0 || hijo.Bloques.Count > 0)
-                    podado.Grupos.Add(hijo);
+                if (hijo.Folders.Count > 0 || hijo.Blocks.Count > 0)
+                    podado.Folders.Add(hijo);
             }
-            foreach (var bloque in grupo.Bloques.Where(b => _filtro(ruta, b)))
-                podado.Bloques.Add(bloque);
+            foreach (var bloque in grupo.Blocks.Where(b => _filtro(ruta, b)))
+                podado.Blocks.Add(bloque);
             return podado;
         }
 
         // La carpeta con ese nombre a cualquier profundidad; deja en «ruta» las carpetas hasta ella (incluida).
-        private static GrupoInfo BuscarCarpeta(GrupoInfo grupo, string nombre, List<string> ruta)
+        private static BlockFolder BuscarCarpeta(BlockFolder grupo, string nombre, List<string> ruta)
         {
-            foreach (var sub in grupo.Grupos)
+            foreach (var sub in grupo.Folders)
             {
-                ruta.Add(sub.Nombre);
-                if (sub.Nombre == nombre)
+                ruta.Add(sub.Name);
+                if (sub.Name == nombre)
                     return sub;
                 var encontrada = BuscarCarpeta(sub, nombre, ruta);
                 if (encontrada != null)
@@ -212,9 +212,9 @@ namespace HerramientasSICAR.ViewModels
         private static IEnumerable<NodoArbol> TodasLasHojas(NodoArbol nodo) =>
             nodo.EsHoja ? new[] { nodo } : nodo.Hijos.SelectMany(TodasLasHojas);
 
-        private static BloqueRef Referencia(NodoArbol nodo) =>
-            new BloqueRef { Plc = nodo.Dispositivo, Grupos = nodo.Grupos, Nombre = nodo.Nombre };
+        private static BlockRef Referencia(NodoArbol nodo) =>
+            new BlockRef { Plc = nodo.Dispositivo, Folders = nodo.Grupos.ToList(), Name = nodo.Nombre };
 
-        private static string Clave(BloqueRef b) => b.Plc + "|" + string.Join("/", b.Grupos) + "|" + b.Nombre;
+        private static string Clave(BlockRef b) => b.Plc + "|" + string.Join("/", b.Folders) + "|" + b.Name;
     }
 }

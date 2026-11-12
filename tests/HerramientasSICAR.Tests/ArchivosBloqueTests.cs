@@ -1,4 +1,4 @@
-using HerramientasSICAR.Logica;
+﻿using HerramientasSICAR.Logica;
 using System;
 using System.IO;
 using System.Linq;
@@ -99,27 +99,6 @@ namespace HerramientasSICAR.Tests
             var archivo = ArchivosBloque.PrepararArchivos(new[] { ruta }, out _).Single();
 
             Assert.Empty(archivo.Grupos);
-        }
-
-        [Theory]
-        [InlineData(200, 50, false)]
-        [InlineData(200, 59, false)]
-        [InlineData(200, 60, true)]
-        [InlineData(248, 5, true)]
-        public void Detecta_las_rutas_demasiado_largas_para_windows(int carpeta, int archivo, bool esperado)
-        {
-            string ruta = "C:" + new string('a', carpeta - 2) + "\\" + new string('b', archivo - 1);
-            Assert.Equal(esperado, ArchivosBloque.RutaDemasiadoLarga(ruta));
-        }
-
-        [Theory]
-        [InlineData("+A1+FB_Pinza", "+A1+FB_Pinza")]
-        [InlineData("Datos/Motor", "Datos_Motor")]
-        [InlineData("A:B*C?", "A_B_C_")]
-        [InlineData("  ", "_")]
-        public void Nombre_seguro_para_windows(string nombre, string esperado)
-        {
-            Assert.Equal(esperado, ArchivosBloque.NombreSeguro(nombre));
         }
     }
 }

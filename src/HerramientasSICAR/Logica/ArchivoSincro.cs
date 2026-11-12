@@ -1,9 +1,10 @@
-using HerramientasSICAR.Nucleo.Sicar;
+﻿using HerramientasSICAR.Nucleo.Sicar;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.Logica
 {
@@ -43,7 +44,7 @@ namespace HerramientasSICAR.Logica
         /// </summary>
         public static string EnAppData(string proyecto, string plc) =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HerramientasSICAR", "Sincro",
-                ArchivosBloque.NombreSeguro(proyecto), ArchivosBloque.NombreSeguro(plc) + ".json");
+                FileRules.SafeName(proyecto), FileRules.SafeName(plc) + ".json");
 
         /// <summary>El de esa ruta, o uno vacío si no hay o no se puede leer.</summary>
         public static ArchivoSincro Cargar(string ruta)

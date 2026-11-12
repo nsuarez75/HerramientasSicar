@@ -1,13 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -16,11 +15,8 @@ namespace HerramientasSICAR.ViewModels
     /// </summary>
     public partial class ImportarExportarViewModel : Herramienta
     {
-        private readonly IProgress<string> _progreso;
-
         public ImportarExportarViewModel(Contexto contexto) : base(contexto)
         {
-            _progreso = ProgresoEnEstado();
             Contexto.ArbolCambiado += AlCambiarArbol;
         }
 
@@ -32,10 +28,10 @@ namespace HerramientasSICAR.ViewModels
                 MostrarArbol(cambio.Dispositivos, cambio.Arbol);
                 return;
             }
-            var raiz = Dispositivos.FirstOrDefault(d => d.Tipo == TipoNodo.Plc && d.Nombre == cambio.Plc.Nombre);
+            var raiz = Dispositivos.FirstOrDefault(d => d.Tipo == TipoNodo.Plc && d.Nombre == cambio.Plc.Name);
             if (raiz == null)
                 return;
-            raiz.ReemplazarContenido(cambio.Plc.Raiz);
+            raiz.ReemplazarContenido(cambio.Plc.Root);
             ArbolReleido(NodoSeleccionado != null && NodoSeleccionado.Raiz == raiz ? NodoSeleccionado : raiz);
         }
 
@@ -82,7 +78,7 @@ namespace HerramientasSICAR.ViewModels
                     return L.T("Selecciona en el árbol dónde importar");
                 var partes = new List<string> { nodo.Dispositivo };
                 if (nodo.Rama != null)
-                    partes.Add(L.T(ArchivosHmi.Nombre(nodo.Rama.Value)));
+                    partes.Add(L.T(HmiRules.FolderName(nodo.Rama.Value)));
                 partes.AddRange(nodo.Grupos);
                 return string.Join(" › ", partes);
             }
@@ -92,14 +88,15 @@ namespace HerramientasSICAR.ViewModels
         /// PLC y HMI del proyecto recién conectado (o ninguno si se desconecta), con el árbol de los que se han leído;
         /// los demás salen «sin leer».
         /// </summary>
-        private void MostrarArbol(IReadOnlyList<DispositivoInfo> dispositivos, ArbolProyecto arbol)
+        private void MostrarArbol(IReadOnlyList<DeviceInfo> dispositivos, ProjectTree arbol)
         {
             Dispositivos.Clear();
             NodoSeleccionado = null;
             foreach (var dispositivo in dispositivos)
             {
-                var plc = dispositivo.EsHmi ? null : arbol.Plcs.FirstOrDefault(p => p.Nombre == dispositivo.Nombre);
-                var hmi = dispositivo.EsHmi ? arbol.Hmis.FirstOrDefault(h => h.Nombre == dispositivo.Nombre) : null;
+                bool esHmi = dispositivo.Kind == DeviceKind.Hmi;
+                var plc = esHmi ? null : arbol.Plcs.FirstOrDefault(p => p.Name == dispositivo.Name);
+                var hmi = esHmi ? arbol.Hmis.FirstOrDefault(h => h.Name == dispositivo.Name) : null;
                 Dispositivos.Add(plc != null ? NodoArbol.DesdePlc(plc, ContarMarcados)
                     : hmi != null ? NodoArbol.DesdeHmi(hmi, ContarMarcados)
                     : NodoArbol.SinLeer(dispositivo, ContarMarcados));
@@ -114,17 +111,17 @@ namespace HerramientasSICAR.ViewModels
         {
             var destino = NodoSeleccionado;
             var dispositivo = destino.Raiz;
-            var info = new DispositivoInfo { Nombre = dispositivo.Nombre, EsHmi = dispositivo.Tipo == TipoNodo.Hmi };
 
             await Contexto.Trabajar(L.T("Leyendo el árbol del proyecto…"), async () =>
             {
-                if (info.EsHmi)
+                if (dispositivo.Tipo == TipoNodo.Hmi)
                 {
-                    var arbol = await Contexto.Tia().LeerArbolAsync(new[] { info }, _progreso);
-                    dispositivo.ReemplazarRamas(ArchivosHmi.OrdenArbol, arbol.Hmis.Single().Ramas);
+                    var tia = await Contexto.TiaAsync();
+                    var arbol = await tia.ReadTreeAsync(new string[0], new[] { dispositivo.Nombre }, Contexto.ProgresoTia());
+                    dispositivo.ReemplazarRamas(HmiRules.TreeOrder, arbol.Hmis.Single().Branches);
                 }
                 else
-                    await Contexto.LeerPlcAsync(info.Nombre);   // lo pone en el árbol común: lo ven todas las herramientas
+                    await Contexto.LeerPlcAsync(dispositivo.Nombre);   // lo pone en el árbol común: lo ven todas las herramientas
                 ArbolReleido(destino);
                 Contexto.MostrarEstado(L.T("Árbol de {0} leído.", dispositivo.Nombre));
             });
@@ -141,10 +138,10 @@ namespace HerramientasSICAR.ViewModels
         {
             var hojas = Dispositivos.SelectMany(d => d.HojasMarcadas()).ToList();
             var bloques = hojas.Where(n => n.Tipo == TipoNodo.Bloque)
-                .Select(n => new BloqueRef { Plc = n.Dispositivo, Grupos = n.Grupos, Nombre = n.Nombre })
+                .Select(n => new BlockRef { Plc = n.Dispositivo, Folders = n.Grupos.ToList(), Name = n.Nombre })
                 .ToList();
             var elementosHmi = hojas.Where(n => n.Tipo == TipoNodo.ElementoHmi)
-                .Select(n => new ElementoHmiRef { Hmi = n.Dispositivo, Rama = n.Rama.Value, Grupos = n.Grupos, Nombre = n.Nombre })
+                .Select(n => new HmiItemRef { Hmi = n.Dispositivo, Branch = n.Rama.Value, Folders = n.Grupos.ToList(), Name = n.Nombre })
                 .ToList();
 
             string carpeta = await Contexto.Dialogos.ElegirCarpeta(L.T("Carpeta donde guardar lo exportado"), Contexto.Ajustes.UltimaCarpeta);
@@ -154,9 +151,39 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Exportando…"), async () =>
             {
-                var resultado = await Contexto.Tia().ExportarAsync(bloques, elementosHmi, carpeta, _progreso);
-                MostrarResultado(resultado, L.T("{0} elemento(s) exportado(s) a {1}.", resultado.Correctos, carpeta));
+                var tia = await Contexto.TiaAsync();
+                var progreso = Contexto.ProgresoTia();
+                var resultado = new BatchResult();
+                if (bloques.Count > 0)
+                    Sumar(resultado, await tia.ExportBlocksAsync(
+                        new ExportBlocksArgs { Blocks = bloques, Folder = CarpetaExportacion(carpeta, bloques.Select(b => b.Plc), elementosHmi.Count > 0) },
+                        progreso));
+                if (elementosHmi.Count > 0 && !resultado.Stopped)
+                    Sumar(resultado, await tia.ExportHmiAsync(
+                        new ExportHmiArgs { Items = elementosHmi, Folder = CarpetaExportacion(carpeta, elementosHmi.Select(e => e.Hmi), bloques.Count > 0) },
+                        progreso));
+                Contexto.MostrarResultado(resultado, L.T("{0} elemento(s) exportado(s) a {1}.", resultado.Succeeded, carpeta));
             });
+        }
+
+        /// <summary>
+        /// Carpeta donde exportar los bloques (o los elementos de HMI). Si se exporta de más de un PLC o HMI, cada uno va
+        /// en su subcarpeta: TIA-Connector la crea cuando hay varios del mismo tipo; si hay uno solo pero también se
+        /// exporta del otro tipo, se pone aquí.
+        /// </summary>
+        private static string CarpetaExportacion(string carpeta, IEnumerable<string> dispositivos, bool tambienDelOtroTipo)
+        {
+            var distintos = dispositivos.Distinct().ToList();
+            return tambienDelOtroTipo && distintos.Count == 1 ? Path.Combine(carpeta, FileRules.SafeName(distintos[0])) : carpeta;
+        }
+
+        private static void Sumar(BatchResult total, BatchResult parte)
+        {
+            total.Succeeded += parte.Succeeded;
+            total.Failures.AddRange(parte.Failures);
+            total.Files.AddRange(parte.Files);
+            total.Stopped = parte.Stopped;
+            total.Remaining = parte.Remaining;
         }
 
         [RelayCommand(CanExecute = nameof(PuedeImportar))]
@@ -206,17 +233,25 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
-                var resultado = await Contexto.Tia().ImportarAsync(destino.Dispositivo, destino.Grupos, archivos, _progreso);
+                // Los bloques que ya existen con el mismo nombre en la carpeta destino se sobrescriben.
+                var tia = await Contexto.TiaAsync();
+                var resultado = await tia.ImportBlocksAsync(new ImportBlocksArgs
+                {
+                    Files = archivos.Select(a => new ImportFile
+                    {
+                        Path = a.Ruta, Plc = destino.Dispositivo, Folders = destino.Grupos.Concat(a.Grupos).ToList()
+                    }).ToList()
+                }, Contexto.ProgresoTia());
                 // Solo se vuelve a leer el PLC destino (leer el proyecto entero tarda minutos en uno grande),
                 // y nada si no se había leído.
                 if (destino.Raiz.Leido)
                 {
-                    _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                    Contexto.MostrarEstado(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
                     await Contexto.LeerPlcAsync(destino.Dispositivo);
                     ArbolReleido(destino);
                 }
-                resultado.Fallos.InsertRange(0, noBloques);
-                MostrarResultado(resultado, L.T("{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
+                Contexto.MostrarResultado(resultado, L.T("{0} bloque(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Succeeded),
+                    importando: true, previos: noBloques);
             });
         }
 
@@ -239,18 +274,27 @@ namespace HerramientasSICAR.ViewModels
 
             await Contexto.Trabajar(L.T("Importando…"), async () =>
             {
-                var resultado = await Contexto.Tia().ImportarHmiAsync(destino.Dispositivo, destino.Rama, destino.Grupos, archivos, _progreso);
+                // Lo que ya existe con el mismo nombre se sobrescribe; TIA-Connector importa en el orden de las ramas.
+                var tia = await Contexto.TiaAsync();
+                var resultado = await tia.ImportHmiAsync(new ImportHmiArgs
+                {
+                    Hmi = destino.Dispositivo,
+                    Files = archivos.Select(a => new HmiImportFile
+                    {
+                        Path = a.Ruta, Branch = a.Rama, Folders = ArchivosHmi.CarpetasDestino(destino.Rama, destino.Grupos, a).ToList()
+                    }).ToList()
+                }, Contexto.ProgresoTia());
                 // Solo se vuelven a leer las ramas de la HMI donde se ha importado algo, y nada si no se había leído.
                 if (destino.Raiz.Leido)
                 {
-                    _progreso.Report(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
+                    Contexto.MostrarEstado(L.T("Leyendo de nuevo lo importado en {0}…", destino.Dispositivo));
                     var ramas = archivos.Select(a => a.Rama).Distinct().ToList();
-                    var leidas = await Contexto.Tia().LeerRamasHmiAsync(destino.Dispositivo, ramas);
+                    var leidas = await tia.ReadHmiBranchesAsync(destino.Dispositivo, ramas);
                     destino.Raiz.ReemplazarRamas(ramas, leidas);
                     ArbolReleido(destino);
                 }
-                resultado.Fallos.InsertRange(0, noHmi);
-                MostrarResultado(resultado, L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Correctos));
+                Contexto.MostrarResultado(resultado, L.T("{0} elemento(s) importado(s). Guarda el proyecto en TIA para conservarlos.", resultado.Succeeded),
+                    previos: noHmi);
             });
         }
 
@@ -267,13 +311,6 @@ namespace HerramientasSICAR.ViewModels
         }
 
         private void ContarMarcados() => Marcados = Dispositivos.Sum(d => d.HojasMarcadas().Count());
-
-        private void MostrarResultado(ResultadoOperacion resultado, string mensaje)
-        {
-            Contexto.PonerFallos(resultado.Fallos);
-            Contexto.MostrarEstado(resultado.Fallos.Count == 0 ? mensaje : mensaje + " " + L.T("{0} con error (ver abajo).", resultado.Fallos.Count),
-                error: resultado.Fallos.Count > 0);
-        }
 
         private void RecordarCarpeta(string carpeta)
         {

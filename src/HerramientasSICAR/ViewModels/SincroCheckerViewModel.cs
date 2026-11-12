@@ -4,13 +4,14 @@ using HerramientasSICAR.Logica;
 using HerramientasSICAR.Nucleo.Lad;
 using HerramientasSICAR.Nucleo.Programs;
 using HerramientasSICAR.Nucleo.Sicar;
-using HerramientasSICAR.Services;
+using HerramientasSICAR.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -166,32 +167,31 @@ namespace HerramientasSICAR.ViewModels
                 return;
 
             // Se exporta a %TEMP% y se borra en cuanto se ha leído: en la carpeta del proyecto no queda nada.
-            using (var temporal = new CarpetaTemporal())
+            using (var temporal = new TempFolder())
             {
-                string idioma = null;
-                string proyecto = null;
-                string anterior = null;
+                var info = Contexto.Proyecto;
+                bool exportado = false;
                 var saltados = new List<string>();
                 await Contexto.Trabajar(L.T("Exportando el programa de {0}…", plc), async () =>
                 {
-                    var progreso = ProgresoEnEstado();
-                    var resultado = await Contexto.Tia().EnProyecto(p =>
+                    // Bloques, tablas de variables y tipos, sin compilar nada: lo protegido o sin compilar se salta.
+                    var resultado = await (await Contexto.TiaAsync()).ExportProgramAsync(plc, temporal.Path, Contexto.ProgresoTia());
+                    saltados.AddRange(TextosTia.Fallos(resultado));
+                    exportado = !resultado.Stopped;
+                    if (!exportado)
                     {
-                        p.ExportarPrograma(plc, temporal.Ruta, progreso, saltados);
-                        // Antes la exportación y el sincro.json se dejaban en la carpeta del proyecto.
-                        string viejo = ArchivoSincro.EnCarpeta(Path.Combine(p.Carpeta, "HerramientasSICAR", "Sincro", ArchivosBloque.NombreSeguro(plc)));
-                        return (Proyecto: p.Nombre, Idioma: p.IdiomaEdicion, Anterior: viejo);
-                    });
-                    proyecto = resultado.Proyecto;
-                    idioma = resultado.Idioma;
-                    anterior = resultado.Anterior;
+                        Contexto.PonerFallos(saltados);
+                        Contexto.MostrarEstado(L.T("TIA Portal se ha cerrado o ya no tiene el proyecto abierto: se para aquí y quedan {0} sin hacer.", resultado.Remaining), error: true);
+                    }
                 });
-                if (proyecto == null)
+                if (!exportado)
                     return;
 
-                string ruta = ArchivoSincro.EnAppData(proyecto, plc);
+                // Antes la exportación y el sincro.json se dejaban en la carpeta del proyecto.
+                string anterior = ArchivoSincro.EnCarpeta(Path.Combine(info.ProjectFolder, "HerramientasSICAR", "Sincro", FileRules.SafeName(plc)));
+                string ruta = ArchivoSincro.EnAppData(info.Name, plc);
                 TraerExcluyentesAnteriores(anterior, ruta);
-                await Cargar(temporal.Ruta, L.T("{0} · {1} (exportado de TIA)", proyecto, plc), ruta, idioma);
+                await Cargar(temporal.Path, L.T("{0} · {1} (exportado de TIA)", info.Name, plc), ruta, info.EditingLanguage);
                 if (saltados.Count > 0 && HayPrograma)
                 {
                     Contexto.PonerFallos(saltados.Concat(_programa.Warnings));

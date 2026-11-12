@@ -1,7 +1,11 @@
 using CommunityToolkit.Mvvm.Input;
+using HerramientasSICAR.Helpers;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using TiaConnector.Client;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -32,18 +36,27 @@ namespace HerramientasSICAR.ViewModels
         {
             await Contexto.Trabajar(L.T("Compilando el proyecto…"), async () =>
             {
-                var progreso = ProgresoEnEstado();
-                // Compila, y en cada PLC cada FB de mensajes se exporta, se renumera y se vuelve a importar en su sitio.
-                // Los que el proyecto no tiene (estaciones que no existen) no salen al buscar.
-                var resultado = await Contexto.Tia().EnProyecto(p =>
+                var tia = await Contexto.TiaAsync();
+                var progreso = Contexto.ProgresoTia();
+                var plcs = Contexto.Proyecto.Devices.Where(d => d.Kind == DeviceKind.Plc).Select(d => d.Name).ToList();
+                if (plcs.Count == 0)
                 {
-                    p.CompilarTodo();
-                    var bloques = Bloques.SelectMany(p.BuscarPorNombre).ToList();
-                    return p.ModificarBloques(bloques, (_, xml) => Renumerar(xml), compilar: false, progreso);
-                });
+                    Contexto.MostrarEstado(L.T("No se encontró ningún PLC con software en el proyecto."), error: true);
+                    return;
+                }
 
-                int hechos = resultado.Correctos;
-                var fallos = resultado.Fallos;
+                // Compila, y en cada PLC cada FB de mensajes se exporta, se renumera y se vuelve a importar en su sitio.
+                // Los que el proyecto no tiene (estaciones que no existen) no salen al buscar. El árbol se lee una vez
+                // de TIA (no el ya leído al conectar, que puede estar viejo) y se busca en él.
+                await tia.CompileAsync(new CompileArgs { Scope = CompileScope.Project }, progreso);
+                var arbol = await tia.ReadTreeAsync(plcs, new string[0], progreso);
+                var bloques = arbol.Plcs
+                    .SelectMany(p => BlockSearch.Find(p, (_, b) => Bloques.Contains(b.Name, StringComparer.OrdinalIgnoreCase)))
+                    .ToList();
+                var resultado = await tia.ModifyBlocksAsync(bloques, (_, xml) => Task.FromResult(Renumerar(xml)), compile: false, progreso);
+
+                int hechos = resultado.Succeeded;
+                var fallos = TextosTia.Fallos(resultado, importando: true);
                 Contexto.PonerFallos(fallos);
                 Contexto.MostrarEstado(hechos == 0 && fallos.Count == 0
                     ? L.T("El proyecto no tiene ningún FB de mensajes de SICAR.")

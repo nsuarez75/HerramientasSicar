@@ -1,10 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using HerramientasSICAR.Logica;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -27,7 +26,7 @@ namespace HerramientasSICAR.ViewModels
         private readonly Action _alCambiarMarcas;
         private bool _propagando;
 
-        private NodoArbol(TipoNodo tipo, string dispositivo, RamaHmi? rama, IReadOnlyList<string> grupos, string nombre, string detalle,
+        private NodoArbol(TipoNodo tipo, string dispositivo, HmiBranch? rama, IReadOnlyList<string> grupos, string nombre, string detalle,
             NodoArbol padre, Action alCambiarMarcas)
         {
             Tipo = tipo;
@@ -46,7 +45,7 @@ namespace HerramientasSICAR.ViewModels
         public string Dispositivo { get; }
 
         /// <summary>Rama de la HMI (null en los PLC y en el propio nodo de la HMI).</summary>
-        public RamaHmi? Rama { get; }
+        public HmiBranch? Rama { get; }
 
         /// <summary>
         /// Carpetas hasta este nodo: en un PLC desde "Bloques de programa"; en una HMI, dentro de su rama.
@@ -76,7 +75,7 @@ namespace HerramientasSICAR.ViewModels
                     case TipoNodo.Plc: return "cpu";
                     case TipoNodo.Hmi: return "monitor";
                     case TipoNodo.Bloque: return "box";
-                    case TipoNodo.ElementoHmi: return Rama == RamaHmi.Variables ? "list-ordered" : Rama == RamaHmi.Scripts ? "file-code" : "layers";
+                    case TipoNodo.ElementoHmi: return Rama == HmiBranch.Tags ? "list-ordered" : Rama == HmiBranch.Scripts ? "file-code" : "layers";
                     default: return "folder";
                 }
             }
@@ -96,28 +95,28 @@ namespace HerramientasSICAR.ViewModels
 
         /// <summary>
         /// Árbol de un PLC. <paramref name="alCambiarMarcas"/> se llama cada vez que el usuario marca o desmarca algo.
-        /// Con <paramref name="gruposRaiz"/>, <see cref="PlcInfo.Raiz"/> es esa carpeta del PLC y no la raíz de bloques
+        /// Con <paramref name="gruposRaiz"/>, <see cref="PlcTree.Root"/> es esa carpeta del PLC y no la raíz de bloques
         /// (los selectores de las herramientas que empiezan en la carpeta de secuencias).
         /// </summary>
-        public static NodoArbol DesdePlc(PlcInfo plc, Action alCambiarMarcas, IReadOnlyList<string> gruposRaiz = null)
+        public static NodoArbol DesdePlc(PlcTree plc, Action alCambiarMarcas, IReadOnlyList<string> gruposRaiz = null)
         {
-            var nodo = new NodoArbol(TipoNodo.Plc, plc.Nombre, null, gruposRaiz ?? new string[0], plc.Nombre, null, null, alCambiarMarcas) { IsExpanded = true };
-            nodo.AñadirContenido(plc.Raiz);
+            var nodo = new NodoArbol(TipoNodo.Plc, plc.Name, null, gruposRaiz ?? new string[0], plc.Name, null, null, alCambiarMarcas) { IsExpanded = true };
+            nodo.AñadirContenido(plc.Root);
             return nodo;
         }
 
         /// <summary>Árbol de una HMI: sus ramas, con las únicas (elementos globales, vista general) como elementos sueltos.</summary>
-        public static NodoArbol DesdeHmi(HmiInfo hmi, Action alCambiarMarcas)
+        public static NodoArbol DesdeHmi(HmiTree hmi, Action alCambiarMarcas)
         {
-            var nodo = new NodoArbol(TipoNodo.Hmi, hmi.Nombre, null, new string[0], hmi.Nombre, null, null, alCambiarMarcas) { IsExpanded = true };
-            foreach (var rama in hmi.Ramas)
+            var nodo = new NodoArbol(TipoNodo.Hmi, hmi.Name, null, new string[0], hmi.Name, null, null, alCambiarMarcas) { IsExpanded = true };
+            foreach (var rama in hmi.Branches)
                 nodo.Hijos.Add(nodo.NodoDeRama(rama));
             return nodo;
         }
 
         /// <summary>Un PLC o una HMI sin su contenido, que se lee después con <see cref="ReemplazarContenido"/> o <see cref="ReemplazarRamas"/>.</summary>
-        public static NodoArbol SinLeer(DispositivoInfo dispositivo, Action alCambiarMarcas) =>
-            new NodoArbol(dispositivo.EsHmi ? TipoNodo.Hmi : TipoNodo.Plc, dispositivo.Nombre, null, new string[0], dispositivo.Nombre,
+        public static NodoArbol SinLeer(DeviceInfo dispositivo, Action alCambiarMarcas) =>
+            new NodoArbol(dispositivo.Kind == DeviceKind.Hmi ? TipoNodo.Hmi : TipoNodo.Plc, dispositivo.Name, null, new string[0], dispositivo.Name,
                 L.T("sin leer"), null, alCambiarMarcas) { Leido = false };
 
         /// <summary>El PLC o la HMI del que cuelga este nodo.</summary>
@@ -126,7 +125,7 @@ namespace HerramientasSICAR.ViewModels
         /// <summary>
         /// Cambia los bloques de este PLC por los recién leídos. Lo que ya estaba conserva sus marcas y sus carpetas abiertas.
         /// </summary>
-        public void ReemplazarContenido(GrupoInfo raiz)
+        public void ReemplazarContenido(BlockFolder raiz)
         {
             var anteriores = Hijos.ToList();
             Hijos.Clear();
@@ -140,7 +139,7 @@ namespace HerramientasSICAR.ViewModels
         /// Cambia esas ramas de esta HMI por las recién leídas (<paramref name="leidas"/>: las que el panel tiene).
         /// Las demás ramas no se tocan; lo que ya estaba conserva sus marcas y sus carpetas abiertas.
         /// </summary>
-        public void ReemplazarRamas(IEnumerable<RamaHmi> ramas, IReadOnlyList<RamaInfo> leidas)
+        public void ReemplazarRamas(IEnumerable<HmiBranch> ramas, IReadOnlyList<HmiBranchTree> leidas)
         {
             foreach (var rama in ramas)
             {
@@ -148,7 +147,7 @@ namespace HerramientasSICAR.ViewModels
                 if (anterior != null)
                     Hijos.Remove(anterior);
 
-                var info = leidas.FirstOrDefault(r => r.Rama == rama);
+                var info = leidas.FirstOrDefault(r => r.Branch == rama);
                 if (info == null)
                     continue;
                 var nuevo = NodoDeRama(info);
@@ -181,22 +180,22 @@ namespace HerramientasSICAR.ViewModels
             return Hijos.Select(h => h.Buscar(modelo)).FirstOrDefault(n => n != null);
         }
 
-        private static int Orden(RamaHmi rama)
+        private static int Orden(HmiBranch rama)
         {
-            for (int i = 0; i < ArchivosHmi.OrdenArbol.Count; i++)
-                if (ArchivosHmi.OrdenArbol[i] == rama)
+            for (int i = 0; i < HmiRules.TreeOrder.Count; i++)
+                if (HmiRules.TreeOrder[i] == rama)
                     return i;
-            return ArchivosHmi.OrdenArbol.Count;
+            return HmiRules.TreeOrder.Count;
         }
 
-        private NodoArbol NodoDeRama(RamaInfo rama)
+        private NodoArbol NodoDeRama(HmiBranchTree rama)
         {
-            string nombre = L.T(ArchivosHmi.Nombre(rama.Rama));
-            if (ArchivosHmi.EsUnica(rama.Rama))
-                return new NodoArbol(TipoNodo.ElementoHmi, Dispositivo, rama.Rama, new string[0], nombre, null, this, _alCambiarMarcas);
+            string nombre = L.T(HmiRules.FolderName(rama.Branch));
+            if (HmiRules.IsSingleItem(rama.Branch))
+                return new NodoArbol(TipoNodo.ElementoHmi, Dispositivo, rama.Branch, new string[0], nombre, null, this, _alCambiarMarcas);
 
-            var hijo = new NodoArbol(TipoNodo.Rama, Dispositivo, rama.Rama, new string[0], nombre, null, this, _alCambiarMarcas);
-            hijo.AñadirContenido(rama.Raiz);
+            var hijo = new NodoArbol(TipoNodo.Rama, Dispositivo, rama.Branch, new string[0], nombre, null, this, _alCambiarMarcas);
+            hijo.AñadirContenido(rama.Root);
             return hijo;
         }
 
@@ -225,30 +224,30 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        private void AñadirContenido(GrupoInfo grupo)
+        private void AñadirContenido(BlockFolder grupo)
         {
-            foreach (var subgrupo in grupo.Grupos)
+            foreach (var subgrupo in grupo.Folders)
             {
-                var hijo = new NodoArbol(TipoNodo.Carpeta, Dispositivo, null, Grupos.Concat(new[] { subgrupo.Nombre }).ToList(), subgrupo.Nombre, null, this, _alCambiarMarcas);
+                var hijo = new NodoArbol(TipoNodo.Carpeta, Dispositivo, null, Grupos.Concat(new[] { subgrupo.Name }).ToList(), subgrupo.Name, null, this, _alCambiarMarcas);
                 hijo.AñadirContenido(subgrupo);
                 Hijos.Add(hijo);
             }
-            foreach (var bloque in grupo.Bloques)
+            foreach (var bloque in grupo.Blocks)
             {
-                string detalle = $"{bloque.Tipo}{bloque.Numero}" + (bloque.Protegido ? " · " + L.T("protegido") : "");
-                Hijos.Add(new NodoArbol(TipoNodo.Bloque, Dispositivo, null, Grupos, bloque.Nombre, detalle, this, _alCambiarMarcas));
+                string detalle = $"{bloque.Type}{bloque.Number}" + (bloque.IsProtected ? " · " + L.T("protegido") : "");
+                Hijos.Add(new NodoArbol(TipoNodo.Bloque, Dispositivo, null, Grupos, bloque.Name, detalle, this, _alCambiarMarcas));
             }
         }
 
-        private void AñadirContenido(CarpetaHmiInfo carpeta)
+        private void AñadirContenido(HmiFolder carpeta)
         {
-            foreach (var subcarpeta in carpeta.Carpetas)
+            foreach (var subcarpeta in carpeta.Folders)
             {
-                var hijo = new NodoArbol(TipoNodo.Carpeta, Dispositivo, Rama, Grupos.Concat(new[] { subcarpeta.Nombre }).ToList(), subcarpeta.Nombre, null, this, _alCambiarMarcas);
+                var hijo = new NodoArbol(TipoNodo.Carpeta, Dispositivo, Rama, Grupos.Concat(new[] { subcarpeta.Name }).ToList(), subcarpeta.Name, null, this, _alCambiarMarcas);
                 hijo.AñadirContenido(subcarpeta);
                 Hijos.Add(hijo);
             }
-            foreach (var elemento in carpeta.Elementos)
+            foreach (var elemento in carpeta.Items)
                 Hijos.Add(new NodoArbol(TipoNodo.ElementoHmi, Dispositivo, Rama, Grupos, elemento, null, this, _alCambiarMarcas));
         }
 

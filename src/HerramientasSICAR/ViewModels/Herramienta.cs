@@ -1,10 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using HerramientasSICAR.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
@@ -38,25 +38,17 @@ namespace HerramientasSICAR.ViewModels
 
         protected bool Libre => !Contexto.Ocupado;
 
-        /// <summary>Progreso que se ve en la barra de estado (vale desde el hilo de Openness).</summary>
+        /// <summary>Progreso que se ve en la barra de estado (vale desde cualquier hilo).</summary>
         protected IProgress<string> ProgresoEnEstado() => new Progress<string>(texto => Contexto.MostrarEstado(texto));
 
         /// <summary>
-        /// El PLC con el que trabajar: si el proyecto (o <paramref name="candidatos"/>) tiene uno, ese; si tiene varios,
-        /// se pregunta. Null si no hay ninguno o se cancela.
+        /// El PLC con el que trabajar: si el proyecto conectado (o <paramref name="candidatos"/>) tiene uno, ese; si tiene
+        /// varios, se pregunta. Null si no hay ninguno o se cancela.
         /// </summary>
         protected async Task<string> ElegirPlc(string titulo, string aceptar, IReadOnlyList<string> candidatos = null)
         {
-            var plcs = candidatos;
-            if (plcs == null)
-            {
-                await Contexto.Trabajar(L.T("Buscando los PLC del proyecto…"), async () =>
-                {
-                    plcs = await Contexto.Tia().EnProyecto(p => p.NombresPlc());
-                });
-                if (plcs == null)
-                    return null;
-            }
+            var plcs = candidatos ?? Contexto.Proyecto?.Devices.Where(d => d.Kind == DeviceKind.Plc).Select(d => d.Name).ToList()
+                ?? new List<string>();
             if (plcs.Count == 0)
             {
                 Contexto.MostrarEstado(L.T("No se encontró ningún PLC con software en el proyecto."), error: true);

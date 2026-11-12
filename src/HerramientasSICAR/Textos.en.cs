@@ -50,6 +50,16 @@ namespace HerramientasSICAR
             ["no se encuentra el PLC '{0}'"] = "PLC '{0}' not found",
             ["No se encontró el bloque '{0}' en el proyecto."] = "Block '{0}' was not found in the project.",
             ["ya no existe en el proyecto"] = "no longer exists in the project",
+            ["importado, pero no compila; revísalo en TIA"] = "imported, but it does not compile; check it in TIA",
+            ["la ruta es demasiado larga para Windows; usa una carpeta con una ruta más corta"] =
+                "the path is too long for Windows; use a folder with a shorter path",
+            ["error de TIA sin detalle"] = "TIA error with no details",
+            ["TIA Portal no ha dejado entrar a la aplicación: acepta su aviso o comprueba que tu usuario está en el grupo «Siemens TIA Openness»."] =
+                "TIA Portal did not let the application in: accept its prompt or check that your user is in the «Siemens TIA Openness» group.",
+            ["Se ha cortado la conexión con TIA Portal. Vuelve a conectar."] = "The connection with TIA Portal was lost. Connect again.",
+            ["Abriendo {0} en TIA Portal…"] = "Opening {0} in TIA Portal…",
+            ["Compilando {0}…"] = "Compiling {0}…",
+            ["No se ha podido exportar {0}."] = "{0} could not be exported.",
 
             // ---- Diálogos
             ["Aceptar"] = "OK",
@@ -150,8 +160,8 @@ namespace HerramientasSICAR
             ["Nombre del bloque en el proyecto conectado."] = "Name of the block in the connected project.",
             ["Ej.: FB1040_ST10_FB"] = "E.g. FB1040_ST10_FB",
             ["Exportar y generar Excel"] = "Export and generate Excel",
-            ["El bloque se compila y se exporta a la carpeta del proyecto (junto al .ap19), y el Excel se guarda allí como «bloque»_DIAG.xlsx."] =
-                "The block is compiled and exported to the project folder (next to the .ap19), and the Excel file is saved there as «block»_DIAG.xlsx.",
+            ["El bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar. El Excel se guarda en la carpeta del proyecto (junto al .ap19) como «bloque»_DIAG.xlsx."] =
+                "The block is compiled if needed and exported to a temporary folder that is deleted afterwards. The Excel file is saved in the project folder (next to the .ap19) as «block»_DIAG.xlsx.",
             ["Exportando {0}…"] = "Exporting {0}…",
             ["Excel generado: {0}"] = "Excel file generated: {0}",
             ["El archivo XML exportado no existe."] = "The exported XML file does not exist.",
