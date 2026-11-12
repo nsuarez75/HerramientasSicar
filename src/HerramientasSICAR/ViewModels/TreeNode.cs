@@ -26,10 +26,10 @@ namespace HerramientasSICAR.ViewModels
         private readonly Action _onChecksChanged;
         private bool _propagating;
 
-        private TreeNode(NodeKind tipo, string device, HmiBranch? branch, IReadOnlyList<string> groups, string name, string detail,
+        private TreeNode(NodeKind kind, string device, HmiBranch? branch, IReadOnlyList<string> groups, string name, string detail,
             TreeNode parent, Action onChecksChanged)
         {
-            Kind = tipo;
+            Kind = kind;
             Device = device;
             Branch = branch;
             Groups = groups;

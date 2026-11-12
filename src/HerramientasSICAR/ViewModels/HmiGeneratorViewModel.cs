@@ -300,9 +300,9 @@ namespace HerramientasSICAR.ViewModels
             }
 
             ProductionDatasets.Clear();
-            foreach (var tipo in MenuCatalog.ProductionDataKinds)
+            foreach (var kind in MenuCatalog.ProductionDataKinds)
                 for (int dataset = 1; dataset <= MenuCatalog.ProductionDatasets; dataset++)
-                    ProductionDatasets.Add(new ProductionDataset(tipo, dataset, project, this));
+                    ProductionDatasets.Add(new ProductionDataset(kind, dataset, project, this));
             SelectedDataset = ProductionDatasets[0];
 
             if (SelectedNode == null)

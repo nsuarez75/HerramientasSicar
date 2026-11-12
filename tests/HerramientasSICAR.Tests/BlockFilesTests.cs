@@ -83,12 +83,12 @@ namespace HerramientasSICAR.Tests
         public void PrepareFolder_NonBlockXml_Discards()
         {
             CreateXml("Bloque.xml", "SW.Blocks.FB");
-            string tipo = CreateXml("Tipo.xml", "SW.Types.PlcStruct");
+            string typeFile = CreateXml("Tipo.xml", "SW.Types.PlcStruct");
 
             var files = BlockFiles.PrepareFiles(Directory.GetFiles(_folder), out var discarded);
 
             Assert.Single(files);
-            Assert.Equal(new[] { tipo }, discarded);
+            Assert.Equal(new[] { typeFile }, discarded);
         }
 
         [Fact]
