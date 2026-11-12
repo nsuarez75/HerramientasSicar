@@ -85,7 +85,7 @@ namespace HerramientasSICAR.ViewModels
         [RelayCommand(CanExecute = nameof(PuedeLeer))]
         private async Task Leer()
         {
-            string plc = Seleccionado.Raiz.Nombre;
+            string plc = Seleccionado.Raiz.Dispositivo;
             await _contexto.Trabajar(L.T("Leyendo el árbol del proyecto…"), async () =>
             {
                 await _contexto.LeerPlcAsync(plc);

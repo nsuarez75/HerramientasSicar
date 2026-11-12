@@ -146,6 +146,13 @@ namespace HerramientasSICAR.ViewModels
         /// <summary>PLC y HMI del proyecto conectado (vacío sin conexión).</summary>
         public IReadOnlyList<DeviceInfo> Dispositivos { get; private set; } = new List<DeviceInfo>();
 
+        /// <summary>Nombre con el que se enseña un PLC o una HMI del proyecto (en un IPC, el de la estación).</summary>
+        public string NombreVisible(string dispositivo)
+        {
+            var info = Dispositivos.FirstOrDefault(d => d.Name == dispositivo);
+            return info == null ? dispositivo : Logica.NombresDispositivo.Visible(info, Dispositivos);
+        }
+
         /// <summary>Árbol leído de un PLC, o null si no se ha leído (se eligió no leerlo al conectar).</summary>
         public PlcTree PlcLeido(string nombre) => _plcsLeidos.TryGetValue(nombre, out var plc) ? plc : null;
 

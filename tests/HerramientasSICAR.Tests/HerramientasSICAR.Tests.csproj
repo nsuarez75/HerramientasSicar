@@ -16,6 +16,7 @@
     <Compile Include="..\..\src\HerramientasSICAR\Logica\MenusHmi\*.cs" LinkBase="Logica\MenusHmi" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ComentariosSecuencia.cs" Link="Logica\ComentariosSecuencia.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Logica\ArraysBloque.cs" Link="Logica\ArraysBloque.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logica\NombresDispositivo.cs" Link="Logica\NombresDispositivo.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\ViewModels\NodoArbol.cs" Link="ViewModels\NodoArbol.cs" />

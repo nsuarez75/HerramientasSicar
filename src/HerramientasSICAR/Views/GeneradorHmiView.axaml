@@ -307,7 +307,7 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:DestinoHmi">
-                                            <CheckBox IsChecked="{Binding Marcado}" Content="{Binding Nombre}" Margin="0,0,16,0" />
+                                            <CheckBox IsChecked="{Binding Marcado}" Content="{Binding NombreVisible}" Margin="0,0,16,0" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

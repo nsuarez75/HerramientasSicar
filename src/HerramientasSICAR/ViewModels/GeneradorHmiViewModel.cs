@@ -128,7 +128,8 @@ namespace HerramientasSICAR.ViewModels
             {
                 if (dispositivo.Kind == DeviceKind.Hmi)
                 {
-                    var destino = new DestinoHmi(dispositivo.Name, primeraVez || hmisMarcadas.Contains(dispositivo.Name));
+                    var destino = new DestinoHmi(dispositivo.Name, Contexto.NombreVisible(dispositivo.Name),
+                        primeraVez || hmisMarcadas.Contains(dispositivo.Name));
                     destino.PropertyChanged += (_, __) => ImportarEnTiaCommand.NotifyCanExecuteChanged();
                     HmisDestino.Add(destino);
                 }
@@ -168,7 +169,7 @@ namespace HerramientasSICAR.ViewModels
             if (plc != null)
                 partes.Add(L.T("el FC {0} en {1}", GeneradorMenus.NombreFc, plc));
             if (hmis.Count > 0)
-                partes.Add(L.T("{0} lista(s) de textos en {1}", listas.Count, string.Join(", ", hmis)));
+                partes.Add(L.T("{0} lista(s) de textos en {1}", listas.Count, string.Join(", ", hmis.Select(Contexto.NombreVisible))));
             if (!await Contexto.Dialogos.Confirmar(L.T("Importar en TIA"),
                     L.T("Se importan {0}. Lo que ya exista con el mismo nombre se sobrescribe. Guarda antes el proyecto en TIA.", string.Join(L.T(" y "), partes)),
                     L.T("Importar")))
@@ -211,7 +212,7 @@ namespace HerramientasSICAR.ViewModels
                     {
                         var r = await tia.ImportHmiAsync(new ImportHmiArgs { Hmi = hmi, Files = archivos }, progreso);
                         importados += r.Succeeded;
-                        fallos.AddRange(TextosTia.Fallos(r).Select(f => hmi + " · " + f));
+                        fallos.AddRange(TextosTia.Fallos(r).Select(f => Contexto.NombreVisible(hmi) + " · " + f));
                     }
                 }
 

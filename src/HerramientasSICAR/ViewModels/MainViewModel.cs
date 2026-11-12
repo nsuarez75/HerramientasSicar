@@ -214,7 +214,7 @@ namespace HerramientasSICAR.ViewModels
 
             Contexto.Ajustes.DispositivosLeidos.TryGetValue(ruta, out var anteriores);
             var marcadas = dispositivos.Select(d => anteriores == null || anteriores.Contains(d.Name)).ToList();
-            var opciones = dispositivos.Select(d => d.Name + " · " + (d.Kind == DeviceKind.Hmi ? "HMI" : "PLC")).ToList();
+            var opciones = dispositivos.Select(d => NombresDispositivo.Visible(d, dispositivos) + " · " + (d.Kind == DeviceKind.Hmi ? "HMI" : "PLC")).ToList();
 
             var elegidas = await Dialogos.ElegirVarios(L.T("¿Qué quieres leer del proyecto?"),
                 L.T("Leer el árbol de cada PLC o HMI lleva un rato en proyectos grandes. Los que no marques salen en el árbol sin leer; luego puedes leerlos seleccionándolos y pulsando Leer."),
