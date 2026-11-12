@@ -40,16 +40,24 @@
         <Grid x:Name="Body" RowDefinitions="*,Auto,Auto">
             <Grid ColumnDefinitions="260,280,*" ColumnSpacing="14" IsVisible="{Binding HasPairs}">
                 <!-- Secuencias con pares -->
-                <ListBox Classes="table" ItemsSource="{Binding Sequences}" SelectedItem="{Binding SelectedSequence}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:SequenceRow">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" VerticalAlignment="Center" />
-                                <Border Grid.Column="1" Classes="pill warn"><TextBlock Text="{Binding Count}" /></Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <!-- Secuencias con pares, por OM -->
+                <Border Classes="card" Padding="4">
+                    <TreeView ItemsSource="{Binding ResultTree}" SelectedItem="{Binding SelectedResult}">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate DataType="vm:ResultNode" ItemsSource="{Binding Children}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" VerticalAlignment="Center" />
+                                    <Border Grid.Column="1" Classes="pill warn"><TextBlock Text="{Binding Count}" /></Border>
+                                </Grid>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                        <TreeView.Styles>
+                            <Style Selector="TreeViewItem" x:DataType="vm:ResultNode">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                    </TreeView>
+                </Border>
 
                 <!-- Pares de la secuencia -->
                 <ListBox Grid.Column="1" Classes="table" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">

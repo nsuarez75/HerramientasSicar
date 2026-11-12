@@ -28,8 +28,29 @@ namespace HerramientasSICAR.ViewModels
         public SequenceBlock SequenceBlock { get; }
         public string Zone { get; }
         public IReadOnlyList<PairRow> Pairs { get; }
-        public string Text => $"{Zone}  ·  {SequenceBlock.Sequence}  ·  {SequenceBlock.Name}";
+        public string Text => $"{SequenceBlock.Sequence}  ·  {SequenceBlock.Name}";
         public string Count => Pairs.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Nodo del árbol de resultados: un OM con sus secuencias, o una secuencia.</summary>
+    public sealed partial class ResultNode : ObservableObject
+    {
+        public ResultNode(string text, int count, SequenceRow sequence = null)
+        {
+            Text = text;
+            Count = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Sequence = sequence;
+        }
+
+        public string Text { get; }
+        public string Count { get; }
+
+        /// <summary>La secuencia, o null en un nodo de OM.</summary>
+        public SequenceRow Sequence { get; }
+        public ObservableCollection<ResultNode> Children { get; } = new ObservableCollection<ResultNode>();
+
+        [ObservableProperty]
+        private bool _isExpanded;
     }
 
     public sealed class PairRow
@@ -141,6 +162,12 @@ namespace HerramientasSICAR.ViewModels
         public override bool UsesTia => false;
 
         public ObservableCollection<SequenceRow> Sequences { get; } = new ObservableCollection<SequenceRow>();
+
+        /// <summary>Secuencias con pares, agrupadas por OM.</summary>
+        public ObservableCollection<ResultNode> ResultTree { get; } = new ObservableCollection<ResultNode>();
+
+        [ObservableProperty]
+        private ResultNode _selectedResult;
         public ObservableCollection<PairRow> Pairs { get; } = new ObservableCollection<PairRow>();
         public ObservableCollection<CandidateRow> CandidateRows { get; } = new ObservableCollection<CandidateRow>();
         public ObservableCollection<GroupRow> Groups { get; } = new ObservableCollection<GroupRow>();
@@ -318,6 +345,7 @@ namespace HerramientasSICAR.ViewModels
             Sequences.Clear();
             foreach (var row in rows)
                 Sequences.Add(row);
+            BuildTree(rows);
             Groups.Clear();
             foreach (var group in groups)
                 Groups.Add(new GroupRow(group));
@@ -336,10 +364,41 @@ namespace HerramientasSICAR.ViewModels
         private static string Zone(PlcProgram program, SequenceBlock sequence) =>
             program.OperationModeOf(sequence.Sequence) is int om ? $"OM{om}" : "*";
 
+        // Un nodo por OM (en orden; las secuencias sin OM, al final) con sus secuencias. Los OM salen plegados salvo el
+        // de la secuencia elegida.
+        private void BuildTree(IReadOnlyList<SequenceRow> rows)
+        {
+            ResultTree.Clear();
+            foreach (var zone in rows.GroupBy(r => r.Zone)
+                         .OrderBy(g => g.Key == "*" ? int.MaxValue : int.TryParse(g.Key.Substring(2), out int n) ? n : int.MaxValue - 1))
+            {
+                var node = new ResultNode(zone.Key == "*" ? L.T("Sin OM") : zone.Key, zone.Sum(r => r.Pairs.Count));
+                foreach (var row in zone)
+                    node.Children.Add(new ResultNode(row.Text, row.Pairs.Count, row));
+                ResultTree.Add(node);
+            }
+        }
+
+        partial void OnSelectedResultChanged(ResultNode value)
+        {
+            if (value?.Sequence != null && value.Sequence != SelectedSequence)
+                SelectedSequence = value.Sequence;
+        }
+
         private static string StepNetwork(SequenceStep step, string language) => $"{step.Label}  {step.Title(language)}";
 
         partial void OnSelectedSequenceChanged(SequenceRow value)
         {
+            // El árbol sigue a la secuencia elegida (también al recalcular): se despliega su OM.
+            foreach (var zone in ResultTree)
+            {
+                var node = zone.Children.FirstOrDefault(n => n.Sequence == value);
+                if (node == null)
+                    continue;
+                zone.IsExpanded = true;
+                if (SelectedResult != node)
+                    SelectedResult = node;
+            }
             Pairs.Clear();
             foreach (var pair in value?.Pairs ?? (IReadOnlyList<PairRow>)Array.Empty<PairRow>())
                 Pairs.Add(pair);
