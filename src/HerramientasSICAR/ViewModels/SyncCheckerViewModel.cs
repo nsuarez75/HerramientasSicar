@@ -87,9 +87,9 @@ namespace HerramientasSICAR.ViewModels
     }
 
     /// <summary>
-    /// Doble sincronización de un PLC (Nucleo/Sicar/SyncChecker.cs): pares de
+    /// Doble sincronización de un PLC (Core/Sicar/SyncChecker.cs): pares de
     /// pasos que pueden sincronizar a la vez y decisiones del usuario sobre señales excluyentes. Al exportar desde TIA,
-    /// el programa va a %TEMP% y las decisiones a AppData (<see cref="ArchivoSincro.EnAppData"/>); al abrir una carpeta
+    /// el programa va a %TEMP% y las decisiones a AppData (<see cref="SyncFile.InAppData"/>); al abrir una carpeta
     /// exportada a mano, al sincro.json de esa carpeta.
     /// </summary>
     public partial class SyncCheckerViewModel : Tool

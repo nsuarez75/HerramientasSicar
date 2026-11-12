@@ -63,14 +63,18 @@ public sealed partial class SyncChecker
     public IReadOnlyList<ExclusiveGroup> ExclusiveGroups { get; init; } = [];
 
     // Señales entre las que el usuario puede elegir un grupo excluyente para un par: las que un paso exige
-    // a 1 y el otro no (si fueran excluyentes, los dos pasos no podrían sincronizar a la vez).
-    public IReadOnlyList<string> ExclusionCandidates(SyncConflict conflict, SequenceStep? permanent = null) =>
-        Differences(conflict, permanent)
+    // a 1 y el otro no (si fueran excluyentes, los dos pasos no podrían sincronizar a la vez). Un grupo necesita
+    // al menos dos señales: con una sola no hay nada que proponer.
+    public IReadOnlyList<string> ExclusionCandidates(SyncConflict conflict, SequenceStep? permanent = null)
+    {
+        var signals = Differences(conflict, permanent)
             .Where(d => d.Value)
             .Select(d => d.Signal)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(s => s, StringComparer.Ordinal)
             .ToList();
+        return signals.Count >= 2 ? signals : [];
+    }
 
     public IReadOnlyList<SequenceStep> Candidates(SequenceBlock sequence)
     {
