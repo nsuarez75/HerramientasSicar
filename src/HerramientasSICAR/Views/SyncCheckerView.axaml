@@ -38,7 +38,7 @@
 
         <!-- Pares arriba y decisiones guardadas abajo: la separación se arrastra y las decisiones se pliegan -->
         <Grid x:Name="Body" RowDefinitions="*,Auto,Auto">
-            <Grid ColumnDefinitions="300,*" ColumnSpacing="14" IsVisible="{Binding HasPairs}">
+            <Grid ColumnDefinitions="260,280,*" ColumnSpacing="14" IsVisible="{Binding HasPairs}">
                 <!-- Secuencias con pares -->
                 <ListBox Classes="table" ItemsSource="{Binding Sequences}" SelectedItem="{Binding SelectedSequence}">
                     <ListBox.ItemTemplate>
@@ -51,18 +51,64 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- Pares de la secuencia arriba y decisión sobre el par elegido abajo, con la misma separación -->
-                <Grid x:Name="PairArea" Grid.Column="1" RowDefinitions="*,Auto,Auto">
-                    <ListBox Classes="table" MinHeight="80" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:PairRow">
-                                <StackPanel Margin="0,2">
-                                    <TextBlock Text="{Binding StepAName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepAName}" />
-                                    <TextBlock Text="{Binding StepBName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepBName}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                <!-- Pares de la secuencia -->
+                <ListBox Grid.Column="1" Classes="table" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PairRow">
+                            <StackPanel Margin="0,2">
+                                <TextBlock Text="{Binding StepAName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepAName}" />
+                                <TextBlock Text="{Binding StepBName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepBName}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Ladder de los dos pasos del par arriba y decisión sobre el par abajo, con la separación arrastrable -->
+                <Grid x:Name="PairArea" Grid.Column="2" RowDefinitions="*,Auto,Auto">
+                    <Border Classes="card" MinHeight="120" IsVisible="{Binding HasPair}">
+                        <DockPanel>
+                            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,10">
+                                <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="{l:T 'Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato.'}" />
+                                <Button Grid.Column="1" Command="{Binding ResetStateCommand}" IsVisible="{Binding StateChanged}" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <c:Icon Kind="rotate-ccw" />
+                                        <TextBlock Text="{l:T 'Volver al estado encontrado'}" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Ladder}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="28" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:StepLadderRow">
+                                            <StackPanel Spacing="6">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                    <Border Classes="pill good" IsVisible="{Binding IsCandidate}"><TextBlock Text="{l:T 'candidato'}" /></Border>
+                                                    <Border Classes="pill bad" IsVisible="{Binding IsNotCandidate}"><TextBlock Text="{l:T 'no candidato'}" /></Border>
+                                                    <Border Classes="pill" IsVisible="{Binding IsUnknown}"><TextBlock Text="{l:T 'sin decidir'}" /></Border>
+                                                </StackPanel>
+                                                <TextBlock Classes="muted" IsVisible="{Binding HasNoRungs}" Text="{l:T 'Sin ilockAuto, ilockExtSync, transAuto ni saltos programados.'}" />
+                                                <ItemsControl ItemsSource="{Binding Rungs}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:RungRow">
+                                                            <c:LadRungView Rung="{Binding Rung}" State="{Binding State}" HorizontalAlignment="Left" Margin="0,0,0,12" Cursor="Hand"
+                                                                           ToggleCommand="{Binding $parent[UserControl].((vm:SyncCheckerViewModel)DataContext).ToggleSignalCommand}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
 
                     <GridSplitter x:Name="DecisionSplitter" Grid.Row="1" Height="12" ResizeDirection="Rows" Background="Transparent"
                                   IsVisible="{Binding HasPair}" />

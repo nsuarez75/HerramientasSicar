@@ -64,6 +64,38 @@ namespace HerramientasSICAR.ViewModels
         private bool _isChecked;
     }
 
+    /// <summary>Escalón de un paso con el estado de señales que se está mirando.</summary>
+    public sealed class RungRow
+    {
+        public RungRow(LadRung rung, IReadOnlyDictionary<string, bool> state)
+        {
+            Rung = rung;
+            State = state;
+        }
+
+        public LadRung Rung { get; }
+        public IReadOnlyDictionary<string, bool> State { get; }
+    }
+
+    /// <summary>Un paso del par: si es candidato con el estado y los escalones que lo deciden.</summary>
+    public sealed class StepLadderRow
+    {
+        public StepLadderRow(string title, bool? candidate, IReadOnlyList<RungRow> rungs)
+        {
+            Title = title;
+            Candidate = candidate;
+            Rungs = rungs;
+        }
+
+        public string Title { get; }
+        public bool? Candidate { get; }
+        public IReadOnlyList<RungRow> Rungs { get; }
+        public bool IsCandidate => Candidate == true;
+        public bool IsNotCandidate => Candidate == false;
+        public bool IsUnknown => Candidate == null;
+        public bool HasNoRungs => Rungs.Count == 0;
+    }
+
     public sealed class GroupRow
     {
         public GroupRow(ExclusiveGroup group)
@@ -112,6 +144,13 @@ namespace HerramientasSICAR.ViewModels
         public ObservableCollection<PairRow> Pairs { get; } = new ObservableCollection<PairRow>();
         public ObservableCollection<CandidateRow> CandidateRows { get; } = new ObservableCollection<CandidateRow>();
         public ObservableCollection<GroupRow> Groups { get; } = new ObservableCollection<GroupRow>();
+        public ObservableCollection<StepLadderRow> Ladder { get; } = new ObservableCollection<StepLadderRow>();
+
+        // Estado de señales del par elegido: el que encontró la comprobación, con los cambios que haga el usuario.
+        private Dictionary<string, bool> _state = new Dictionary<string, bool>();
+
+        [ObservableProperty]
+        private bool _stateChanged;
 
         /// <summary>Carpeta del programa exportado que se está analizando.</summary>
         [ObservableProperty]
@@ -309,6 +348,9 @@ namespace HerramientasSICAR.ViewModels
 
         partial void OnSelectedPairChanged(PairRow value)
         {
+            _state = value == null ? new Dictionary<string, bool>() : new Dictionary<string, bool>(value.Conflict.State);
+            StateChanged = false;
+            BuildLadder();
             CandidateRows.Clear();
             if (value != null && SelectedSequence != null && _program != null)
             {
@@ -323,6 +365,42 @@ namespace HerramientasSICAR.ViewModels
             MarkExclusiveCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(HasCandidates));
             OnPropertyChanged(nameof(NoCandidates));
+        }
+
+        // Cambia una señal del estado (si el estado no la decía, pasa a 1) para ver qué paso deja de ser candidato.
+        [RelayCommand]
+        private void ToggleSignal(string signal)
+        {
+            if (SelectedPair == null || string.IsNullOrEmpty(signal) || SyncChecker.FixedValue(signal).HasValue)
+                return;
+            _state[signal] = !(_state.TryGetValue(signal, out bool value) && value);
+            StateChanged = true;
+            BuildLadder();
+        }
+
+        [RelayCommand]
+        private void ResetState()
+        {
+            if (SelectedPair == null)
+                return;
+            _state = new Dictionary<string, bool>(SelectedPair.Conflict.State);
+            StateChanged = false;
+            BuildLadder();
+        }
+
+        private void BuildLadder()
+        {
+            Ladder.Clear();
+            var pair = SelectedPair;
+            if (pair == null || SelectedSequence == null)
+                return;
+            var permanent = SelectedSequence.SequenceBlock.Permanent;
+            var state = new Dictionary<string, bool>(_state);
+            foreach (var row in new[] { (pair.Conflict.StepA, pair.StepAName), (pair.Conflict.StepB, pair.StepBName) })
+            {
+                Ladder.Add(new StepLadderRow(row.Item2, SyncState.IsCandidate(row.Item1, permanent, state),
+                    StepRungs.ForSync(row.Item1).Select(r => new RungRow(r, state)).ToList()));
+            }
         }
 
         // Comentario de una señal simple para ayudar a decidir; las comparaciones no tienen.

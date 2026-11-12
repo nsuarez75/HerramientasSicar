@@ -10,7 +10,7 @@ namespace HerramientasSICAR.Views
             InitializeComponent();
             // La decisión sobre el par y las decisiones guardadas se pueden plegar y su alto se cambia arrastrando la
             // separación: así, con muchas señales, no quitan sitio a la lista de pares.
-            Foldable(PairArea, 2, DecisionPanel, DecisionCard, DecisionSplitter, 220);
+            Foldable(PairArea, 2, DecisionPanel, DecisionCard, DecisionSplitter, 200);
             Foldable(Body, 2, SavedPanel, SavedPanel, SavedSplitter, 160);
         }
 

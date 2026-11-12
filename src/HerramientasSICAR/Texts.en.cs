@@ -367,6 +367,13 @@ namespace HerramientasSICAR
             ["No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA."] =
                 "There are not at least two signals that one step requires at 1 and the other does not: there are no exclusive signals to propose for this pair. Check their interlocks in TIA.",
             ["Marcar como excluyentes"] = "Mark as exclusive",
+            ["Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato."] =
+                "Signal state in which both steps are candidates at the same time: green conducts, red does not. Click a contact to change its signal and see which step stops being a candidate.",
+            ["Volver al estado encontrado"] = "Back to the state found",
+            ["candidato"] = "candidate",
+            ["no candidato"] = "not a candidate",
+            ["sin decidir"] = "undecided",
+            ["Sin ilockAuto, ilockExtSync, transAuto ni saltos programados."] = "No ilockAuto, ilockExtSync, transAuto or jumps programmed.",
             ["Secuencia {0}: {1}"] = "Sequence {0}: {1}",
             ["No se pudo guardar la decisión: {0}"] = "Could not save the decision: {0}",
 

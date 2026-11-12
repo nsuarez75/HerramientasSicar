@@ -112,6 +112,22 @@ public class SyncCheckerTests
     }
 
     [Fact]
+    public void Conflicts_PermIlockExtSync_AddedToEachStep()
+    {
+        // PERM exige no estar abajo en su ilockExtSync: S005, que lo necesita, ya no puede ser candidato.
+        var sequence = Sequence(
+            Step(1, C("Arriba"), C("Pieza")),
+            Step(5, C("Abajo"), C("Fin"))) with
+        {
+            Permanent = new SequenceStep(0, "PERM", 1)
+            {
+                Sections = new Dictionary<SectionKind, LadExpression> { [SectionKind.IlockExtSync] = C("Abajo", negated: true) },
+            },
+        };
+        Assert.Empty(new SyncChecker().Check(sequence));
+    }
+
+    [Fact]
     public void Conflicts_HomeAndWorkSensors_Exclusive()
     {
         var sequence = Sequence(
@@ -290,6 +306,50 @@ public class SyncCheckerTests
         var conflict = Assert.Single(checker.Check(sequence));
 
         Assert.Empty(checker.ExclusionCandidates(conflict));
+    }
+
+    [Fact]
+    public void IsCandidate_ConflictState_BothStepsCandidates()
+    {
+        var sequence = Sequence(
+            Step(1, C("Arriba"), C("Pieza")),
+            Step(5, C("Puerta"), C("Abajo")));
+        var conflict = Assert.Single(new SyncChecker().Check(sequence));
+
+        Assert.True(SyncState.IsCandidate(conflict.StepA, null, conflict.State));
+        Assert.True(SyncState.IsCandidate(conflict.StepB, null, conflict.State));
+
+        // Con la pieza puesta, S001 ya ha cumplido su transición y deja de ser candidato.
+        var changed = new Dictionary<string, bool>(conflict.State) { ["\"Pieza\""] = true };
+        Assert.False(SyncState.IsCandidate(conflict.StepA, null, changed));
+    }
+
+    [Fact]
+    public void Value_UnknownSignal_OnlyDecidesWhenOthersDo()
+    {
+        var state = new Dictionary<string, bool> { ["\"A\""] = false, ["\"B\""] = true };
+
+        Assert.False(SyncState.Value(Series(C("A"), C("X")), state));
+        Assert.Null(SyncState.Value(Series(C("B"), C("X")), state));
+        Assert.True(SyncState.Value(Parallel(C("B"), C("X")), state));
+        Assert.True(SyncState.Value(C("A", negated: true), state));
+        Assert.True(SyncState.Value(SyncPulse, state));
+    }
+
+    [Fact]
+    public void ForSync_Step_OnlySyncSectionsAndJumps()
+    {
+        var step = Step(1, C("Arriba"), C("Pieza"), jumps: [new StepJump(10, C("Salto"))]) with
+        {
+            Sections = new Dictionary<SectionKind, LadExpression>
+            {
+                [SectionKind.IlockManual] = C("Manual"),
+                [SectionKind.IlockAuto] = C("Arriba"),
+                [SectionKind.TransAuto] = C("Pieza"),
+            },
+        };
+
+        Assert.Equal(["ilockAuto", "transAuto", "→ S010"], StepRungs.ForSync(step).Select(r => r.Coil));
     }
 
     [Fact]

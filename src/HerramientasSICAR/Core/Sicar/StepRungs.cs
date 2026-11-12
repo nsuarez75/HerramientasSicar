@@ -9,8 +9,8 @@ using HerramientasSICAR.Core.Lad;
 
 namespace HerramientasSICAR.Core.Sicar;
 
-// Escalón: la lógica ya dispuesta en la rejilla y lo que alimenta (ilockAuto, → S015…).
-public sealed record LadRung(string Coil, LadLayout Layout);
+// Escalón: la lógica, ya dispuesta en la rejilla, y lo que alimenta (ilockAuto, → S015…).
+public sealed record LadRung(string Coil, LadExpression Logic, LadLayout Layout);
 
 public static class StepRungs
 {
@@ -20,6 +20,9 @@ public static class StepRungs
         SectionKind.IlockExtSync, SectionKind.IlockExtInt, SectionKind.SetError, SectionKind.TransAuto,
         SectionKind.TwdRun, SectionKind.TwaRun, SectionKind.StopPosExternReached,
     ];
+
+    // Las secciones que cuentan al sincronizar (manual SICAR 2.9).
+    private static readonly SectionKind[] SyncSections = [SectionKind.IlockAuto, SectionKind.IlockExtSync, SectionKind.TransAuto];
 
     public static string Label(SectionKind kind) => kind switch
     {
@@ -36,18 +39,23 @@ public static class StepRungs
         _ => "stopPosExternReached",
     };
 
-    public static IReadOnlyList<LadRung> Build(SequenceStep step)
+    public static IReadOnlyList<LadRung> Build(SequenceStep step) => Build(step, Order);
+
+    // Solo lo que decide si el paso es candidato al sincronizar: ilockAuto, ilockExtSync, transAuto y los saltos.
+    public static IReadOnlyList<LadRung> ForSync(SequenceStep step) => Build(step, SyncSections);
+
+    private static IReadOnlyList<LadRung> Build(SequenceStep step, IEnumerable<SectionKind> kinds)
     {
         var rungs = new List<LadRung>();
-        foreach (var kind in Order)
+        foreach (var kind in kinds)
         {
             if (step.Sections.TryGetValue(kind, out var logic))
             {
-                rungs.Add(new LadRung(Label(kind), LadLayout.Build(logic)));
+                rungs.Add(new LadRung(Label(kind), logic, LadLayout.Build(logic)));
             }
         }
         rungs.AddRange(step.Jumps.Select(j => new LadRung("→ " + SicarNumbering.StepLabel(Math.Min(Math.Max(j.Target, SicarNumbering.FirstStep), SicarNumbering.LastStep)),
-            LadLayout.Build(j.Condition))));
+            j.Condition, LadLayout.Build(j.Condition))));
         return rungs;
     }
 }
