@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HerramientasSICAR.Logica;
+using HerramientasSICAR.Logic;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,192 +14,192 @@ namespace HerramientasSICAR.ViewModels
 {
     public partial class MainViewModel : ObservableObject, IDisposable
     {
-        private readonly ImportarExportarViewModel _importarExportar;
+        private readonly ImportExportViewModel _importExport;
 
-        public MainViewModel(Ajustes ajustes)
+        public MainViewModel(Settings settings)
         {
-            Contexto = new Contexto(ajustes);
-            Contexto.OcupadoCambiado += () =>
+            ToolContext = new ToolContext(settings);
+            ToolContext.BusyChanged += () =>
             {
-                BuscarProyectosCommand.NotifyCanExecuteChanged();
-                ConectarCommand.NotifyCanExecuteChanged();
+                FindProjectsCommand.NotifyCanExecuteChanged();
+                ConnectCommand.NotifyCanExecuteChanged();
             };
 
-            _importarExportar = new ImportarExportarViewModel(Contexto);
+            _importExport = new ImportExportViewModel(ToolContext);
             // Todas trabajan con el proyecto conectado; el Generador HMI también edita y genera sin conexión.
-            foreach (var herramienta in new Herramienta[]
+            foreach (var tool in new Tool[]
             {
-                _importarExportar,
-                new GeneradorHmiViewModel(Contexto),
-                new ComentadorViewModel(Contexto),
-                new SincroCheckerViewModel(Contexto),
-                new DiagExpectedViewModel(Contexto),
-                new NumeradorViewModel(Contexto),
-                new RenombrarArrayViewModel(Contexto),
+                _importExport,
+                new HmiGeneratorViewModel(ToolContext),
+                new CommentatorViewModel(ToolContext),
+                new SyncCheckerViewModel(ToolContext),
+                new DiagExpectedViewModel(ToolContext),
+                new MessageNumberingViewModel(ToolContext),
+                new RenumberArrayViewModel(ToolContext),
             })
-                Lateral.Add(herramienta);
+                Sidebar.Add(tool);
 
-            _seleccionada = _actual = _importarExportar;
+            _selectedTool = _current = _importExport;
         }
 
-        public Contexto Contexto { get; }
+        public ToolContext ToolContext { get; }
 
-        public IDialogos Dialogos
+        public IDialogs Dialogs
         {
-            get => Contexto.Dialogos;
-            set => Contexto.Dialogos = value;
+            get => ToolContext.Dialogs;
+            set => ToolContext.Dialogs = value;
         }
 
         /// <summary>El tema cambió: la aplicación lo aplica.</summary>
-        public event Action TemaCambiado;
+        public event Action ThemeChanged;
 
         /// <summary>El idioma cambió: los textos se traducen al cargar las vistas, así que se monta otra ventana.</summary>
-        public event Action IdiomaCambiado;
+        public event Action LanguageChanged;
 
-        public static Version VersionActual => Assembly.GetExecutingAssembly().GetName().Version;
-        public string Titulo => L.T("Herramientas SICAR") + " " + VersionActual.ToString(3);
-        public string NombreApp => L.T("Herramientas SICAR");
-        public string Subtitulo => L.T("Utilidades para proyectos SICAR@GST en TIA Portal");
+        public static Version CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version;
+        public string Title => L.T("Herramientas SICAR") + " " + CurrentVersion.ToString(3);
+        public string AppName => L.T("Herramientas SICAR");
+        public string Subtitle => L.T("Utilidades para proyectos SICAR@GST en TIA Portal");
 
         /// <summary>Rótulos de grupo y herramientas, en el orden en que se ven en el lateral.</summary>
-        public ObservableCollection<Herramienta> Lateral { get; } = new ObservableCollection<Herramienta>();
+        public ObservableCollection<Tool> Sidebar { get; } = new ObservableCollection<Tool>();
 
-        public ObservableCollection<string> Proyectos { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string> Projects { get; } = new ObservableCollection<string>();
 
         /// <summary>Lo seleccionado en el lateral. Los rótulos de grupo están desactivados, pero si llegan aquí no cambian la herramienta.</summary>
         [ObservableProperty]
-        private object _seleccionada;
+        private object _selectedTool;
 
         /// <summary>Herramienta que se ve en el panel principal.</summary>
         [ObservableProperty]
-        private Herramienta _actual;
+        private Tool _current;
 
-        partial void OnSeleccionadaChanged(object value)
+        partial void OnSelectedToolChanged(object value)
         {
-            if (value is Herramienta herramienta)
-                Actual = herramienta;
+            if (value is Tool tool)
+                Current = tool;
         }
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConectarCommand))]
-        private string _proyectoSeleccionado;
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        private string _selectedProject;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HayVersionNueva))]
-        private string _avisoVersion;
+        [NotifyPropertyChangedFor(nameof(HasNewVersion))]
+        private string _versionNotice;
 
         [ObservableProperty]
-        private Uri _urlVersion;
+        private Uri _versionUrl;
 
-        public bool HayVersionNueva => AvisoVersion != null;
-        public string TextoElegirProyecto => L.T("Proyecto abierto en TIA Portal");
+        public bool HasNewVersion => VersionNotice != null;
+        public string ChooseProjectText => L.T("Proyecto abierto en TIA Portal");
 
         // ---------------------------------------------------------------- Tema e idioma
 
-        public bool TemaSistema => Contexto.Ajustes.Tema == Ajustes.TemaSistema;
-        public bool TemaClaro => Contexto.Ajustes.Tema == Ajustes.TemaClaro;
-        public bool TemaOscuro => Contexto.Ajustes.Tema == Ajustes.TemaOscuro;
-        public string IconoTema => TemaOscuro ? "moon" : TemaClaro ? "sun" : "monitor";
-        public bool EnCastellano => L.Idioma == L.Castellano;
-        public bool EnIngles => L.Idioma == L.Ingles;
-        public string TextoIdioma => EnIngles ? "EN" : "ES";
+        public bool SystemTheme => ToolContext.Settings.Theme == Settings.SystemTheme;
+        public bool LightTheme => ToolContext.Settings.Theme == Settings.LightTheme;
+        public bool DarkTheme => ToolContext.Settings.Theme == Settings.DarkTheme;
+        public string ThemeIcon => DarkTheme ? "moon" : LightTheme ? "sun" : "monitor";
+        public bool InSpanish => L.Language == L.Castellano;
+        public bool InEnglish => L.Language == L.English;
+        public string LanguageText => InEnglish ? "EN" : "ES";
 
         [RelayCommand]
-        private void CambiarTema(string tema)
+        private void ChangeTheme(string theme)
         {
-            Contexto.Ajustes.Tema = tema;
-            Contexto.Ajustes.Guardar();
-            OnPropertyChanged(nameof(TemaSistema));
-            OnPropertyChanged(nameof(TemaClaro));
-            OnPropertyChanged(nameof(TemaOscuro));
-            OnPropertyChanged(nameof(IconoTema));
-            TemaCambiado?.Invoke();
+            ToolContext.Settings.Theme = theme;
+            ToolContext.Settings.Save();
+            OnPropertyChanged(nameof(SystemTheme));
+            OnPropertyChanged(nameof(LightTheme));
+            OnPropertyChanged(nameof(DarkTheme));
+            OnPropertyChanged(nameof(ThemeIcon));
+            ThemeChanged?.Invoke();
         }
 
         [RelayCommand]
-        private void CambiarIdioma(string idioma)
+        private void ChangeLanguage(string language)
         {
-            if (L.Normalizar(idioma) == L.Idioma)
+            if (L.Normalize(language) == L.Language)
                 return;
-            Contexto.Ajustes.Idioma = idioma;
-            Contexto.Ajustes.Guardar();
-            L.Idioma = L.Normalizar(idioma);
-            IdiomaCambiado?.Invoke();
+            ToolContext.Settings.Language = language;
+            ToolContext.Settings.Save();
+            L.Language = L.Normalize(language);
+            LanguageChanged?.Invoke();
         }
 
         [RelayCommand]
-        private Task AcercaDe() => Dialogos.AcercaDe(L.T("Acerca de"),
-            L.T("{0}, versión {1}.\nCreado por Ignacio Suarez (Alomatek).", L.T("Herramientas SICAR"), VersionActual.ToString(3)),
-            ComprobarVersion.UrlRepositorio);
+        private Task About() => Dialogs.About(L.T("Acerca de"),
+            L.T("{0}, versión {1}.\nCreado por Ignacio Suarez (Alomatek).", L.T("Herramientas SICAR"), CurrentVersion.ToString(3)),
+            VersionCheck.RepositoryUrl);
 
-        public async Task ComprobarActualizaciones()
+        public async Task CheckForUpdates()
         {
             using (var http = new HttpClient())
             {
-                var release = await ComprobarVersion.UltimaRelease(http);
-                if (release != null && ComprobarVersion.EsMasNueva(release, VersionActual))
+                var release = await VersionCheck.LatestRelease(http);
+                if (release != null && VersionCheck.IsNewer(release, CurrentVersion))
                 {
-                    UrlVersion = new Uri(release.Url);
-                    AvisoVersion = L.T("Hay una versión nueva: {0} (tienes la {1}).", release.Tag, VersionActual.ToString(3));
+                    VersionUrl = new Uri(release.Url);
+                    VersionNotice = L.T("Hay una versión nueva: {0} (tienes la {1}).", release.Tag, CurrentVersion.ToString(3));
                 }
             }
         }
 
         [RelayCommand]
-        private void CerrarAvisoVersion() => AvisoVersion = null;
+        private void CloseVersionNotice() => VersionNotice = null;
 
         // ---------------------------------------------------------------- Conexión con TIA
 
-        [RelayCommand(CanExecute = nameof(Libre))]
-        private async Task BuscarProyectos()
+        [RelayCommand(CanExecute = nameof(Idle))]
+        private async Task FindProjects()
         {
-            await Contexto.Trabajar(L.T("Buscando proyectos abiertos en TIA Portal…"), async () =>
+            await ToolContext.Work(L.T("Buscando proyectos abiertos en TIA Portal…"), async () =>
             {
-                var abiertos = await (await Contexto.TiaAsync()).GetOpenProjectsAsync();
-                var rutas = abiertos.Select(p => p.ProjectPath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                Proyectos.Clear();
-                foreach (var ruta in rutas)
-                    Proyectos.Add(ruta);
+                var open = await (await ToolContext.TiaAsync()).GetOpenProjectsAsync();
+                var paths = open.Select(p => p.ProjectPath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                Projects.Clear();
+                foreach (var path in paths)
+                    Projects.Add(path);
 
-                if (!Proyectos.Contains(ProyectoSeleccionado))
-                    ProyectoSeleccionado = Proyectos.FirstOrDefault();
+                if (!Projects.Contains(SelectedProject))
+                    SelectedProject = Projects.FirstOrDefault();
 
-                Contexto.MostrarEstado(Proyectos.Count == 0
+                ToolContext.ShowStatus(Projects.Count == 0
                     ? L.T("No hay ningún proyecto abierto en TIA Portal V19.")
-                    : L.T("{0} proyecto(s) abierto(s) en TIA. Elige uno y pulsa Conectar.", Proyectos.Count));
+                    : L.T("{0} proyecto(s) abierto(s) en TIA. Elige uno y pulsa Conectar.", Projects.Count));
             });
         }
 
-        [RelayCommand(CanExecute = nameof(PuedeConectar))]
-        private async Task Conectar()
+        [RelayCommand(CanExecute = nameof(CanConnect))]
+        private async Task Connect()
         {
-            string ruta = ProyectoSeleccionado;
-            await Contexto.Trabajar(L.T("Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"), async () =>
+            string path = SelectedProject;
+            await ToolContext.Work(L.T("Conectando… (si TIA pide permiso para esta aplicación, acéptalo)"), async () =>
             {
-                Contexto.PonerArbol(new List<DeviceInfo>(), new ProjectTree());
-                var dispositivos = (await Contexto.ConectarAsync(ruta)).Devices;
+                ToolContext.SetTree(new List<DeviceInfo>(), new ProjectTree());
+                var devices = (await ToolContext.ConnectAsync(path)).Devices;
                 // Primero salen todos sin leer: si la lectura falla, se puede leer cada uno con el botón Leer.
-                Contexto.PonerArbol(dispositivos, new ProjectTree());
-                if (dispositivos.Count == 0)
+                ToolContext.SetTree(devices, new ProjectTree());
+                if (devices.Count == 0)
                 {
-                    Contexto.MostrarEstado(L.T("Conectado, pero el proyecto no tiene ningún PLC ni HMI."));
+                    ToolContext.ShowStatus(L.T("Conectado, pero el proyecto no tiene ningún PLC ni HMI."));
                     return;
                 }
 
-                var elegidos = await ElegirDispositivos(ruta, dispositivos);
-                if (elegidos.Count > 0)
+                var chosen = await ChooseDevices(path, devices);
+                if (chosen.Count > 0)
                 {
-                    Contexto.MostrarEstado(L.T("Leyendo el árbol del proyecto…"));
-                    var arbol = await (await Contexto.TiaAsync()).ReadTreeAsync(
-                        elegidos.Where(d => d.Kind == DeviceKind.Plc).Select(d => d.Name),
-                        elegidos.Where(d => d.Kind == DeviceKind.Hmi).Select(d => d.Name), Contexto.ProgresoTia());
-                    Contexto.PonerArbol(dispositivos, arbol);
+                    ToolContext.ShowStatus(L.T("Leyendo el árbol del proyecto…"));
+                    var tree = await (await ToolContext.TiaAsync()).ReadTreeAsync(
+                        chosen.Where(d => d.Kind == DeviceKind.Plc).Select(d => d.Name),
+                        chosen.Where(d => d.Kind == DeviceKind.Hmi).Select(d => d.Name), ToolContext.TiaProgress());
+                    ToolContext.SetTree(devices, tree);
                 }
 
-                int sinLeer = dispositivos.Count - elegidos.Count;
-                Contexto.MostrarEstado(sinLeer == 0
-                    ? L.T("Conectado con {0}.", Contexto.NombreProyecto)
-                    : L.T("Conectado con {0}. {1} PLC o HMI sin leer: selecciónalo en el árbol y pulsa Leer.", Contexto.NombreProyecto, sinLeer));
+                int unread = devices.Count - chosen.Count;
+                ToolContext.ShowStatus(unread == 0
+                    ? L.T("Conectado con {0}.", ToolContext.ProjectName)
+                    : L.T("Conectado con {0}. {1} PLC o HMI sin leer: selecciónalo en el árbol y pulsa Leer.", ToolContext.ProjectName, unread));
             });
         }
 
@@ -207,28 +207,28 @@ namespace HerramientasSICAR.ViewModels
         /// Si el proyecto tiene más de un PLC o HMI, pregunta cuáles leer: leer el árbol de todos tarda minutos en
         /// un proyecto grande. Recuerda la elección por proyecto; la primera vez van todos marcados.
         /// </summary>
-        private async Task<List<DeviceInfo>> ElegirDispositivos(string ruta, List<DeviceInfo> dispositivos)
+        private async Task<List<DeviceInfo>> ChooseDevices(string path, List<DeviceInfo> devices)
         {
-            if (dispositivos.Count == 1)
-                return dispositivos;
+            if (devices.Count == 1)
+                return devices;
 
-            Contexto.Ajustes.DispositivosLeidos.TryGetValue(ruta, out var anteriores);
-            var marcadas = dispositivos.Select(d => anteriores == null || anteriores.Contains(d.Name)).ToList();
-            var opciones = dispositivos.Select(d => NombresDispositivo.Visible(d, dispositivos) + " · " + (d.Kind == DeviceKind.Hmi ? "HMI" : "PLC")).ToList();
+            ToolContext.Settings.ReadDevices.TryGetValue(path, out var previous);
+            var checkedIndexes = devices.Select(d => previous == null || previous.Contains(d.Name)).ToList();
+            var options = devices.Select(d => DeviceNames.Visible(d, devices) + " · " + (d.Kind == DeviceKind.Hmi ? "HMI" : "PLC")).ToList();
 
-            var elegidas = await Dialogos.ElegirVarios(L.T("¿Qué quieres leer del proyecto?"),
+            var chosenIndexes = await Dialogs.ChooseMany(L.T("¿Qué quieres leer del proyecto?"),
                 L.T("Leer el árbol de cada PLC o HMI lleva un rato en proyectos grandes. Los que no marques salen en el árbol sin leer; luego puedes leerlos seleccionándolos y pulsando Leer."),
-                opciones, marcadas, L.T("Leer"), L.T("No leer ninguno"));
+                options, checkedIndexes, L.T("Leer"), L.T("No leer ninguno"));
 
-            var elegidos = (elegidas ?? new int[0]).Select(i => dispositivos[i]).ToList();
-            Contexto.Ajustes.DispositivosLeidos[ruta] = elegidos.Select(d => d.Name).ToList();
-            Contexto.Ajustes.Guardar();
-            return elegidos;
+            var chosen = (chosenIndexes ?? new int[0]).Select(i => devices[i]).ToList();
+            ToolContext.Settings.ReadDevices[path] = chosen.Select(d => d.Name).ToList();
+            ToolContext.Settings.Save();
+            return chosen;
         }
 
-        private bool Libre() => !Contexto.Ocupado;
-        private bool PuedeConectar() => !Contexto.Ocupado && !string.IsNullOrEmpty(ProyectoSeleccionado);
+        private bool Idle() => !ToolContext.Busy;
+        private bool CanConnect() => !ToolContext.Busy && !string.IsNullOrEmpty(SelectedProject);
 
-        public void Dispose() => Contexto.Dispose();
+        public void Dispose() => ToolContext.Dispose();
     }
 }

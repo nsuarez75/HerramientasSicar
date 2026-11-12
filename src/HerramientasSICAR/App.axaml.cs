@@ -13,48 +13,48 @@ namespace HerramientasSICAR
 
         public override void OnFrameworkInitializationCompleted()
         {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime escritorio)
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                var ajustes = Ajustes.Cargar();
-                L.Idioma = ajustes.Idioma != null ? L.Normalizar(ajustes.Idioma) : L.IdiomaDelSistema();
-                AplicarTema(ajustes.Tema);
+                var settings = Settings.Load();
+                L.Language = settings.Language != null ? L.Normalize(settings.Language) : L.SystemLanguage();
+                ApplyTheme(settings.Theme);
 
-                var principal = new MainViewModel(ajustes);
-                var ventana = new MainWindow();
-                ventana.Enlazar(principal);
-                escritorio.MainWindow = ventana;
+                var main = new MainViewModel(settings);
+                var window = new MainWindow();
+                window.Bind(main);
+                desktop.MainWindow = window;
 
-                principal.TemaCambiado += () => AplicarTema(ajustes.Tema);
-                principal.IdiomaCambiado += () =>
+                main.ThemeChanged += () => ApplyTheme(settings.Theme);
+                main.LanguageChanged += () =>
                 {
                     // Los textos se traducen al cargar las vistas: con otro idioma se monta una ventana nueva.
-                    var vieja = escritorio.MainWindow;
-                    var nueva = new MainWindow { Width = vieja.Width, Height = vieja.Height, Position = vieja.Position, WindowState = vieja.WindowState };
-                    nueva.Enlazar(principal);
-                    escritorio.MainWindow = nueva;
-                    nueva.Show();
-                    vieja.Close();
+                    var oldWindow = desktop.MainWindow;
+                    var newer = new MainWindow { Width = oldWindow.Width, Height = oldWindow.Height, Position = oldWindow.Position, WindowState = oldWindow.WindowState };
+                    newer.Bind(main);
+                    desktop.MainWindow = newer;
+                    newer.Show();
+                    oldWindow.Close();
                 };
-                ventana.Opened += async (_, __) =>
+                window.Opened += async (_, __) =>
                 {
-                    if (Program.HayTia)
-                        await principal.BuscarProyectosCommand.ExecuteAsync(null);
+                    if (Program.HasTia)
+                        await main.FindProjectsCommand.ExecuteAsync(null);
                     else
-                        principal.Contexto.MostrarEstado(L.T("No se encuentra TIA Portal V19 con Openness en este equipo. Las herramientas con archivos sí funcionan."), error: true);
-                    await principal.ComprobarActualizaciones();
+                        main.ToolContext.ShowStatus(L.T("No se encuentra TIA Portal V19 con Openness en este equipo. Las herramientas con archivos sí funcionan."), error: true);
+                    await main.CheckForUpdates();
                 };
-                escritorio.Exit += (_, __) => principal.Dispose();
+                desktop.Exit += (_, __) => main.Dispose();
             }
             base.OnFrameworkInitializationCompleted();
         }
 
-        private static void AplicarTema(string tema)
+        private static void ApplyTheme(string theme)
         {
             if (Current == null)
                 return;
             Current.RequestedThemeVariant =
-                tema == Ajustes.TemaClaro ? ThemeVariant.Light :
-                tema == Ajustes.TemaOscuro ? ThemeVariant.Dark :
+                theme == Settings.LightTheme ? ThemeVariant.Light :
+                theme == Settings.DarkTheme ? ThemeVariant.Dark :
                 ThemeVariant.Default;
         }
     }

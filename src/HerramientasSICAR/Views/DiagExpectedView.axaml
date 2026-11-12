@@ -8,7 +8,7 @@
              x:DataType="vm:DiagExpectedViewModel">
     <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
         <!-- ░░ FB de secuencia, por OM ░░ -->
-        <v:SelectorBloquesView DataContext="{Binding Selector}" />
+        <v:BlockSelectorView DataContext="{Binding Selector}" />
         <GridSplitter Grid.Column="1" Width="12" ResizeDirection="Columns" Background="Transparent" />
 
         <StackPanel Grid.Column="2" Spacing="16" MaxWidth="660" HorizontalAlignment="Left">
@@ -16,9 +16,9 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <StackPanel Spacing="4">
                         <TextBlock Text="{l:T 'FB de secuencia'}" Classes="label" />
-                        <TextBlock Text="{Binding NombreBloque}" Classes="h2" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding BlockName}" Classes="h2" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Button Grid.Column="1" Classes="accent" Command="{Binding GenerarCommand}" VerticalAlignment="Center">
+                    <Button Grid.Column="1" Classes="accent" Command="{Binding GenerateCommand}" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <c:Icon Kind="file-sheet" />
                             <TextBlock Text="{l:T 'Exportar y generar Excel'}" />

@@ -1,0 +1,119 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.SyncCheckerView"
+             x:DataType="vm:SyncCheckerViewModel">
+    <DockPanel Margin="24,0,24,16">
+        <!-- ░░ Programa a comprobar ░░ -->
+        <Border DockPanel.Dock="Top" Classes="card">
+            <StackPanel Spacing="10">
+                <WrapPanel>
+                    <Button Classes="accent" Command="{Binding ExportFromTiaCommand}" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="download" />
+                            <TextBlock Text="{l:T 'Exportar el PLC desde TIA y comprobar'}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding OpenFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="folder" />
+                            <TextBlock Text="{l:T 'Abrir una carpeta exportada…'}" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+                <TextBlock Text="{Binding Folder}" Classes="label" TextTrimming="LeadingCharacterEllipsis" ToolTip.Tip="{Binding Folder}" />
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="{l:T 'Se lee el programa entero del PLC: así se siguen las condiciones de activación de las señales.'}" />
+            </StackPanel>
+        </Border>
+
+        <!-- ░░ Resultado ░░ -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,12" IsVisible="{Binding HasProgram}">
+            <c:Icon Kind="circle-x" Width="18" Height="18" Foreground="{DynamicResource App.Bad}" IsVisible="{Binding SummaryWithPairs}" />
+            <c:Icon Kind="circle-check" Width="18" Height="18" Foreground="{DynamicResource App.Good}" IsVisible="{Binding !SummaryWithPairs}" />
+            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- ░░ Decisiones guardadas ░░ -->
+        <Expander DockPanel.Dock="Bottom" Header="{Binding GroupsTitle}" IsVisible="{Binding HasGroups}" HorizontalAlignment="Stretch" Margin="0,12,0,0">
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GroupRow">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,2">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Text}" Classes="mono" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Note}" Classes="label" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="ghost danger" VerticalAlignment="Center" ToolTip.Tip="{l:T 'Borrar esta decisión'}"
+                                    AutomationProperties.Name="{l:T 'Borrar esta decisión'}"
+                                    Command="{Binding $parent[ItemsControl].((vm:SyncCheckerViewModel)DataContext).DeleteGroupCommand}" CommandParameter="{Binding}">
+                                <c:Icon Kind="trash" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Expander>
+
+        <Grid ColumnDefinitions="300,*" ColumnSpacing="14" IsVisible="{Binding HasPairs}">
+            <!-- Secuencias con pares -->
+            <ListBox Classes="table" ItemsSource="{Binding Sequences}" SelectedItem="{Binding SelectedSequence}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SequenceRow">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" VerticalAlignment="Center" />
+                            <Border Grid.Column="1" Classes="pill warn"><TextBlock Text="{Binding Count}" /></Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Grid Grid.Column="1" RowDefinitions="*,Auto" RowSpacing="12">
+                <!-- Pares de la secuencia -->
+                <ListBox Classes="table" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PairRow">
+                            <StackPanel Margin="0,2">
+                                <TextBlock Text="{Binding StepAName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepAName}" />
+                                <TextBlock Text="{Binding StepBName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StepBName}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Decidir sobre el par elegido -->
+                <Border Grid.Row="1" Classes="card" IsVisible="{Binding HasPair}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="h2" Text="{l:T '¿Estas señales son excluyentes?'}" IsVisible="{Binding HasCandidates}" />
+                        <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasCandidates}"
+                                   Text="{l:T 'Cada una la exige uno de los dos pasos y el otro no. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir.'}" />
+                        <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoCandidates}"
+                                   Text="{l:T 'Ningún paso exige una señal a 1 que el otro no exija: los dos pasos no se distinguen por sus señales. Revisa sus interlocks en TIA.'}" />
+                        <ScrollViewer MaxHeight="170" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding CandidateRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CandidateRow">
+                                        <CheckBox IsChecked="{Binding IsChecked}">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" Classes="mono" />
+                                                <TextBlock Text="{Binding CommentText}" Classes="label" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <Button Classes="accent" HorizontalAlignment="Left" Command="{Binding MarkExclusiveCommand}" IsVisible="{Binding HasCandidates}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:Icon Kind="check" />
+                                <TextBlock Text="{l:T 'Marcar como excluyentes'}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:v="using:HerramientasSICAR.Views"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.CommentatorView"
+             x:DataType="vm:CommentatorViewModel">
+    <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
+        <!-- ░░ FB de la carpeta de secuencias, por OM, con casillas ░░ -->
+        <v:BlockSelectorView DataContext="{Binding Selector}" />
+        <GridSplitter Grid.Column="1" Width="12" ResizeDirection="Columns" Background="Transparent" />
+
+        <StackPanel Grid.Column="2" Spacing="16" MaxWidth="700" HorizontalAlignment="Left">
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{Binding Summary}" Classes="h2" />
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
+                        <TextBlock Text="{l:T 'Los títulos están en'}" Classes="label" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Languages}" SelectedIndex="{Binding LanguageIndex}" MinWidth="140" />
+                    </Grid>
+                    <CheckBox IsChecked="{Binding Translate}" Content="{l:T 'Traducir a los otros dos idiomas (necesita internet)'}" />
+                    <Button Classes="accent" Command="{Binding CommentCommand}" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="languages" />
+                            <TextBlock Text="{l:T 'Comentar'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+            <Border Classes="tip">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                    <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="640" TextWrapping="Wrap"
+                               Text="{l:T 'Cada segmento con título recibe un comentario de tres líneas (Title_english, Title_deutsch y Title_espanol) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra.'}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

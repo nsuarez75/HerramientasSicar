@@ -11,21 +11,21 @@ namespace HerramientasSICAR
     public static partial class L
     {
         public const string Castellano = "es";
-        public const string Ingles = "en";
+        public const string English = "en";
 
-        public static string Idioma { get; set; } = Castellano;
+        public static string Language { get; set; } = Castellano;
 
-        public static string Normalizar(string idioma) => idioma == Ingles ? Ingles : Castellano;
+        public static string Normalize(string language) => language == English ? English : Castellano;
 
         /// <summary>Idioma de Windows: inglés salvo que sea castellano.</summary>
-        public static string IdiomaDelSistema() =>
-            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == Castellano ? Castellano : Ingles;
+        public static string SystemLanguage() =>
+            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == Castellano ? Castellano : English;
 
-        public static IReadOnlyDictionary<string, string> TextosEnIngles => En;
+        public static IReadOnlyDictionary<string, string> EnglishTexts => En;
 
-        public static string T(string texto) => Idioma == Ingles && En.TryGetValue(texto, out var traducido) ? traducido : texto;
+        public static string T(string text) => Language == English && En.TryGetValue(text, out var translated) ? translated : text;
 
         /// <summary>Textos con huecos {0}, {1}...: se traduce el patrón y después se rellenan.</summary>
-        public static string T(string formato, params object[] args) => string.Format(CultureInfo.CurrentCulture, T(formato), args);
+        public static string T(string format, params object[] args) => string.Format(CultureInfo.CurrentCulture, T(format), args);
     }
 }

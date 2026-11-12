@@ -9,13 +9,13 @@ namespace HerramientasSICAR
     /// </summary>
     public sealed class TExtension : MarkupExtension
     {
-        private readonly string _texto;
+        private readonly string _text;
 
-        public TExtension(string texto)
+        public TExtension(string text)
         {
-            _texto = texto;
+            _text = text;
         }
 
-        public override object ProvideValue(IServiceProvider serviceProvider) => L.T(_texto);
+        public override object ProvideValue(IServiceProvider serviceProvider) => L.T(_text);
     }
 }

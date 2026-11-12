@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:v="using:HerramientasSICAR.Views"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.RenumberArrayView"
+             x:DataType="vm:RenumberArrayViewModel">
+    <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
+        <!-- ░░ Bloque (FB o FC) ░░ -->
+        <v:BlockSelectorView DataContext="{Binding Selector}" />
+        <GridSplitter Grid.Column="1" Width="12" ResizeDirection="Columns" Background="Transparent" />
+
+        <!-- ░░ Array del bloque ░░ -->
+        <DockPanel Grid.Column="2" MaxWidth="700" HorizontalAlignment="Left">
+            <Border DockPanel.Dock="Top" Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding BlockName, FallbackValue=''}" Classes="h2" IsVisible="{Binding HasBlock}" />
+                    <TextBlock Text="{Binding BlockStatus}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,12,0,0">
+                <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="{l:T 'Se cambian solo los usos con índice fijo, en el orden en que aparecen en el bloque. El bloque se exporta, se renumera y se importa encima del original. Al terminar, guarda el proyecto en TIA.'}" />
+                <Button Grid.Column="1" Classes="accent" Command="{Binding RenumberCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:Icon Kind="list-ordered" />
+                        <TextBlock Text="{l:T 'Renumerar'}" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <ListBox Classes="table" ItemsSource="{Binding Arrays}" SelectedItem="{Binding SelectedArray}" Margin="0,12,0,0" IsVisible="{Binding HasArrays}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ArrayRow">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" Classes="mono" />
+                                <TextBlock Text="{Binding Indexes}" Classes="label" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Indexes}" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center"><TextBlock Text="{Binding Uses}" /></Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
+</UserControl>
