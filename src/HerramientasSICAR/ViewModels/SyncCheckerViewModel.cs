@@ -71,10 +71,11 @@ namespace HerramientasSICAR.ViewModels
     /// <summary>Señal que se puede marcar como excluyente en un par.</summary>
     public sealed partial class CandidateRow : ObservableObject
     {
-        public CandidateRow(string signal, string comment)
+        public CandidateRow(string signal, string comment, bool value = true)
         {
             Signal = signal;
             CommentText = comment;
+            _value = value;
         }
 
         public string Signal { get; }
@@ -83,6 +84,16 @@ namespace HerramientasSICAR.ViewModels
 
         [ObservableProperty]
         private bool _isChecked;
+
+        /// <summary>Valor de la señal en la condición: 1 o 0.</summary>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ValueText))]
+        private bool _value;
+
+        public string ValueText => Value ? "= 1" : "= 0";
+
+        [RelayCommand]
+        private void ToggleValue() => Value = !Value;
     }
 
     /// <summary>Escalón de un paso con el estado de señales que se está mirando.</summary>
@@ -125,7 +136,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public ExclusiveGroup Group { get; }
-        public string Text => string.Join("  ·  ", Group.Signals.Select(SignalText.Name));
+        public string Text => string.Join("  ·  ", Group.Signals.Select((s, i) => SignalText.Name(s) + (Group.Value(i) ? " = 1" : " = 0")));
         public string Note => Group.Note ?? "";
     }
 
@@ -424,22 +435,26 @@ namespace HerramientasSICAR.ViewModels
             CandidatesChanged();
         }
 
-        // Clic derecho en un contacto del ladder: la señal pasa, marcada, a la lista de excluyentes del par (si ya estaba,
-        // se marca) para formar a mano un grupo con las propuestas o con otras señales. El panel se despliega para verla.
+        // Clic derecho en una instrucción del ladder: su señal pasa, marcada, a la lista de excluyentes del par (si ya
+        // estaba, se marca), con el valor que pide la instrucción (0 si es un contacto negado), para formar a mano un grupo
+        // con las propuestas o con otras señales. El panel se despliega para verla.
         [RelayCommand]
-        private void AddCandidate(string signal)
+        private void AddCandidate(LadExpression leaf)
         {
+            string signal = leaf == null ? null : SyncState.Signal(leaf);
             if (SelectedPair == null || string.IsNullOrEmpty(signal) || SyncChecker.FixedValue(signal).HasValue)
                 return;
-            var row = CandidateRows.FirstOrDefault(c => c.Signal == signal) ?? AddCandidateRow(signal);
+            bool value = !(leaf is ContactExpression contact && contact.Negated);
+            var row = CandidateRows.FirstOrDefault(c => c.Signal == signal) ?? AddCandidateRow(signal, value);
+            row.Value = value;
             row.IsChecked = true;
             DecisionExpanded = true;
             CandidatesChanged();
         }
 
-        private CandidateRow AddCandidateRow(string signal)
+        private CandidateRow AddCandidateRow(string signal, bool value = true)
         {
-            var candidate = new CandidateRow(signal, CommentText(signal));
+            var candidate = new CandidateRow(signal, CommentText(signal), value);
             candidate.PropertyChanged += (_, __) => MarkExclusiveCommand.NotifyCanExecuteChanged();
             CandidateRows.Add(candidate);
             return candidate;
@@ -506,8 +521,10 @@ namespace HerramientasSICAR.ViewModels
             if (pair == null || row == null)
                 return;
 
-            var group = new ExclusiveGroup(CandidateRows.Where(c => c.IsChecked).Select(c => c.Signal).ToList())
+            var chosen = CandidateRows.Where(c => c.IsChecked).ToList();
+            var group = new ExclusiveGroup(chosen.Select(c => c.Signal).ToList())
             {
+                Values = chosen.All(c => c.Value) ? null : chosen.Select(c => c.Value).ToList(),
                 Note = L.T("Secuencia {0}: {1}", row.SequenceBlock.Sequence, pair.Pair),
             };
             int position = Pairs.IndexOf(pair);

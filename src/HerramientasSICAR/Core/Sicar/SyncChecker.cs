@@ -22,14 +22,22 @@ using HerramientasSICAR.Core.Logic;
 
 namespace HerramientasSICAR.Core.Sicar;
 
-// Señales que el usuario ha decidido que nunca están a 1 a la vez. Se guarda en el PLC del proyecto.
+// Condiciones que el usuario ha decidido que nunca se dan a la vez, de dos en dos: cada señal con su valor
+// («A = 1 · B = 0»: si A está a 1, B no está a 0). Sin valores, todas a 1: señales que nunca están a 1 a la vez.
 public sealed record ExclusiveGroup(IReadOnlyList<string> Signals)
 {
     // Cuándo y para qué par se decidió, solo para mostrarlo en la lista de decisiones.
     public string? Note { get; init; }
 
-    public bool Equals(ExclusiveGroup? other) =>
-        other is not null && Signals.Order(StringComparer.Ordinal).SequenceEqual(other.Signals.Order(StringComparer.Ordinal));
+    // Valor de cada señal, en el mismo orden; null si todas valen 1.
+    public IReadOnlyList<bool>? Values { get; init; }
+
+    public bool Value(int index) => Values == null || index >= Values.Count || Values[index];
+
+    private IEnumerable<string> Conditions() =>
+        Signals.Select((s, i) => s + "=" + (Value(i) ? "1" : "0")).Order(StringComparer.Ordinal);
+
+    public bool Equals(ExclusiveGroup? other) => other is not null && Conditions().SequenceEqual(other.Conditions());
 
     public override int GetHashCode() => Signals.Count;
 }
@@ -276,12 +284,13 @@ public sealed partial class SyncChecker
         }
         foreach (var group in ExclusiveGroups)
         {
-            var present = group.Signals.Where(variables.Contains).ToList();
+            var present = group.Signals.Select((s, i) => Literal(s, group.Value(i)))
+                .Where((_, i) => variables.Contains(group.Signals[i])).ToList();
             for (var i = 0; i < present.Count; i++)
             {
                 for (var j = i + 1; j < present.Count; j++)
                 {
-                    constraints.Add(NotBoth(present[i], present[j]));
+                    constraints.Add(BoolFormula.Not(BoolFormula.And(present[i], present[j])));
                 }
             }
         }

@@ -30,15 +30,26 @@ namespace HerramientasSICAR.Logic
         {
             [JsonPropertyName("Senales")]
             public List<string> Signals { get; set; } = new List<string>();
+
+            /// <summary>Valor de cada señal; sin él (archivos anteriores), todas a 1.</summary>
+            [JsonPropertyName("Valores")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public List<bool> Values { get; set; }
+
             [JsonPropertyName("Nota")]
             public string Note { get; set; }
         }
 
         public List<ExclusiveGroup> Groups() =>
-            Exclusive.Select(g => new ExclusiveGroup(g.Signals) { Note = g.Note }).ToList();
+            Exclusive.Select(g => new ExclusiveGroup(g.Signals) { Note = g.Note, Values = g.Values }).ToList();
 
         public void SetGroups(IEnumerable<ExclusiveGroup> groups) =>
-            Exclusive = groups.Select(g => new SavedGroup { Signals = g.Signals.ToList(), Note = g.Note }).ToList();
+            Exclusive = groups.Select(g => new SavedGroup
+            {
+                Signals = g.Signals.ToList(),
+                Values = g.Values == null || g.Values.All(v => v) ? null : g.Values.ToList(),
+                Note = g.Note,
+            }).ToList();
 
         /// <summary>sincro.json dentro de una carpeta exportada a mano (la que se abre con «Abrir carpeta»).</summary>
         public static string InFolder(string folder) => Path.Combine(folder, Name);

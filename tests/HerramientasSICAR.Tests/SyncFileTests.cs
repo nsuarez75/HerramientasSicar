@@ -68,6 +68,34 @@ namespace HerramientasSICAR.Tests
         }
 
         [Fact]
+        public void SaveAndLoad_GroupWithValues_RoundTrip()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "HerramientasSICAR.Tests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                string path = Path.Combine(folder, "PLC.json");
+                var file = new SyncFile();
+                file.SetGroups(new[]
+                {
+                    new ExclusiveGroup(new[] { "\"A\"", "\"B\"" }) { Values = new[] { true, false } },
+                    new ExclusiveGroup(new[] { "\"C\"", "\"D\"" }),
+                });
+                file.Save(path);
+
+                var groups = SyncFile.Load(path).Groups();
+                Assert.Equal(new[] { true, false }, groups[0].Values);
+                Assert.Null(groups[1].Values);
+                // Los grupos con todas las señales a 1 se guardan como antes, sin «Valores».
+                Assert.Single(System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(path), "Valores"));
+            }
+            finally
+            {
+                if (Directory.Exists(folder))
+                    Directory.Delete(folder, true);
+            }
+        }
+
+        [Fact]
         public void Load_MissingFile_ReturnsEmpty()
         {
             var file = SyncFile.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "no.json"));
