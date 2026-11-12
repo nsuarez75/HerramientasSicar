@@ -2,7 +2,7 @@
 
 El código de HerramientasSICAR se publica con licencia MIT (ver [LICENSE](LICENSE)). El ejecutable incluye los componentes
 de terceros de esta lista, cada uno con su licencia. Las herramientas que solo se usan para compilar o probar
-(SDK de .NET, Fody, xUnit…) no van dentro del ejecutable y no se listan.
+(SDK de .NET, xUnit…) no van dentro del ejecutable y no se listan.
 
 | Componente | Licencia | Titular | Enlace |
 |---|---|---|---|
@@ -23,8 +23,8 @@ de terceros de esta lista, cada uno con su licencia. Las herramientas que solo s
 | GTranslate | MIT | d4n3436 | https://github.com/d4n3436/GTranslate |
 | CommunityToolkit.Mvvm | MIT | .NET Foundation and Contributors | https://github.com/CommunityToolkit/dotnet |
 | Microsoft.IO.RecyclableMemoryStream | MIT | Microsoft Corporation | https://github.com/microsoft/Microsoft.IO.RecyclableMemoryStream |
-| Costura (cargador de librerías embebidas) | MIT | Simon Cropp | https://github.com/Fody/Costura |
-| Paquetes System.* y Microsoft.Bcl.AsyncInterfaces | MIT | .NET Foundation and Contributors / Microsoft Corporation | https://github.com/dotnet/runtime |
+| Runtime de .NET y System.IO.Packaging (van dentro del ejecutable) | MIT | .NET Foundation and Contributors | https://github.com/dotnet/runtime |
+| TIA-Connector (cliente y puente con TIA Portal, dentro del ejecutable) | MIT | Ignacio Suarez | https://github.com/nsuarez75/TIA-Connector |
 
 ## Textos de las licencias
 
@@ -38,9 +38,9 @@ de terceros de esta lista, cada uno con su licencia. Las herramientas que solo s
 
 ## Siemens TIA Portal Openness
 
-La app usa las librerías de TIA Portal Openness (`Siemens.Engineering.dll`), que son software propietario de
-Siemens AG. **No se incluyen** ni en el repositorio ni en el ejecutable: se cargan de la instalación de TIA Portal
-del propio equipo, y su uso se rige por la licencia de TIA Portal.
+El puente de TIA-Connector usa las librerías de TIA Portal Openness (`Siemens.Engineering.dll`), que son software
+propietario de Siemens AG. **No se incluyen** ni en el repositorio ni en el ejecutable: se cargan de la instalación de
+TIA Portal del propio equipo, y su uso se rige por la licencia de TIA Portal.
 
 ## Texto de la licencia MIT
 
