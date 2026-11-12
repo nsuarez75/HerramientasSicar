@@ -101,7 +101,7 @@ namespace HerramientasSICAR.ViewModels
         public static TreeNode FromPlc(PlcTree plc, Action onChecksChanged, IReadOnlyList<string> rootFolders = null)
         {
             var node = new TreeNode(NodeKind.Plc, plc.Name, null, rootFolders ?? new string[0], plc.Name, null, null, onChecksChanged) { IsExpanded = true };
-            node.AñAddContent(plc.Root);
+            node.AddContent(plc.Root);
             return node;
         }
 
@@ -133,7 +133,7 @@ namespace HerramientasSICAR.ViewModels
         {
             var previous = Children.ToList();
             Children.Clear();
-            AñAddContent(root);
+            AddContent(root);
             CopyChildrenState(previous);
             AdjustCheck();
             MarkRead();
@@ -199,7 +199,7 @@ namespace HerramientasSICAR.ViewModels
                 return new TreeNode(NodeKind.HmiItem, Device, branch.Branch, new string[0], name, null, this, _onChecksChanged);
 
             var child = new TreeNode(NodeKind.Branch, Device, branch.Branch, new string[0], name, null, this, _onChecksChanged);
-            child.AñAddContent(branch.Root);
+            child.AddContent(branch.Root);
             return child;
         }
 
@@ -228,12 +228,12 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        private void AñAddContent(BlockFolder group)
+        private void AddContent(BlockFolder group)
         {
             foreach (var subgroup in group.Folders)
             {
                 var child = new TreeNode(NodeKind.Folder, Device, null, Groups.Concat(new[] { subgroup.Name }).ToList(), subgroup.Name, null, this, _onChecksChanged);
-                child.AñAddContent(subgroup);
+                child.AddContent(subgroup);
                 Children.Add(child);
             }
             foreach (var block in group.Blocks)
@@ -243,12 +243,12 @@ namespace HerramientasSICAR.ViewModels
             }
         }
 
-        private void AñAddContent(HmiFolder folder)
+        private void AddContent(HmiFolder folder)
         {
             foreach (var subfolder in folder.Folders)
             {
                 var child = new TreeNode(NodeKind.Folder, Device, Branch, Groups.Concat(new[] { subfolder.Name }).ToList(), subfolder.Name, null, this, _onChecksChanged);
-                child.AñAddContent(subfolder);
+                child.AddContent(subfolder);
                 Children.Add(child);
             }
             foreach (var item in folder.Items)

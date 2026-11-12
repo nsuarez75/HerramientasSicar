@@ -17,10 +17,10 @@ namespace HerramientasSICAR.Views
     {
         private readonly StackPanel _buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
 
-        private DialogWindow(Window dueño, string title, Control body, double width)
+        private DialogWindow(Window owner, string title, Control body, double width)
         {
             Title = title;
-            Icon = dueño.Icon;
+            Icon = owner.Icon;
             Width = width;
             SizeToContent = SizeToContent.Height;
             MaxHeight = 720;
@@ -40,7 +40,7 @@ namespace HerramientasSICAR.Views
             Content = grid;
         }
 
-        private void AñAddButton(string text, Action onClick, bool main = false, bool cancel = false)
+        private void AddButton(string text, Action onClick, bool main = false, bool cancel = false)
         {
             var button = new Button { Content = text, IsDefault = main, IsCancel = cancel, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
             if (main)
@@ -51,34 +51,34 @@ namespace HerramientasSICAR.Views
 
         private static TextBlock Text(string text) => new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
 
-        public static async Task MessageNetwork(Window dueño, string title, string text)
+        public static async Task MessageNetwork(Window owner, string title, string text)
         {
-            var dialog = new DialogWindow(dueño, title, Text(text), 480);
-            dialog.AñAddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
-            await dialog.ShowDialog(dueño);
+            var dialog = new DialogWindow(owner, title, Text(text), 480);
+            dialog.AddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
+            await dialog.ShowDialog(owner);
         }
 
-        public static async Task About(Window dueño, string title, string text, string link)
+        public static async Task About(Window owner, string title, string text, string link)
         {
             var panel = new StackPanel { Spacing = 8 };
             panel.Children.Add(Text(text));
             panel.Children.Add(new HyperlinkButton { Content = link, NavigateUri = new Uri(link), Padding = new Thickness(0) });
-            var dialog = new DialogWindow(dueño, title, panel, 480);
-            dialog.AñAddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
-            await dialog.ShowDialog(dueño);
+            var dialog = new DialogWindow(owner, title, panel, 480);
+            dialog.AddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
+            await dialog.ShowDialog(owner);
         }
 
-        public static async Task<bool> Confirm(Window dueño, string title, string text, string accept)
+        public static async Task<bool> Confirm(Window owner, string title, string text, string accept)
         {
             bool result = false;
-            var dialog = new DialogWindow(dueño, title, new ScrollViewer { Content = Text(text), MaxHeight = 480 }, 520);
-            dialog.AñAddButton(accept, () => { result = true; dialog.Close(); }, main: true);
-            dialog.AñAddButton(L.T("Cancelar"), dialog.Close, cancel: true);
-            await dialog.ShowDialog(dueño);
+            var dialog = new DialogWindow(owner, title, new ScrollViewer { Content = Text(text), MaxHeight = 480 }, 520);
+            dialog.AddButton(accept, () => { result = true; dialog.Close(); }, main: true);
+            dialog.AddButton(L.T("Cancelar"), dialog.Close, cancel: true);
+            await dialog.ShowDialog(owner);
             return result;
         }
 
-        public static async Task<IReadOnlyList<int>> ChooseMany(Window dueño, string title, string text, IReadOnlyList<string> options,
+        public static async Task<IReadOnlyList<int>> ChooseMany(Window owner, string title, string text, IReadOnlyList<string> options,
             IReadOnlyList<bool> checkedIndexes, string accept, string cancel)
         {
             IReadOnlyList<int> result = null;
@@ -91,14 +91,14 @@ namespace HerramientasSICAR.Views
             panel.Children.Add(Text(text));
             panel.Children.Add(new ScrollViewer { Content = list, MaxHeight = 360 });
 
-            var dialog = new DialogWindow(dueño, title, panel, 480);
-            dialog.AñAddButton(accept, () =>
+            var dialog = new DialogWindow(owner, title, panel, 480);
+            dialog.AddButton(accept, () =>
             {
                 result = Enumerable.Range(0, checkBoxes.Count).Where(i => checkBoxes[i].IsChecked == true).ToList();
                 dialog.Close();
             }, main: true);
-            dialog.AñAddButton(cancel, dialog.Close, cancel: true);
-            await dialog.ShowDialog(dueño);
+            dialog.AddButton(cancel, dialog.Close, cancel: true);
+            await dialog.ShowDialog(owner);
             return result;
         }
     }
