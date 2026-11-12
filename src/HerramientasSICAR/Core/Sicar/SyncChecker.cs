@@ -14,7 +14,8 @@ using System.Threading.Tasks;
 // - Un par en el que un paso salta al otro (paso de espera → paso de decisión) no es doble sincronización.
 // Para cada par de pasos se busca un estado de señales que los haga ejecutables a la vez y sin que ningún
 // salto anterior se los salte. Además se excluye lo físicamente imposible (sensores -H/-W de un actuador a la
-// vez, una señal con dos valores) y, en secuencias de robot, los pasos de servicio S223-S227.
+// vez, -ReleasePick y -ReleaseDrop de una misma estación, una señal con dos valores) y, en secuencias de
+// robot, los pasos de servicio S223-S227.
 using System.Text.RegularExpressions;
 using HerramientasSICAR.Core.Lad;
 using HerramientasSICAR.Core.Logic;
@@ -46,6 +47,9 @@ public sealed partial class SyncChecker
     public const int LastRobotServiceStep = 227;
 
     public bool ExcludeHomeWork { get; init; } = true;
+
+    // «…-ReleasePick» y «…-ReleaseDrop» de una misma estación nunca están a 1 a la vez.
+    public bool ExcludeReleasePickDrop { get; init; } = true;
 
     public bool ExcludeDecodedValues { get; init; } = true;
 
@@ -245,14 +249,11 @@ public sealed partial class SyncChecker
         var variables = BoolFormula.And([formula, .. constraints]).Variables();
         if (ExcludeHomeWork)
         {
-            constraints.AddRange(variables
-                .Select(v => (Variable: v, Match: HomeWork().Match(v.Trim('"'))))
-                .Where(x => x.Match.Success)
-                .GroupBy(x => x.Match.Groups[1].Value.ToUpperInvariant())
-                .Select(g => (Home: g.FirstOrDefault(x => x.Match.Groups[2].Value.Equals("H", StringComparison.OrdinalIgnoreCase)).Variable,
-                    Work: g.FirstOrDefault(x => x.Match.Groups[2].Value.Equals("W", StringComparison.OrdinalIgnoreCase)).Variable))
-                .Where(x => x.Home != null && x.Work != null)
-                .Select(x => NotBoth(x.Home!, x.Work!)));
+            constraints.AddRange(SamePrefixPairs(variables, HomeWork(), "H", "W"));
+        }
+        if (ExcludeReleasePickDrop)
+        {
+            constraints.AddRange(SamePrefixPairs(variables, ReleasePickDrop(), "Pick", "Drop"));
         }
         if (ExcludeDecodedValues)
         {
@@ -288,6 +289,23 @@ public sealed partial class SyncChecker
     }
 
     private static BoolFormula NotBoth(string a, string b) => BoolFormula.Not(BoolFormula.And(BoolFormula.Var(a), BoolFormula.Var(b)));
+
+    // Pares de señales con el mismo nombre delante (grupo 1 de la expresión) que acaban en «first» y en «second»
+    // (grupo 2): nunca están a 1 a la vez.
+    private static IEnumerable<BoolFormula> SamePrefixPairs(IEnumerable<string> variables, Regex pattern, string first, string second) =>
+        variables
+            .Select(v => (Variable: v, Match: pattern.Match(v.Trim('"'))))
+            .Where(x => x.Match.Success)
+            .GroupBy(x => x.Match.Groups[1].Value.ToUpperInvariant())
+            .Select(g => (First: g.FirstOrDefault(x => x.Match.Groups[2].Value.Equals(first, StringComparison.OrdinalIgnoreCase)).Variable,
+                Second: g.FirstOrDefault(x => x.Match.Groups[2].Value.Equals(second, StringComparison.OrdinalIgnoreCase)).Variable))
+            .Where(x => x.First != null && x.Second != null)
+            .Select(x => NotBoth(x.First!, x.Second!));
+
+    // «++2040+FIX04-ReleasePick» / «++2040+FIX04-ReleaseDrop»: lo de delante es la estación.
+    private static Regex ReleasePickDrop() => _ReleasePickDrop ??= new Regex(@"^(.+)-Release(Pick|Drop)$", RegexOptions.IgnoreCase);
+
+    private static Regex? _ReleasePickDrop;
 
     // «…-YA-H» / «…-YA-W»: sensores de home y work de un mismo actuador.
     // .NET Framework no tiene GeneratedRegex: se crea la primera vez que se usa.
