@@ -364,8 +364,8 @@ namespace HerramientasSICAR
             ["¿Estas señales son excluyentes?"] = "Are these signals exclusive?",
             ["Cada una la exige uno de los dos pasos y el otro no. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir."] =
                 "Each one is required by one of the two steps and not by the other. If they can never be 1 at the same time, tick them: this pair and those that depend on them will no longer appear.",
-            ["Ningún paso exige una señal a 1 que el otro no exija: los dos pasos no se distinguen por sus señales. Revisa sus interlocks en TIA."] =
-                "Neither step requires a signal at 1 that the other does not: the two steps cannot be told apart by their signals. Check their interlocks in TIA.",
+            ["No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA."] =
+                "There are not at least two signals that one step requires at 1 and the other does not: there are no exclusive signals to propose for this pair. Check their interlocks in TIA.",
             ["Marcar como excluyentes"] = "Mark as exclusive",
             ["Secuencia {0}: {1}"] = "Sequence {0}: {1}",
             ["No se pudo guardar la decisión: {0}"] = "Could not save the decision: {0}",

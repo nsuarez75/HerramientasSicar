@@ -248,6 +248,20 @@ public class SyncCheckerTests
     }
 
     [Fact]
+    public void ExclusionCandidates_OnlyOneSignal_ReturnsEmpty()
+    {
+        // Solo S010 exige una señal a 1 que S011 no exige: un grupo de una señal no dice nada.
+        var sequence = Sequence(
+            Step(10, Series(C("Rob-Code=210"), C("PrioridadA")), C("Rob-Code=220")),
+            Step(11, C("Rob-Code=210"), C("Rob-Code=220")));
+
+        var checker = new SyncChecker();
+        var conflict = Assert.Single(checker.Check(sequence));
+
+        Assert.Empty(checker.ExclusionCandidates(conflict));
+    }
+
+    [Fact]
     public void Equals_SameSignalsOtherOrder_ReturnsTrue()
     {
         Assert.Equal(new ExclusiveGroup(["\"A\"", "\"B\""]), new ExclusiveGroup(["\"B\"", "\"A\""]));
