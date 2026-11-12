@@ -83,20 +83,21 @@ namespace HerramientasSICAR.Controls
             if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
             {
                 // El menú se engancha al control y Avalonia lo abre al soltar el botón; fuera de una instrucción no hay menú.
-                ContextMenu = signal == null || AddCandidateCommand?.CanExecute(signal) != true ? null : CandidateMenu(signal);
+                ContextMenu = signal == null || AddCandidateCommand?.CanExecute(cell.Leaf) != true ? null : CandidateMenu(cell.Leaf);
                 return;
             }
             if (signal != null && ToggleCommand?.CanExecute(signal) == true)
                 ToggleCommand.Execute(signal);
         }
 
-        private ContextMenu CandidateMenu(string signal)
+        // El comando recibe la instrucción: de ella salen la señal y el valor que pide.
+        private ContextMenu CandidateMenu(LadExpression leaf)
         {
             var item = new MenuItem { Header = L.T("Añadir a la lista de excluyentes") };
             item.Click += (_, __) =>
             {
-                if (AddCandidateCommand?.CanExecute(signal) == true)
-                    AddCandidateCommand.Execute(signal);
+                if (AddCandidateCommand?.CanExecute(leaf) == true)
+                    AddCandidateCommand.Execute(leaf);
             };
             return new ContextMenu { ItemsSource = new[] { item } };
         }

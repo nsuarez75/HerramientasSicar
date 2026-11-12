@@ -370,8 +370,9 @@ namespace HerramientasSICAR
             ["Señales excluyentes guardadas ({0})"] = "Saved exclusive signals ({0})",
             ["Borrar esta decisión"] = "Delete this decision",
             ["¿Estas señales son excluyentes?"] = "Are these signals exclusive?",
-            ["Las propuestas las exige uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen también aquí. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir."] =
-                "The proposed ones are required by one of the two steps and not by the other; those added with a right-click on the ladder also appear here. If they can never be 1 at the same time, tick them: this pair and those that depend on them will no longer appear.",
+            ["Las propuestas las exige a 1 uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen con el valor que pide el contacto. Marca las condiciones que nunca se dan a la vez (cambia = 1 / = 0 pulsando): este par y los que dependan de ellas dejarán de salir."] =
+                "The proposed ones are required at 1 by one of the two steps and not by the other; those added with a right-click on the ladder come with the value the contact requires. Tick the conditions that never happen at the same time (click = 1 / = 0 to change it): this pair and those that depend on them will no longer appear.",
+            ["Cambiar entre = 1 y = 0"] = "Switch between = 1 and = 0",
             ["No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA o añade señales a mano con clic derecho en el ladder."] =
                 "There are not at least two signals that one step requires at 1 and the other does not: there are no exclusive signals to propose for this pair. Check their interlocks in TIA or add signals by hand with a right-click on the ladder.",
             ["Marcar como excluyentes"] = "Mark as exclusive",

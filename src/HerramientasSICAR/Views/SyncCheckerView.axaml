@@ -126,7 +126,7 @@
                                   Header="{l:T '¿Estas señales son excluyentes?'}">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding HasCandidates}"
-                                           Text="{l:T 'Las propuestas las exige uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen también aquí. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir.'}" />
+                                           Text="{l:T 'Las propuestas las exige a 1 uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen con el valor que pide el contacto. Marca las condiciones que nunca se dan a la vez (cambia = 1 / = 0 pulsando): este par y los que dependan de ellas dejarán de salir.'}" />
                                 <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoCandidates}"
                                            Text="{l:T 'No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA o añade señales a mano con clic derecho en el ladder.'}" />
                                 <Button DockPanel.Dock="Bottom" Classes="accent" HorizontalAlignment="Left" Margin="0,8,0,0"
@@ -140,12 +140,19 @@
                                     <ItemsControl ItemsSource="{Binding CandidateRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:CandidateRow">
-                                                <CheckBox IsChecked="{Binding IsChecked}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" Classes="mono" />
-                                                        <TextBlock Text="{Binding CommentText}" Classes="label" TextWrapping="Wrap" />
-                                                    </StackPanel>
-                                                </CheckBox>
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <CheckBox IsChecked="{Binding IsChecked}">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Name}" Classes="mono" />
+                                                            <TextBlock Text="{Binding CommentText}" Classes="label" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </CheckBox>
+                                                    <!-- Valor de la señal en la condición; se cambia pulsando -->
+                                                    <Button Grid.Column="1" Classes="ghost" VerticalAlignment="Top" MinWidth="44"
+                                                            Command="{Binding ToggleValueCommand}" ToolTip.Tip="{l:T 'Cambiar entre = 1 y = 0'}">
+                                                        <TextBlock Text="{Binding ValueText}" Classes="mono" FontWeight="SemiBold" />
+                                                    </Button>
+                                                </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

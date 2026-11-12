@@ -353,6 +353,29 @@ public class SyncCheckerTests
     }
 
     [Fact]
+    public void Conflicts_GroupWithValues_RemovesPair()
+    {
+        // Pieza en la garra con destino implica pieza en la garra: S031 exige la primera a 1 y S040 la segunda a 0.
+        var sequence = Sequence(
+            Step(31, C("Garra-FP-Destino"), C("Fin1")),
+            Step(40, C("Garra-FP", negated: true), C("Fin2")));
+        Assert.Single(new SyncChecker().Check(sequence));
+
+        var group = new ExclusiveGroup(["\"Garra-FP-Destino\"", "\"Garra-FP\""]) { Values = [true, false] };
+        Assert.Empty(new SyncChecker { ExclusiveGroups = [group] }.Check(sequence));
+
+        // Las dos a 1 no lo dicen: el par sigue saliendo.
+        Assert.Single(new SyncChecker { ExclusiveGroups = [new ExclusiveGroup(["\"Garra-FP-Destino\"", "\"Garra-FP\""])] }.Check(sequence));
+    }
+
+    [Fact]
+    public void Equals_SameSignalsOtherValues_ReturnsFalse()
+    {
+        Assert.NotEqual(new ExclusiveGroup(["\"A\"", "\"B\""]) { Values = [true, false] }, new ExclusiveGroup(["\"A\"", "\"B\""]));
+        Assert.Equal(new ExclusiveGroup(["\"A\"", "\"B\""]) { Values = [true, true] }, new ExclusiveGroup(["\"B\"", "\"A\""]));
+    }
+
+    [Fact]
     public void Equals_SameSignalsOtherOrder_ReturnsTrue()
     {
         Assert.Equal(new ExclusiveGroup(["\"A\"", "\"B\""]), new ExclusiveGroup(["\"B\"", "\"A\""]));
