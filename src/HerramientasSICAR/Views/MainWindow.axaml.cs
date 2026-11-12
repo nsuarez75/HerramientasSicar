@@ -33,7 +33,7 @@ namespace HerramientasSICAR.Views
             if (Classes.Contains("narrow") == narrow)
                 return;
             Classes.Set("narrow", narrow);
-            Body.ColumnDefinitions[0].Width = new GridLength(narrow ? 190 : 230);
+            Side.Width = narrow ? 190 : 230;
         }
 
         // ---------------------------------------------------------------- IDialogos

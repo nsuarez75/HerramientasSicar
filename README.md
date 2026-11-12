@@ -18,7 +18,7 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 
 La aplicación nunca abre, guarda ni cierra proyectos en TIA: después de una herramienta que cambia bloques, guarda el proyecto en TIA. Si cierras el proyecto en TIA, vuelve a conectar; si TIA se cierra a mitad de un trabajo, la herramienta se para y dice cuántos elementos quedan sin hacer.
 
-La barra inferior dice qué está pasando; si algo falla en varios bloques, se despliega la lista con el motivo. En la barra superior están también el idioma (castellano/inglés), el tema (sistema, claro u oscuro) y «Acerca de». Se recuerdan en `%AppData%\HerramientasSICAR\ajustes.json`, junto con la última carpeta usada. Al arrancar, la aplicación avisa si hay una versión nueva en GitHub.
+El lateral de herramientas se oculta con el botón de su esquina; oculto, arriba quedan un botón para volver a mostrarlo y un desplegable para cambiar de herramienta. La barra inferior dice qué está pasando; si algo falla en varios bloques, se despliega la lista con el motivo. En la barra superior están también el idioma (castellano/inglés), el tema (sistema, claro u oscuro) y «Acerca de». Se recuerdan en `%AppData%\HerramientasSICAR\ajustes.json`, junto con la última carpeta usada y si el lateral está oculto. Al arrancar, la aplicación avisa si hay una versión nueva en GitHub.
 
 ## Herramientas
 

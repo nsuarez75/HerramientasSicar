@@ -40,7 +40,24 @@ namespace HerramientasSICAR.ViewModels
                 Sidebar.Add(tool);
 
             _selectedTool = _current = _importExport;
+            _sidebarHidden = settings.SidebarHidden;
         }
+
+        /// <summary>
+        /// Lateral de herramientas oculto: se gana sitio para la herramienta, que se cambia con el desplegable de la
+        /// cabecera. Se recuerda.
+        /// </summary>
+        [ObservableProperty]
+        private bool _sidebarHidden;
+
+        partial void OnSidebarHiddenChanged(bool value)
+        {
+            ToolContext.Settings.SidebarHidden = value;
+            ToolContext.Settings.Save();
+        }
+
+        [RelayCommand]
+        private void ToggleSidebar() => SidebarHidden = !SidebarHidden;
 
         public ToolContext ToolContext { get; }
 

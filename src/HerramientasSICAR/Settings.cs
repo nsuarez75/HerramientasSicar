@@ -39,6 +39,10 @@ namespace HerramientasSICAR
         [JsonPropertyName("UltimaCarpetaDiagExpected")]
         public string LastDiagExpectedFolder { get; set; }
 
+        /// <summary>El lateral de herramientas está oculto.</summary>
+        [JsonPropertyName("LateralOculto")]
+        public bool SidebarHidden { get; set; }
+
         /// <summary>Por ruta de proyecto, los PLC y HMI que se eligieron leer al conectar la última vez.</summary>
         [JsonPropertyName("DispositivosLeidos")]
         public Dictionary<string, List<string>> ReadDevices { get; set; } = new Dictionary<string, List<string>>();
