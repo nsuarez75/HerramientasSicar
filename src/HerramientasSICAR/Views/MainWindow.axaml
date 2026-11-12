@@ -7,18 +7,18 @@
         x:Class="HerramientasSICAR.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/alomatek.png"
-        Title="{Binding Titulo}"
+        Title="{Binding Title}"
         Width="1240" Height="800" MinWidth="880" MinHeight="560"
         WindowStartupLocation="CenterScreen">
 
     <Window.DataTemplates>
-        <DataTemplate DataType="vm:ImportarExportarViewModel"><v:ImportarExportarView /></DataTemplate>
+        <DataTemplate DataType="vm:ImportExportViewModel"><v:ImportExportView /></DataTemplate>
         <DataTemplate DataType="vm:DiagExpectedViewModel"><v:DiagExpectedView /></DataTemplate>
-        <DataTemplate DataType="vm:NumeradorViewModel"><v:NumeradorView /></DataTemplate>
-        <DataTemplate DataType="vm:RenombrarArrayViewModel"><v:RenombrarArrayView /></DataTemplate>
-        <DataTemplate DataType="vm:SincroCheckerViewModel"><v:SincroCheckerView /></DataTemplate>
-        <DataTemplate DataType="vm:ComentadorViewModel"><v:ComentadorView /></DataTemplate>
-        <DataTemplate DataType="vm:GeneradorHmiViewModel"><v:GeneradorHmiView /></DataTemplate>
+        <DataTemplate DataType="vm:MessageNumberingViewModel"><v:MessageNumberingView /></DataTemplate>
+        <DataTemplate DataType="vm:RenumberArrayViewModel"><v:RenumberArrayView /></DataTemplate>
+        <DataTemplate DataType="vm:SyncCheckerViewModel"><v:SyncCheckerView /></DataTemplate>
+        <DataTemplate DataType="vm:CommentatorViewModel"><v:CommentatorView /></DataTemplate>
+        <DataTemplate DataType="vm:HmiGeneratorViewModel"><v:HmiGeneratorView /></DataTemplate>
     </Window.DataTemplates>
 
     <DockPanel>
@@ -29,35 +29,35 @@
                 <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
                     <Image Source="/Assets/alomatek.png" Width="32" Height="32" Margin="0,0,10,0" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding NombreApp}" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding Subtitulo}" Classes="label" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding AppName}" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Subtitle}" Classes="label" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Grid>
 
                 <!-- Proyecto abierto en TIA y conexión -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="16,0">
-                    <ComboBox ItemsSource="{Binding Proyectos}" SelectedItem="{Binding ProyectoSeleccionado}"
-                              Width="340" PlaceholderText="{Binding TextoElegirProyecto}">
+                    <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}"
+                              Width="340" PlaceholderText="{Binding ChooseProjectText}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="x:String">
                                 <TextBlock Text="{Binding}" TextTrimming="LeadingCharacterEllipsis" ToolTip.Tip="{Binding}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    <Button Classes="ghost" Command="{Binding BuscarProyectosCommand}" ToolTip.Tip="{l:T 'Buscar proyectos abiertos en TIA'}">
+                    <Button Classes="ghost" Command="{Binding FindProjectsCommand}" ToolTip.Tip="{l:T 'Buscar proyectos abiertos en TIA'}">
                         <c:Icon Kind="refresh" Width="17" Height="17" />
                     </Button>
-                    <Button Classes="accent" Command="{Binding ConectarCommand}">
+                    <Button Classes="accent" Command="{Binding ConnectCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <c:Icon Kind="link" />
                             <TextBlock Text="{l:T 'Conectar'}" Classes="barlabel" />
                         </StackPanel>
                     </Button>
-                    <Border Classes="pill good" IsVisible="{Binding Contexto.Conectado}" VerticalAlignment="Center"
-                            ToolTip.Tip="{Binding Contexto.ProyectoConectado}">
+                    <Border Classes="pill good" IsVisible="{Binding ToolContext.Connected}" VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding ToolContext.ConnectedProject}">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <c:Icon Kind="check" Width="12" Height="12" Foreground="{DynamicResource App.Good}" />
-                            <TextBlock Text="{Binding Contexto.NombreProyecto}" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding ToolContext.ProjectName}" MaxWidth="180" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -68,31 +68,31 @@
                     <Button Classes="ghost" ToolTip.Tip="{l:T 'Idioma'}">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <c:Icon Kind="globe" Width="17" Height="17" />
-                            <TextBlock Text="{Binding TextoIdioma}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding LanguageText}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                <MenuItem Header="Castellano" ToggleType="Radio" GroupName="idioma" IsChecked="{Binding EnCastellano, Mode=OneWay}"
-                                          Command="{Binding CambiarIdiomaCommand}" CommandParameter="es" />
-                                <MenuItem Header="English" ToggleType="Radio" GroupName="idioma" IsChecked="{Binding EnIngles, Mode=OneWay}"
-                                          Command="{Binding CambiarIdiomaCommand}" CommandParameter="en" />
+                                <MenuItem Header="Castellano" ToggleType="Radio" GroupName="language" IsChecked="{Binding InSpanish, Mode=OneWay}"
+                                          Command="{Binding ChangeLanguageCommand}" CommandParameter="es" />
+                                <MenuItem Header="English" ToggleType="Radio" GroupName="language" IsChecked="{Binding InEnglish, Mode=OneWay}"
+                                          Command="{Binding ChangeLanguageCommand}" CommandParameter="en" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
                     <Button Classes="ghost" ToolTip.Tip="{l:T 'Tema'}">
-                        <c:Icon Kind="{Binding IconoTema}" Width="17" Height="17" />
+                        <c:Icon Kind="{Binding ThemeIcon}" Width="17" Height="17" />
                         <Button.Flyout>
                             <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                <MenuItem Header="{l:T 'Sistema'}" ToggleType="Radio" GroupName="tema" IsChecked="{Binding TemaSistema, Mode=OneWay}"
-                                          Command="{Binding CambiarTemaCommand}" CommandParameter="system" />
-                                <MenuItem Header="{l:T 'Claro'}" ToggleType="Radio" GroupName="tema" IsChecked="{Binding TemaClaro, Mode=OneWay}"
-                                          Command="{Binding CambiarTemaCommand}" CommandParameter="light" />
-                                <MenuItem Header="{l:T 'Oscuro'}" ToggleType="Radio" GroupName="tema" IsChecked="{Binding TemaOscuro, Mode=OneWay}"
-                                          Command="{Binding CambiarTemaCommand}" CommandParameter="dark" />
+                                <MenuItem Header="{l:T 'Sistema'}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding SystemTheme, Mode=OneWay}"
+                                          Command="{Binding ChangeThemeCommand}" CommandParameter="system" />
+                                <MenuItem Header="{l:T 'Claro'}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding LightTheme, Mode=OneWay}"
+                                          Command="{Binding ChangeThemeCommand}" CommandParameter="light" />
+                                <MenuItem Header="{l:T 'Oscuro'}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding DarkTheme, Mode=OneWay}"
+                                          Command="{Binding ChangeThemeCommand}" CommandParameter="dark" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
-                    <Button Classes="ghost" Command="{Binding AcercaDeCommand}" ToolTip.Tip="{l:T 'Acerca de'}">
+                    <Button Classes="ghost" Command="{Binding AboutCommand}" ToolTip.Tip="{l:T 'Acerca de'}">
                         <c:Icon Kind="info" Width="17" Height="17" />
                     </Button>
                 </StackPanel>
@@ -100,15 +100,15 @@
         </Border>
 
         <!-- ░░ Aviso de versión nueva ░░ -->
-        <Border DockPanel.Dock="Top" Classes="notice" IsVisible="{Binding HayVersionNueva}" Padding="16,7">
+        <Border DockPanel.Dock="Top" Classes="notice" IsVisible="{Binding HasNewVersion}" Padding="16,7">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding CerrarAvisoVersionCommand}" Padding="5" ToolTip.Tip="{l:T 'Cerrar'}">
+                <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding CloseVersionNoticeCommand}" Padding="5" ToolTip.Tip="{l:T 'Cerrar'}">
                     <c:Icon Kind="x" Width="14" Height="14" />
                 </Button>
                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <c:Icon Kind="download" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" />
-                    <TextBlock Text="{Binding AvisoVersion}" VerticalAlignment="Center" Foreground="{DynamicResource App.AccentText}" FontWeight="Medium" />
-                    <HyperlinkButton Content="{l:T 'Descargar'}" NavigateUri="{Binding UrlVersion}" Padding="0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding VersionNotice}" VerticalAlignment="Center" Foreground="{DynamicResource App.AccentText}" FontWeight="Medium" />
+                    <HyperlinkButton Content="{l:T 'Descargar'}" NavigateUri="{Binding VersionUrl}" Padding="0" VerticalAlignment="Center" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -117,23 +117,23 @@
         <Border DockPanel.Dock="Bottom" Classes="bar" BorderThickness="0,1,0,0">
             <DockPanel>
                 <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="90" Margin="0,0,16,0"
-                             VerticalAlignment="Center" IsVisible="{Binding Contexto.Ocupado}" />
+                             VerticalAlignment="Center" IsVisible="{Binding ToolContext.Busy}" />
                 <Panel>
-                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="16,8" IsVisible="{Binding !Contexto.HayFallos}">
-                        <c:Icon Kind="alert" Width="14" Height="14" Foreground="{DynamicResource App.Bad}" IsVisible="{Binding Contexto.EstadoError}" />
-                        <c:Icon Kind="info" Width="14" Height="14" Foreground="{DynamicResource App.TextMuted}" IsVisible="{Binding Contexto.EstadoNormal}" />
-                        <TextBlock Text="{Binding Contexto.Estado}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                                   ToolTip.Tip="{Binding Contexto.Estado}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="16,8" IsVisible="{Binding !ToolContext.HasFailures}">
+                        <c:Icon Kind="alert" Width="14" Height="14" Foreground="{DynamicResource App.Bad}" IsVisible="{Binding ToolContext.StatusError}" />
+                        <c:Icon Kind="info" Width="14" Height="14" Foreground="{DynamicResource App.TextMuted}" IsVisible="{Binding ToolContext.StatusNormal}" />
+                        <TextBlock Text="{Binding ToolContext.Status}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding ToolContext.Status}" />
                     </StackPanel>
-                    <Expander IsVisible="{Binding Contexto.HayFallos}" HorizontalAlignment="Stretch" Padding="0" CornerRadius="0"
+                    <Expander IsVisible="{Binding ToolContext.HasFailures}" HorizontalAlignment="Stretch" Padding="0" CornerRadius="0"
                               Background="Transparent" BorderThickness="0">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <c:Icon Kind="alert" Width="14" Height="14" Foreground="{DynamicResource App.Warn}" />
-                                <TextBlock Text="{Binding Contexto.Estado}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ToolContext.Status}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </StackPanel>
                         </Expander.Header>
-                        <ListBox Classes="table" ItemsSource="{Binding Contexto.Fallos}" MaxHeight="180">
+                        <ListBox Classes="table" ItemsSource="{Binding ToolContext.Failures}" MaxHeight="180">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
                                     <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding}" />
@@ -145,15 +145,15 @@
             </DockPanel>
         </Border>
 
-        <Grid x:Name="Cuerpo" ColumnDefinitions="230,*">
+        <Grid x:Name="Body" ColumnDefinitions="230,*">
             <!-- ░░ Lateral: herramientas ░░ -->
             <Border Classes="side">
-                <ListBox Classes="cards nav" ItemsSource="{Binding Lateral}" SelectedItem="{Binding Seleccionada}" Margin="0,10,0,8">
+                <ListBox Classes="cards nav" ItemsSource="{Binding Sidebar}" SelectedItem="{Binding SelectedTool}" Margin="0,10,0,8">
                     <ListBox.DataTemplates>
-                        <DataTemplate DataType="vm:Herramienta">
+                        <DataTemplate DataType="vm:Tool">
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <c:Icon Kind="{Binding Icono}" Width="16" Height="16" />
-                                <TextBlock Text="{Binding Nombre}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <c:Icon Kind="{Binding Icon}" Width="16" Height="16" />
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.DataTemplates>
@@ -161,14 +161,14 @@
             </Border>
 
             <!-- ░░ Panel principal: cabecera de la herramienta y su pantalla ░░ -->
-            <DockPanel Grid.Column="1" DataContext="{Binding Actual}" x:DataType="vm:Herramienta">
+            <DockPanel Grid.Column="1" DataContext="{Binding Current}" x:DataType="vm:Tool">
                 <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="24,20,24,12">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <c:Icon Kind="{Binding Icono}" Width="20" Height="20" Foreground="{DynamicResource App.Accent}" />
-                        <TextBlock Text="{Binding Nombre}" Classes="h1" />
+                        <c:Icon Kind="{Binding Icon}" Width="20" Height="20" Foreground="{DynamicResource App.Accent}" />
+                        <TextBlock Text="{Binding Name}" Classes="h1" />
                     </StackPanel>
-                    <TextBlock Text="{Binding Descripcion}" Classes="muted" MaxWidth="820" HorizontalAlignment="Left" />
-                    <Border Classes="tip" IsVisible="{Binding FaltaConexion}" HorizontalAlignment="Left" Margin="0,6,0,0">
+                    <TextBlock Text="{Binding Description}" Classes="muted" MaxWidth="820" HorizontalAlignment="Left" />
+                    <Border Classes="tip" IsVisible="{Binding NeedsConnection}" HorizontalAlignment="Left" Margin="0,6,0,0">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <c:Icon Kind="link" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" />
                             <TextBlock Foreground="{DynamicResource App.AccentText}" FontWeight="Medium" TextWrapping="Wrap" MaxWidth="700"

@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.MessageNumberingView"
+             x:DataType="vm:MessageNumberingViewModel">
+    <ScrollViewer>
+        <!-- Columna de ancho máximo 760, pegada a la izquierda -->
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="760" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Spacing="16">
+            <Border Classes="card">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+                    <TextBlock Text="{l:T 'FB de mensajes'}" Classes="h2" />
+                    <TextBlock Grid.Row="1" Classes="muted mono" Text="{Binding BlockList}" />
+                    <Button Grid.Column="1" Grid.RowSpan="2" Classes="accent" VerticalAlignment="Center" Command="{Binding NumberCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <c:Icon Kind="hash" />
+                            <TextBlock Text="{l:T 'Renumerar mensajes'}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+            <Border Classes="tip">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                    <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="660"
+                               Text="{l:T 'Se compila el proyecto y cada FB de mensajes se exporta, se renumera y se vuelve a importar en su misma carpeta. Los que el proyecto no tiene se saltan. Al terminar, guarda el proyecto en TIA.'}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

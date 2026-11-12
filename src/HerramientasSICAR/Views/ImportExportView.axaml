@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HerramientasSICAR.ViewModels"
+             xmlns:c="using:HerramientasSICAR.Controls"
+             xmlns:l="using:HerramientasSICAR"
+             x:Class="HerramientasSICAR.Views.ImportExportView"
+             x:DataType="vm:ImportExportViewModel">
+    <Grid ColumnDefinitions="360,Auto,*" Margin="24,0,24,16">
+        <!-- ░░ PLC y HMI del proyecto (casilla = exportar, selección = destino de la importación) ░░ -->
+        <Border Classes="card" Padding="6,12,6,6">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="10,0,4,8">
+                    <TextBlock Text="{l:T 'PROYECTO'}" Classes="caption" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Classes="pill" Classes.accent="{Binding HasChecked}" IsVisible="{Binding ToolContext.Connected}">
+                        <TextBlock Text="{Binding CheckedText}" />
+                    </Border>
+                </Grid>
+                <TextBox DockPanel.Dock="Top" Margin="4,0,4,8" Text="{Binding Filter}" IsVisible="{Binding ToolContext.Connected}"
+                         PlaceholderText="{l:T 'Filtrar por nombre'}">
+                    <TextBox.InnerLeftContent>
+                        <c:Icon Kind="search" Width="14" Height="14" Margin="10,0,0,0" Foreground="{DynamicResource App.TextMuted}" />
+                    </TextBox.InnerLeftContent>
+                </TextBox>
+                <Button DockPanel.Dock="Top" Margin="4,0,4,8" HorizontalAlignment="Stretch" Command="{Binding ReadCommand}"
+                        IsVisible="{Binding ToolContext.Connected}"
+                        ToolTip.Tip="{l:T 'Trae de TIA el árbol del PLC o la HMI seleccionado: si no se leyó al conectar, o para ver cambios hechos en TIA'}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <c:Icon Kind="refresh" />
+                        <TextBlock Text="{Binding ReadText}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Button>
+                <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="10,4" FontSize="12" IsVisible="{Binding ToolContext.NotConnected}"
+                           Text="{l:T 'Conecta con un proyecto para ver sus PLC y HMI con todo lo que tienen dentro.'}" />
+                <TreeView ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedNode}">
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate DataType="vm:TreeNode" ItemsSource="{Binding Children}">
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                <CheckBox IsChecked="{Binding IsChecked}" MinWidth="0" Padding="0" VerticalAlignment="Center" />
+                                <c:Icon Grid.Column="1" Kind="{Binding Icon}" Width="15" Height="15" VerticalAlignment="Center"
+                                        Foreground="{DynamicResource App.TextMuted}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="{Binding Detail}" Classes="label" FontSize="11.5" Margin="4,0,6,0" />
+                            </Grid>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                    <TreeView.Styles>
+                        <Style Selector="TreeViewItem" x:DataType="vm:TreeNode">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                            <Setter Property="IsVisible" Value="{Binding Visible}" />
+                        </Style>
+                    </TreeView.Styles>
+                </TreeView>
+            </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="1" Width="12" ResizeDirection="Columns" Background="Transparent" />
+
+        <!-- ░░ Exportar e importar ░░ -->
+        <ScrollViewer Grid.Column="2">
+            <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Left">
+                <Border Classes="card">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <c:Icon Kind="download" Width="18" Height="18" Foreground="{DynamicResource App.Accent}" />
+                            <TextBlock Text="{l:T 'Exportar'}" Classes="h2" />
+                        </StackPanel>
+                        <TextBlock Grid.Row="1" Classes="muted"
+                                   Text="{l:T 'Marca en el árbol los bloques y elementos de HMI (marcar una carpeta marca todo lo que tiene dentro). Cada uno se guarda como XML y las carpetas de TIA se crean como subcarpetas.'}" />
+                        <Button Grid.Column="1" Grid.RowSpan="2" Classes="accent" VerticalAlignment="Center" Command="{Binding ExportCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:Icon Kind="download" />
+                                <TextBlock Text="{l:T 'Exportar marcados…'}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <c:Icon Kind="upload" Width="18" Height="18" Foreground="{DynamicResource App.Accent}" />
+                            <TextBlock Text="{l:T 'Importar'}" Classes="h2" />
+                        </StackPanel>
+                        <TextBlock Classes="muted"
+                                   Text="{l:T 'Selecciona en el árbol el PLC o la carpeta destino. En una HMI, cada archivo va a su rama; si seleccionas una carpeta de una rama, lo de esa rama entra en ella. Lo que ya exista con el mismo nombre se sobrescribe.'}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{l:T 'Destino'}" Classes="label" />
+                            <Border Classes="pill" Classes.accent="{Binding HasTarget}">
+                                <TextBlock Text="{Binding Target}" />
+                            </Border>
+                        </StackPanel>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Command="{Binding ImportFilesCommand}" Margin="0,0,8,0" ToolTip.Tip="{l:T 'Uno o varios XML, directos al destino'}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:Icon Kind="file-plus" />
+                                    <TextBlock Text="{l:T 'Importar archivos…'}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding ImportFolderCommand}" ToolTip.Tip="{l:T 'Todos los XML de una carpeta; sus subcarpetas se crean como carpetas en TIA'}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:Icon Kind="folder" />
+                                    <TextBlock Text="{l:T 'Importar carpeta…'}" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="tip">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                        <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="560"
+                                   Text="{l:T 'La aplicación nunca abre, guarda ni cierra el proyecto. Después de importar, guárdalo en TIA. Los bloques sin compilar se compilan antes de exportar; los protegidos con contraseña no se pueden exportar. De las HMI se ven las WinCC clásicas (Basic, Comfort, Advanced); los avisos, las recetas y los usuarios no se pueden exportar.'}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

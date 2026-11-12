@@ -15,91 +15,91 @@ namespace HerramientasSICAR.Views
     /// </summary>
     public sealed class DialogWindow : Window
     {
-        private readonly StackPanel _botones = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        private readonly StackPanel _buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
 
-        private DialogWindow(Window dueño, string titulo, Control cuerpo, double ancho)
+        private DialogWindow(Window dueño, string title, Control body, double width)
         {
-            Title = titulo;
+            Title = title;
             Icon = dueño.Icon;
-            Width = ancho;
+            Width = width;
             SizeToContent = SizeToContent.Height;
             MaxHeight = 720;
             CanResize = false;
             ShowInTaskbar = false;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
-            var cabecera = new TextBlock { Text = titulo, Classes = { "h2" }, TextWrapping = TextWrapping.Wrap };
-            var rejilla = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto"), Margin = new Thickness(20) };
-            cabecera.Margin = new Thickness(0, 0, 0, 14);
-            _botones.Margin = new Thickness(0, 14, 0, 0);
-            rejilla.Children.Add(cabecera);
-            Grid.SetRow(cuerpo, 1);
-            rejilla.Children.Add(cuerpo);
-            Grid.SetRow(_botones, 2);
-            rejilla.Children.Add(_botones);
-            Content = rejilla;
+            var header = new TextBlock { Text = title, Classes = { "h2" }, TextWrapping = TextWrapping.Wrap };
+            var grid = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto"), Margin = new Thickness(20) };
+            header.Margin = new Thickness(0, 0, 0, 14);
+            _buttons.Margin = new Thickness(0, 14, 0, 0);
+            grid.Children.Add(header);
+            Grid.SetRow(body, 1);
+            grid.Children.Add(body);
+            Grid.SetRow(_buttons, 2);
+            grid.Children.Add(_buttons);
+            Content = grid;
         }
 
-        private void AñadirBoton(string texto, Action alPulsar, bool principal = false, bool cancelar = false)
+        private void AñAddButton(string text, Action onClick, bool main = false, bool cancel = false)
         {
-            var boton = new Button { Content = texto, IsDefault = principal, IsCancel = cancelar, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
-            if (principal)
-                boton.Classes.Add("accent");
-            boton.Click += (_, __) => alPulsar();
-            _botones.Children.Add(boton);
+            var button = new Button { Content = text, IsDefault = main, IsCancel = cancel, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
+            if (main)
+                button.Classes.Add("accent");
+            button.Click += (_, __) => onClick();
+            _buttons.Children.Add(button);
         }
 
-        private static TextBlock Texto(string texto) => new TextBlock { Text = texto, TextWrapping = TextWrapping.Wrap };
+        private static TextBlock Text(string text) => new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
 
-        public static async Task Mensaje(Window dueño, string titulo, string texto)
+        public static async Task MessageNetwork(Window dueño, string title, string text)
         {
-            var dialogo = new DialogWindow(dueño, titulo, Texto(texto), 480);
-            dialogo.AñadirBoton(L.T("Aceptar"), dialogo.Close, principal: true, cancelar: true);
-            await dialogo.ShowDialog(dueño);
+            var dialog = new DialogWindow(dueño, title, Text(text), 480);
+            dialog.AñAddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
+            await dialog.ShowDialog(dueño);
         }
 
-        public static async Task AcercaDe(Window dueño, string titulo, string texto, string enlace)
+        public static async Task About(Window dueño, string title, string text, string link)
         {
             var panel = new StackPanel { Spacing = 8 };
-            panel.Children.Add(Texto(texto));
-            panel.Children.Add(new HyperlinkButton { Content = enlace, NavigateUri = new Uri(enlace), Padding = new Thickness(0) });
-            var dialogo = new DialogWindow(dueño, titulo, panel, 480);
-            dialogo.AñadirBoton(L.T("Aceptar"), dialogo.Close, principal: true, cancelar: true);
-            await dialogo.ShowDialog(dueño);
+            panel.Children.Add(Text(text));
+            panel.Children.Add(new HyperlinkButton { Content = link, NavigateUri = new Uri(link), Padding = new Thickness(0) });
+            var dialog = new DialogWindow(dueño, title, panel, 480);
+            dialog.AñAddButton(L.T("Aceptar"), dialog.Close, main: true, cancel: true);
+            await dialog.ShowDialog(dueño);
         }
 
-        public static async Task<bool> Confirmar(Window dueño, string titulo, string texto, string aceptar)
+        public static async Task<bool> Confirm(Window dueño, string title, string text, string accept)
         {
-            bool resultado = false;
-            var dialogo = new DialogWindow(dueño, titulo, new ScrollViewer { Content = Texto(texto), MaxHeight = 480 }, 520);
-            dialogo.AñadirBoton(aceptar, () => { resultado = true; dialogo.Close(); }, principal: true);
-            dialogo.AñadirBoton(L.T("Cancelar"), dialogo.Close, cancelar: true);
-            await dialogo.ShowDialog(dueño);
-            return resultado;
+            bool result = false;
+            var dialog = new DialogWindow(dueño, title, new ScrollViewer { Content = Text(text), MaxHeight = 480 }, 520);
+            dialog.AñAddButton(accept, () => { result = true; dialog.Close(); }, main: true);
+            dialog.AñAddButton(L.T("Cancelar"), dialog.Close, cancel: true);
+            await dialog.ShowDialog(dueño);
+            return result;
         }
 
-        public static async Task<IReadOnlyList<int>> ElegirVarios(Window dueño, string titulo, string texto, IReadOnlyList<string> opciones,
-            IReadOnlyList<bool> marcadas, string aceptar, string cancelar)
+        public static async Task<IReadOnlyList<int>> ChooseMany(Window dueño, string title, string text, IReadOnlyList<string> options,
+            IReadOnlyList<bool> checkedIndexes, string accept, string cancel)
         {
-            IReadOnlyList<int> resultado = null;
-            var casillas = opciones.Select((opcion, i) => new CheckBox { Content = opcion, IsChecked = marcadas[i] }).ToList();
-            var lista = new StackPanel { Spacing = 2 };
-            foreach (var casilla in casillas)
-                lista.Children.Add(casilla);
+            IReadOnlyList<int> result = null;
+            var checkBoxes = options.Select((option, i) => new CheckBox { Content = option, IsChecked = checkedIndexes[i] }).ToList();
+            var list = new StackPanel { Spacing = 2 };
+            foreach (var checkBox in checkBoxes)
+                list.Children.Add(checkBox);
 
             var panel = new StackPanel { Spacing = 12 };
-            panel.Children.Add(Texto(texto));
-            panel.Children.Add(new ScrollViewer { Content = lista, MaxHeight = 360 });
+            panel.Children.Add(Text(text));
+            panel.Children.Add(new ScrollViewer { Content = list, MaxHeight = 360 });
 
-            var dialogo = new DialogWindow(dueño, titulo, panel, 480);
-            dialogo.AñadirBoton(aceptar, () =>
+            var dialog = new DialogWindow(dueño, title, panel, 480);
+            dialog.AñAddButton(accept, () =>
             {
-                resultado = Enumerable.Range(0, casillas.Count).Where(i => casillas[i].IsChecked == true).ToList();
-                dialogo.Close();
-            }, principal: true);
-            dialogo.AñadirBoton(cancelar, dialogo.Close, cancelar: true);
-            await dialogo.ShowDialog(dueño);
-            return resultado;
+                result = Enumerable.Range(0, checkBoxes.Count).Where(i => checkBoxes[i].IsChecked == true).ToList();
+                dialog.Close();
+            }, main: true);
+            dialog.AñAddButton(cancel, dialog.Close, cancel: true);
+            await dialog.ShowDialog(dueño);
+            return result;
         }
     }
 }

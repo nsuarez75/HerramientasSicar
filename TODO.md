@@ -17,5 +17,5 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 
 ## Sincro Checker (issue #21)
 
-- Comprobación en `Nucleo/`. Probado con un programa real y desde la app con TIA.
+- Comprobación en `Core/`. Probado con un programa real y desde la app con TIA.
 - Límites: las señales de fuera del PLC son libres y las redes en STL y SCL no se leen.

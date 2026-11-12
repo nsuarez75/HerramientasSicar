@@ -9,90 +9,90 @@ using System.Threading.Tasks;
 namespace HerramientasSICAR.Views
 {
     /// <summary>Ventana principal. También hace de IDialogos: los diálogos se abren sobre ella.</summary>
-    public partial class MainWindow : Window, IDialogos
+    public partial class MainWindow : Window, IDialogs
     {
         // Por debajo de este ancho los botones de la barra superior se quedan solo con el icono.
-        private const double AnchoEstrecho = 1100;
+        private const double NarrowWidth = 1100;
 
         public MainWindow()
         {
             InitializeComponent();
-            SizeChanged += (_, e) => PonerEstrecha(e.NewSize.Width < AnchoEstrecho);
+            SizeChanged += (_, e) => SetNarrow(e.NewSize.Width < NarrowWidth);
         }
 
-        public void Enlazar(MainViewModel principal)
+        public void Bind(MainViewModel main)
         {
-            principal.Dialogos = this;
-            DataContext = principal;
+            main.Dialogs = this;
+            DataContext = main;
         }
 
         // Ventana estrecha: botones de la barra solo con icono y lateral más estrecho. El lateral solo cambia
         // al cruzar el umbral.
-        private void PonerEstrecha(bool estrecha)
+        private void SetNarrow(bool narrow)
         {
-            if (Classes.Contains("narrow") == estrecha)
+            if (Classes.Contains("narrow") == narrow)
                 return;
-            Classes.Set("narrow", estrecha);
-            Cuerpo.ColumnDefinitions[0].Width = new GridLength(estrecha ? 190 : 230);
+            Classes.Set("narrow", narrow);
+            Body.ColumnDefinitions[0].Width = new GridLength(narrow ? 190 : 230);
         }
 
         // ---------------------------------------------------------------- IDialogos
 
-        public Task Mensaje(string titulo, string texto) => DialogWindow.Mensaje(this, titulo, texto);
+        public Task MessageNetwork(string title, string text) => DialogWindow.MessageNetwork(this, title, text);
 
-        public Task AcercaDe(string titulo, string texto, string enlace) => DialogWindow.AcercaDe(this, titulo, texto, enlace);
+        public Task About(string title, string text, string link) => DialogWindow.About(this, title, text, link);
 
-        public Task<bool> Confirmar(string titulo, string texto, string aceptar) => DialogWindow.Confirmar(this, titulo, texto, aceptar);
+        public Task<bool> Confirm(string title, string text, string accept) => DialogWindow.Confirm(this, title, text, accept);
 
-        public Task<IReadOnlyList<int>> ElegirVarios(string titulo, string texto, IReadOnlyList<string> opciones, IReadOnlyList<bool> marcadas,
-            string aceptar, string cancelar) => DialogWindow.ElegirVarios(this, titulo, texto, opciones, marcadas, aceptar, cancelar);
+        public Task<IReadOnlyList<int>> ChooseMany(string title, string text, IReadOnlyList<string> options, IReadOnlyList<bool> checkedIndexes,
+            string accept, string cancel) => DialogWindow.ChooseMany(this, title, text, options, checkedIndexes, accept, cancel);
 
-        public async Task<string> ElegirCarpeta(string titulo, string inicial)
+        public async Task<string> ChooseFolder(string title, string initial)
         {
-            var carpetas = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = titulo,
+                Title = title,
                 AllowMultiple = false,
-                SuggestedStartLocation = await Inicio(inicial),
+                SuggestedStartLocation = await Start(initial),
             });
-            return carpetas.Count == 0 ? null : carpetas[0].TryGetLocalPath();
+            return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
         }
 
-        public async Task<string> ElegirArchivo(string titulo, string inicial, params TipoArchivo[] tipos) =>
-            (await Abrir(titulo, inicial, tipos, multiple: false)).FirstOrDefault();
+        public async Task<string> ChooseFile(string title, string initial, params FileKind[] types) =>
+            (await Open(title, initial, types, multiple: false)).FirstOrDefault();
 
-        public Task<IReadOnlyList<string>> ElegirArchivos(string titulo, string inicial, params TipoArchivo[] tipos) =>
-            Abrir(titulo, inicial, tipos, multiple: true);
+        public Task<IReadOnlyList<string>> ChooseFiles(string title, string initial, params FileKind[] types) =>
+            Open(title, initial, types, multiple: true);
 
-        public async Task<string> GuardarArchivo(string titulo, string sugerido, TipoArchivo tipo)
+        public async Task<string> SaveFile(string title, string suggested, FileKind tipo)
         {
-            var archivo = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = titulo,
-                SuggestedFileName = sugerido == null ? null : Path.GetFileName(sugerido),
-                SuggestedStartLocation = await Inicio(sugerido == null ? null : Path.GetDirectoryName(sugerido)),
-                DefaultExtension = tipo.Patrones[0].TrimStart('*', '.'),
+                Title = title,
+                SuggestedFileName = suggested == null ? null : Path.GetFileName(suggested),
+                SuggestedStartLocation = await Start(suggested == null ? null : Path.GetDirectoryName(suggested)),
+                DefaultExtension = tipo.Patterns[0].TrimStart('*', '.'),
                 ShowOverwritePrompt = true,
-                FileTypeChoices = new[] { Filtro(tipo) },
+                FileTypeChoices = new[] { Filter(tipo) },
             });
-            return archivo?.TryGetLocalPath();
+            return file?.TryGetLocalPath();
         }
 
-        private async Task<IReadOnlyList<string>> Abrir(string titulo, string inicial, TipoArchivo[] tipos, bool multiple)
+        private async Task<IReadOnlyList<string>> Open(string title, string initial, FileKind[] types, bool multiple)
         {
-            var archivos = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = titulo,
+                Title = title,
                 AllowMultiple = multiple,
-                SuggestedStartLocation = await Inicio(inicial),
-                FileTypeFilter = tipos.Select(Filtro).ToList(),
+                SuggestedStartLocation = await Start(initial),
+                FileTypeFilter = types.Select(Filter).ToList(),
             });
-            return archivos.Select(a => a.TryGetLocalPath()).Where(r => r != null).ToList();
+            return files.Select(a => a.TryGetLocalPath()).Where(r => r != null).ToList();
         }
 
-        private static FilePickerFileType Filtro(TipoArchivo tipo) => new FilePickerFileType(tipo.Nombre) { Patterns = tipo.Patrones.ToList() };
+        private static FilePickerFileType Filter(FileKind tipo) => new FilePickerFileType(tipo.Name) { Patterns = tipo.Patterns.ToList() };
 
-        private async Task<IStorageFolder> Inicio(string carpeta) =>
-            string.IsNullOrEmpty(carpeta) || !Directory.Exists(carpeta) ? null : await StorageProvider.TryGetFolderFromPathAsync(carpeta);
+        private async Task<IStorageFolder> Start(string folder) =>
+            string.IsNullOrEmpty(folder) || !Directory.Exists(folder) ? null : await StorageProvider.TryGetFolderFromPathAsync(folder);
     }
 }

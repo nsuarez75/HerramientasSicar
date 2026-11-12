@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -9,18 +9,18 @@
   <ItemGroup>
     <!-- Solo la lógica sin TIA ni ventanas: así los tests no necesitan Openness ni Avalonia. Los modelos son los
          de TIA-Connector (Contracts, sin Openness) -->
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosBloque.cs" Link="Logica\ArchivosBloque.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivosHmi.cs" Link="Logica\ArchivosHmi.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ComprobarVersion.cs" Link="Logica\ComprobarVersion.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArchivoSincro.cs" Link="Logica\ArchivoSincro.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\MenusHmi\*.cs" LinkBase="Logica\MenusHmi" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ComentariosSecuencia.cs" Link="Logica\ComentariosSecuencia.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\ArraysBloque.cs" Link="Logica\ArraysBloque.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Logica\NombresDispositivo.cs" Link="Logica\NombresDispositivo.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\BlockFiles.cs" Link="Logic\BlockFiles.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\HmiFiles.cs" Link="Logic\HmiFiles.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\VersionCheck.cs" Link="Logic\VersionCheck.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\SyncFile.cs" Link="Logic\SyncFile.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\Menus\*.cs" LinkBase="Logic\Menus" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\SequenceComments.cs" Link="Logic\SequenceComments.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\BlockArrays.cs" Link="Logic\BlockArrays.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Logic\DeviceNames.cs" Link="Logic\DeviceNames.cs" />
     <Compile Include="..\..\src\HerramientasSICAR\L.cs" Link="L.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Textos.en.cs" Link="Textos.en.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\ViewModels\NodoArbol.cs" Link="ViewModels\NodoArbol.cs" />
-    <Compile Include="..\..\src\HerramientasSICAR\Nucleo\**\*.cs" LinkBase="Nucleo" />
+    <Compile Include="..\..\src\HerramientasSICAR\Texts.en.cs" Link="Texts.en.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\ViewModels\TreeNode.cs" Link="ViewModels\TreeNode.cs" />
+    <Compile Include="..\..\src\HerramientasSICAR\Core\**\*.cs" LinkBase="Core" />
   </ItemGroup>
 
   <ItemGroup>

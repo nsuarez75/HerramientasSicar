@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using HerramientasSICAR.Helpers;
-using HerramientasSICAR.Logica;
+using HerramientasSICAR.Logic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,57 +8,57 @@ using TiaConnector.Contracts;
 
 namespace HerramientasSICAR.ViewModels
 {
-    public partial class DiagExpectedViewModel : Herramienta
+    public partial class DiagExpectedViewModel : Tool
     {
-        public DiagExpectedViewModel(Contexto contexto) : base(contexto)
+        public DiagExpectedViewModel(ToolContext context) : base(context)
         {
             // Solo los FB de secuencia de las estaciones, plegables por OM.
-            Selector = new SelectorBloques(contexto, VistaSelector.Secuencias,
-                (grupos, b) => b.Type == "FB" && !b.IsProtected && ComentariosSecuencia.MarcadoPorDefecto(grupos, b.Name));
-            Selector.Cambiado += () =>
+            Selector = new BlockSelector(context, SelectorView.Sequences,
+                (groups, b) => b.Type == "FB" && !b.IsProtected && SequenceComments.CheckedByDefault(groups, b.Name));
+            Selector.Changed += () =>
             {
-                OnPropertyChanged(nameof(NombreBloque));
-                GenerarCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(BlockName));
+                GenerateCommand.NotifyCanExecuteChanged();
             };
         }
 
-        public override string Nombre => "DiagExpected";
-        public override string Descripcion => L.T("Dado un FB de secuencia, genera un Excel con el estado que deben tener actuadores y sensores en cada paso. Es una primera plantilla: revísala antes de usarla.");
-        public override string Icono => "file-sheet";
-        public override bool UsaTia => true;
+        public override string Name => "DiagExpected";
+        public override string Description => L.T("Dado un FB de secuencia, genera un Excel con el estado que deben tener actuadores y sensores en cada paso. Es una primera plantilla: revísala antes de usarla.");
+        public override string Icon => "file-sheet";
+        public override bool UsesTia => true;
 
-        public SelectorBloques Selector { get; }
+        public BlockSelector Selector { get; }
 
-        public string NombreBloque => Selector.BloqueSeleccionado?.Name ?? L.T("Elige en el árbol el FB de secuencia.");
+        public string BlockName => Selector.SelectedBlock?.Name ?? L.T("Elige en el árbol el FB de secuencia.");
 
-        [RelayCommand(CanExecute = nameof(PuedeGenerar))]
-        private async Task Generar()
+        [RelayCommand(CanExecute = nameof(CanGenerate))]
+        private async Task Generate()
         {
-            var bloque = Selector.BloqueSeleccionado;
-            await Contexto.Trabajar(L.T("Exportando {0}…", bloque.Name), async () =>
+            var block = Selector.SelectedBlock;
+            await ToolContext.Work(L.T("Exportando {0}…", block.Name), async () =>
             {
                 // Exportar compila el bloque si hace falta. El XML va a una carpeta temporal que se borra al terminar: en la
                 // carpeta del proyecto solo queda el Excel.
-                var tia = await Contexto.TiaAsync();
-                using (var temporal = new TempFolder())
+                var tia = await ToolContext.TiaAsync();
+                using (var temp = new TempFolder())
                 {
-                    var exportacion = await tia.ExportBlocksAsync(
-                        new ExportBlocksArgs { Blocks = { bloque }, Folder = temporal.Path, Layout = ExportLayout.PerBlock });
-                    if (exportacion.Files.Count == 0)
+                    var export = await tia.ExportBlocksAsync(
+                        new ExportBlocksArgs { Blocks = { block }, Folder = temp.Path, Layout = ExportLayout.PerBlock });
+                    if (export.Files.Count == 0)
                     {
-                        Contexto.MostrarResultado(exportacion, L.T("No se ha podido exportar {0}.", bloque.Name));
+                        ToolContext.ShowResult(export, L.T("No se ha podido exportar {0}.", block.Name));
                         return;
                     }
-                    string xml = exportacion.Files.First().Path;
-                    string excel = Path.Combine(Contexto.Proyecto.ProjectFolder, bloque.Name + "_DIAG.xlsx");
-                    await Task.Run(() => new TIADiagExpected().ProcesarYGenerarExcel(xml, excel));
-                    Contexto.MostrarEstado(L.T("Excel generado: {0}", excel));
+                    string xml = export.Files.First().Path;
+                    string excel = Path.Combine(ToolContext.ProjectFile.ProjectFolder, block.Name + "_DIAG.xlsx");
+                    await Task.Run(() => new DiagExpectedGenerator().ProcessAndGenerateExcel(xml, excel));
+                    ToolContext.ShowStatus(L.T("Excel generado: {0}", excel));
                 }
             });
         }
 
-        private bool PuedeGenerar() => PuedeUsarTia && Selector.BloqueSeleccionado != null;
+        private bool CanGenerate() => CanUseTia && Selector.SelectedBlock != null;
 
-        protected override void ActualizarComandos() => GenerarCommand.NotifyCanExecuteChanged();
+        protected override void UpdateCommands() => GenerateCommand.NotifyCanExecuteChanged();
     }
 }
