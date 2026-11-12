@@ -62,6 +62,16 @@ namespace HerramientasSICAR.Controls
                 : new Size(Rail + layout.Columns * CellWidth + CoilWidth + Rail, layout.Rows * CellHeight + 2);
         }
 
+        public ICommand AddCandidateCommand
+        {
+            get => GetValue(AddCandidateCommandProperty);
+            set => SetValue(AddCandidateCommandProperty, value);
+        }
+
+        public static readonly StyledProperty<ICommand> AddCandidateCommandProperty =
+            AvaloniaProperty.Register<LadRungView, ICommand>(nameof(AddCandidateCommand));
+
+        // Clic izquierdo: cambia la señal. Clic derecho: menú para añadirla a la lista de excluyentes.
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
@@ -69,8 +79,26 @@ namespace HerramientasSICAR.Controls
             var column = (int)Math.Floor((point.X - Rail) / CellWidth);
             var row = (int)Math.Floor(point.Y / CellHeight);
             var cell = Rung?.Layout.Cells.FirstOrDefault(c => c.Column == column && c.Row == row);
-            if (cell != null && SyncState.Signal(cell.Leaf) is string signal && ToggleCommand?.CanExecute(signal) == true)
+            if (cell == null || !(SyncState.Signal(cell.Leaf) is string signal))
+                return;
+            if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+            {
+                if (AddCandidateCommand?.CanExecute(signal) != true)
+                    return;
+                var menu = new ContextMenu
+                {
+                    ItemsSource = new[]
+                    {
+                        new MenuItem { Header = L.T("Añadir a la lista de excluyentes"), Command = AddCandidateCommand, CommandParameter = signal },
+                    },
+                };
+                menu.Open(this);
+                e.Handled = true;
+            }
+            else if (ToggleCommand?.CanExecute(signal) == true)
+            {
                 ToggleCommand.Execute(signal);
+            }
         }
 
         public override void Render(DrawingContext context)

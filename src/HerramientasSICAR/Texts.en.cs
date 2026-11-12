@@ -362,14 +362,15 @@ namespace HerramientasSICAR
             ["Señales excluyentes guardadas ({0})"] = "Saved exclusive signals ({0})",
             ["Borrar esta decisión"] = "Delete this decision",
             ["¿Estas señales son excluyentes?"] = "Are these signals exclusive?",
-            ["Cada una la exige uno de los dos pasos y el otro no. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir."] =
-                "Each one is required by one of the two steps and not by the other. If they can never be 1 at the same time, tick them: this pair and those that depend on them will no longer appear.",
-            ["No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA."] =
-                "There are not at least two signals that one step requires at 1 and the other does not: there are no exclusive signals to propose for this pair. Check their interlocks in TIA.",
+            ["Las propuestas las exige uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen también aquí. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir."] =
+                "The proposed ones are required by one of the two steps and not by the other; those added with a right-click on the ladder also appear here. If they can never be 1 at the same time, tick them: this pair and those that depend on them will no longer appear.",
+            ["No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA o añade señales a mano con clic derecho en el ladder."] =
+                "There are not at least two signals that one step requires at 1 and the other does not: there are no exclusive signals to propose for this pair. Check their interlocks in TIA or add signals by hand with a right-click on the ladder.",
             ["Marcar como excluyentes"] = "Mark as exclusive",
-            ["Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato."] =
-                "Signal state in which both steps are candidates at the same time: green conducts, red does not. Click a contact to change its signal and see which step stops being a candidate.",
+            ["Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato; con clic derecho, añádela a la lista de excluyentes."] =
+                "Signal state in which both steps are candidates at the same time: green conducts, red does not. Click a contact to change its signal and see which step stops being a candidate; right-click to add it to the list of exclusive signals.",
             ["Volver al estado encontrado"] = "Back to the state found",
+            ["Añadir a la lista de excluyentes"] = "Add to the list of exclusive signals",
             ["candidato"] = "candidate",
             ["no candidato"] = "not a candidate",
             ["sin decidir"] = "undecided",

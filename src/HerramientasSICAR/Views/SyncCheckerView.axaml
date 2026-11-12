@@ -69,7 +69,7 @@
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,10">
                                 <TextBlock Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center"
-                                           Text="{l:T 'Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato.'}" />
+                                           Text="{l:T 'Estado de señales en el que los dos pasos son candidatos a la vez: en verde lo que conduce, en rojo lo que no. Pulsa un contacto para cambiar su señal y ver qué paso deja de ser candidato; con clic derecho, añádela a la lista de excluyentes.'}" />
                                 <Button Grid.Column="1" Command="{Binding ResetStateCommand}" IsVisible="{Binding StateChanged}" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <c:Icon Kind="rotate-ccw" />
@@ -98,7 +98,8 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="vm:RungRow">
                                                             <c:LadRungView Rung="{Binding Rung}" State="{Binding State}" HorizontalAlignment="Left" Margin="0,0,0,12" Cursor="Hand"
-                                                                           ToggleCommand="{Binding $parent[UserControl].((vm:SyncCheckerViewModel)DataContext).ToggleSignalCommand}" />
+                                                                           ToggleCommand="{Binding $parent[UserControl].((vm:SyncCheckerViewModel)DataContext).ToggleSignalCommand}"
+                                                                           AddCandidateCommand="{Binding $parent[UserControl].((vm:SyncCheckerViewModel)DataContext).AddCandidateCommand}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -118,9 +119,9 @@
                                   Header="{l:T '¿Estas señales son excluyentes?'}">
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding HasCandidates}"
-                                           Text="{l:T 'Cada una la exige uno de los dos pasos y el otro no. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir.'}" />
+                                           Text="{l:T 'Las propuestas las exige uno de los dos pasos y el otro no; las añadidas con clic derecho en el ladder salen también aquí. Si nunca pueden estar a 1 a la vez, márcalas: este par y los que dependan de ellas dejarán de salir.'}" />
                                 <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoCandidates}"
-                                           Text="{l:T 'No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA.'}" />
+                                           Text="{l:T 'No hay al menos dos señales que un paso exija a 1 y el otro no: para este par no hay excluyentes que proponer. Revisa sus interlocks en TIA o añade señales a mano con clic derecho en el ladder.'}" />
                                 <Button DockPanel.Dock="Bottom" Classes="accent" HorizontalAlignment="Left" Margin="0,8,0,0"
                                         Command="{Binding MarkExclusiveCommand}" IsVisible="{Binding HasCandidates}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
