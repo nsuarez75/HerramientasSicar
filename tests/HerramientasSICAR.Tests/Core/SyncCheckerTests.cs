@@ -122,6 +122,25 @@ public class SyncCheckerTests
     }
 
     [Fact]
+    public void Conflicts_ReleasePickAndDropSameStation_Exclusive()
+    {
+        var sequence = Sequence(
+            Step(1, C("++1010+FIX01-ReleasePick"), C("Pieza")),
+            Step(5, C("++1010+FIX01-ReleaseDrop"), C("Fin")));
+        Assert.Empty(new SyncChecker().Check(sequence));
+        Assert.Single(new SyncChecker { ExcludeReleasePickDrop = false }.Check(sequence));
+    }
+
+    [Fact]
+    public void Conflicts_ReleasePickAndDropOtherStation_Reported()
+    {
+        var sequence = Sequence(
+            Step(1, C("++1010+FIX01-ReleasePick"), C("Pieza")),
+            Step(5, C("++1010+FIX02-ReleaseDrop"), C("Fin")));
+        Assert.Single(new SyncChecker().Check(sequence));
+    }
+
+    [Fact]
     public void Conflicts_DifferentValuesSameSignal_Exclusive()
     {
         var code200 = new Comparison(CompareOperator.Equal, LadValue.Of(G("Rob-Code")), LadValue.Of(new Operand(OperandScope.Literal, [], "200")), "Int");
