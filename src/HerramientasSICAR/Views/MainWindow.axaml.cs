@@ -90,7 +90,7 @@ namespace HerramientasSICAR.Views
             return files.Select(a => a.TryGetLocalPath()).Where(r => r != null).ToList();
         }
 
-        private static FilePickerFileType Filter(FileKind tipo) => new FilePickerFileType(tipo.Name) { Patterns = tipo.Patterns.ToList() };
+        private static FilePickerFileType Filter(FileKind kind) => new FilePickerFileType(kind.Name) { Patterns = kind.Patterns.ToList() };
 
         private async Task<IStorageFolder> Start(string folder) =>
             string.IsNullOrEmpty(folder) || !Directory.Exists(folder) ? null : await StorageProvider.TryGetFolderFromPathAsync(folder);

@@ -68,9 +68,9 @@ namespace HerramientasSICAR.Logic.Menus
             foreach (var list in MenuCatalog.Lists)
                 lists[list.Name] = ListXml(list.Name, Entries(project, list));
             lists[MenuCatalog.FunctionTextsList] = ListXml(MenuCatalog.FunctionTextsList, FunctionEntries(project));
-            foreach (var tipo in MenuCatalog.ProductionDataKinds)
+            foreach (var kind in MenuCatalog.ProductionDataKinds)
                 for (int dataset = 1; dataset <= MenuCatalog.ProductionDatasets; dataset++)
-                    lists[tipo.ListName(dataset)] = ListXml(tipo.ListName(dataset), DatasetEntries(project, tipo, dataset));
+                    lists[kind.ListName(dataset)] = ListXml(kind.ListName(dataset), DatasetEntries(project, kind, dataset));
             return lists;
         }
 
@@ -146,14 +146,14 @@ namespace HerramientasSICAR.Logic.Menus
         /// SO_ProdData_&lt;tipo&gt;_Dataset_NN: un texto por fila. Un dataset sin ningún texto lleva los estándar en todas
         /// sus filas; si tiene alguno, lo vacío sale vacío.
         /// </summary>
-        public static IReadOnlyList<Entry> DatasetEntries(MenuProject project, ProductionDataKind tipo, int dataset)
+        public static IReadOnlyList<Entry> DatasetEntries(MenuProject project, ProductionDataKind kind, int dataset)
         {
-            var texts = project.Dataset(tipo, dataset);
+            var texts = project.Dataset(kind, dataset);
             bool empty = texts.All(t => t.IsEmpty);
-            Entry Standard(int row) => new Entry(row, tipo.StandardText(0, dataset, row), tipo.StandardText(1, dataset, row), tipo.StandardText(2, dataset, row));
+            Entry Standard(int row) => new Entry(row, kind.StandardText(0, dataset, row), kind.StandardText(1, dataset, row), kind.StandardText(2, dataset, row));
 
             var entries = new List<Entry> { Standard(0) };
-            for (int row = 1; row <= tipo.Rows; row++)
+            for (int row = 1; row <= kind.Rows; row++)
                 entries.Add(empty ? Standard(row) : FromText(row, texts[row - 1]));
             return entries;
         }
@@ -449,9 +449,9 @@ namespace HerramientasSICAR.Logic.Menus
     /// <summary>Una instrucción del segmento AWL (STL) de una HMI.</summary>
     public sealed class AwlLine
     {
-        private AwlLine(AwlLineKind tipo, string text = null, IReadOnlyList<string> path = null, int index = 0)
+        private AwlLine(AwlLineKind kind, string text = null, IReadOnlyList<string> path = null, int index = 0)
         {
-            Kind = tipo;
+            Kind = kind;
             Text = text;
             FilePath = path;
             Index = index;

@@ -279,11 +279,11 @@ namespace HerramientasSICAR.ViewModels
     /// <summary>Un dataset de Production data (una posición del menú) con los textos de sus filas.</summary>
     public sealed class ProductionDataset : ObservableObject
     {
-        public ProductionDataset(ProductionDataKind tipo, int dataset, MenuProject project, HmiGeneratorViewModel vm)
+        public ProductionDataset(ProductionDataKind kind, int dataset, MenuProject project, HmiGeneratorViewModel vm)
         {
-            Kind = tipo;
+            Kind = kind;
             Dataset = dataset;
-            Texts = project.Dataset(tipo, dataset);
+            Texts = project.Dataset(kind, dataset);
             Rows = Texts.Select((t, i) => new DatasetRow(i + 1, new EditableText(t, vm, () => Standard(vm, i + 1)))).ToList();
         }
 

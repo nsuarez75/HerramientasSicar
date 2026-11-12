@@ -25,10 +25,10 @@ namespace HerramientasSICAR.Logic
     /// <summary>Un XML a importar, con la ruta de grupos (carpetas) donde debe quedar dentro del grupo destino.</summary>
     public class BlockImportFile
     {
-        public BlockImportFile(string path, XmlBlockKind tipo, IReadOnlyList<string> groups)
+        public BlockImportFile(string path, XmlBlockKind kind, IReadOnlyList<string> groups)
         {
             FilePath = path;
-            Kind = tipo;
+            Kind = kind;
             Groups = groups;
         }
 

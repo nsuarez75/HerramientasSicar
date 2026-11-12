@@ -104,7 +104,7 @@ namespace HerramientasSICAR.Logic.Menus
         public Dictionary<string, List<List<HmiText>>> ProductionData { get; set; } = new Dictionary<string, List<List<HmiText>>>();
 
         /// <summary>Textos de las filas de un dataset de Production data (dataset de 1 a 8).</summary>
-        public List<HmiText> Dataset(ProductionDataKind tipo, int dataset) => ProductionData[tipo.Key][dataset - 1];
+        public List<HmiText> Dataset(ProductionDataKind kind, int dataset) => ProductionData[kind.Key][dataset - 1];
 
         /// <summary>Proyecto vacío con una HMI.</summary>
         public static MenuProject New()
@@ -157,13 +157,13 @@ namespace HerramientasSICAR.Logic.Menus
             }
 
             ProductionData = ProductionData ?? new Dictionary<string, List<List<HmiText>>>();
-            foreach (var tipo in MenuCatalog.ProductionDataKinds)
+            foreach (var kind in MenuCatalog.ProductionDataKinds)
             {
-                ProductionData.TryGetValue(tipo.Key, out var datasets);
+                ProductionData.TryGetValue(kind.Key, out var datasets);
                 datasets = Fit(datasets, MenuCatalog.ProductionDatasets, _ => new List<HmiText>());
                 for (int i = 0; i < datasets.Count; i++)
-                    datasets[i] = Fit(datasets[i], tipo.Rows, _ => new HmiText());
-                ProductionData[tipo.Key] = datasets;
+                    datasets[i] = Fit(datasets[i], kind.Rows, _ => new HmiText());
+                ProductionData[kind.Key] = datasets;
             }
 
             foreach (var hmi in Hmis)
