@@ -19,7 +19,7 @@
                         <TextBlock Text="{l:T 'Los títulos están en'}" Classes="label" VerticalAlignment="Center" />
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Languages}" SelectedIndex="{Binding LanguageIndex}" MinWidth="140" />
                     </Grid>
-                    <CheckBox IsChecked="{Binding Translate}" Content="{l:T 'Traducir a los otros dos idiomas (necesita internet)'}" />
+                    <CheckBox IsChecked="{Binding Translate}" Content="{l:T 'Traducir a los demás idiomas (necesita internet)'}" />
                     <Button Classes="accent" Command="{Binding CommentCommand}" HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <c:Icon Kind="languages" />
@@ -32,7 +32,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
                     <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="640" TextWrapping="Wrap"
-                               Text="{l:T 'Cada segmento con título recibe un comentario de tres líneas (Title_english, Title_deutsch y Title_espanol) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra.'}" />
+                               Text="{l:T 'Cada segmento con título recibe un comentario con una línea por idioma (Title_english, Title_deutsch, Title_espanol y, si se traduce, Title_polski, Title_tuerk y Title_francais) con el título sin el número de paso, en el idioma del proyecto (en-US). Se sobrescribe el comentario que tuviera. Los FB se exportan a una carpeta temporal, se importan en TIA sobrescribiéndolos y la carpeta se borra.'}" />
                 </StackPanel>
             </Border>
         </StackPanel>

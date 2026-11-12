@@ -21,7 +21,7 @@ namespace HerramientasSICAR.ViewModels
     {
         public CommentatorViewModel(ToolContext context) : base(context)
         {
-            _languageIndex = Math.Max(0, Math.Min(2, context.Settings.CommentatorTitleLanguage));
+            _languageIndex = Math.Max(0, Math.Min(Languages.Count - 1, context.Settings.CommentatorTitleLanguage));
             // Los _FB de la carpeta de secuencias, plegables por OM; salen marcados los de secuencia de las estaciones.
             Selector = new BlockSelector(context, SelectorView.Sequences,
                 (_, b) => SequenceComments.IsFb(b.Name) && !b.IsProtected,
@@ -40,7 +40,9 @@ namespace HerramientasSICAR.ViewModels
 
         public BlockSelector Selector { get; }
 
-        public IReadOnlyList<string> Languages { get; } = new[] { L.T("Castellano"), L.T("Inglés"), L.T("Alemán") };
+        // En el orden de TitleLanguage.
+        public IReadOnlyList<string> Languages { get; } =
+            new[] { L.T("Castellano"), L.T("Inglés"), L.T("Alemán"), L.T("Polaco"), L.T("Turco"), L.T("Francés") };
 
         [ObservableProperty]
         private int _languageIndex;
@@ -116,20 +118,25 @@ namespace HerramientasSICAR.ViewModels
             });
         }
 
-        /// <summary>Las tres líneas de cada título: la de su idioma tal cual y las otras dos traducidas (o iguales).</summary>
+        /// <summary>
+        /// Las líneas de cada título: la de su idioma tal cual y las demás traducidas. Sin traducir, solo las tres de siempre
+        /// (y la del idioma del título), todas con el mismo texto.
+        /// </summary>
         private static async Task<Dictionary<string, CommentTexts>> TextsAsync(IReadOnlyList<string> titles, TitleLanguage language,
             bool translate, IProgress<string> progress)
         {
             string source = SequenceComments.Code(language);
-            var targets = new[] { "en", "de", "es" }.Where(d => d != source).ToList();
+            var languages = SequenceComments.Languages(language, translate);
+            var targets = languages.Select(SequenceComments.Code).Where(d => d != source).ToList();
             var translations = translate
                 ? await Translator.TranslateManyAsync(titles.SelectMany(t => targets.Select(d => (t, d))), source,
                     new Progress<(int Done, int Total)>(a => progress.Report(L.T("Traduciendo títulos: {0}/{1}", a.Done, a.Total))))
                 : new Dictionary<(string Text, string Target), string>();
 
-            string En(string t, string code) =>
+            string In(string t, string code) =>
                 code == source ? t : translations.TryGetValue((t, code), out var translated) ? translated : t;
-            return titles.ToDictionary(t => t, t => new CommentTexts(En(t, "en"), En(t, "de"), En(t, "es")));
+            return titles.ToDictionary(t => t, t => new CommentTexts(
+                languages.ToDictionary(l => l, l => In(t, SequenceComments.Code(l)))));
         }
 
         private bool CanComment() => CanUseTia && Selector.CheckedCount > 0;
