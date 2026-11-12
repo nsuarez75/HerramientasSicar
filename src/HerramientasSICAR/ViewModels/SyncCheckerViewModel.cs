@@ -179,6 +179,10 @@ namespace HerramientasSICAR.ViewModels
         [ObservableProperty]
         private bool _stateChanged;
 
+        /// <summary>El panel de la decisión sobre el par está desplegado.</summary>
+        [ObservableProperty]
+        private bool _decisionExpanded = true;
+
         /// <summary>Carpeta del programa exportado que se está analizando.</summary>
         [ObservableProperty]
         private string _folder = "";
@@ -420,23 +424,25 @@ namespace HerramientasSICAR.ViewModels
             CandidatesChanged();
         }
 
-        // Clic derecho en un contacto del ladder: la señal pasa a la lista de excluyentes del par, sin marcar, para
-        // formar a mano un grupo con las propuestas o con otras señales.
+        // Clic derecho en un contacto del ladder: la señal pasa, marcada, a la lista de excluyentes del par (si ya estaba,
+        // se marca) para formar a mano un grupo con las propuestas o con otras señales. El panel se despliega para verla.
         [RelayCommand]
         private void AddCandidate(string signal)
         {
-            if (SelectedPair == null || string.IsNullOrEmpty(signal) || SyncChecker.FixedValue(signal).HasValue
-                || CandidateRows.Any(c => c.Signal == signal))
+            if (SelectedPair == null || string.IsNullOrEmpty(signal) || SyncChecker.FixedValue(signal).HasValue)
                 return;
-            AddCandidateRow(signal);
+            var row = CandidateRows.FirstOrDefault(c => c.Signal == signal) ?? AddCandidateRow(signal);
+            row.IsChecked = true;
+            DecisionExpanded = true;
             CandidatesChanged();
         }
 
-        private void AddCandidateRow(string signal)
+        private CandidateRow AddCandidateRow(string signal)
         {
             var candidate = new CandidateRow(signal, CommentText(signal));
             candidate.PropertyChanged += (_, __) => MarkExclusiveCommand.NotifyCanExecuteChanged();
             CandidateRows.Add(candidate);
+            return candidate;
         }
 
         private void CandidatesChanged()

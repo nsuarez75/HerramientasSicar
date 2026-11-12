@@ -79,26 +79,26 @@ namespace HerramientasSICAR.Controls
             var column = (int)Math.Floor((point.X - Rail) / CellWidth);
             var row = (int)Math.Floor(point.Y / CellHeight);
             var cell = Rung?.Layout.Cells.FirstOrDefault(c => c.Column == column && c.Row == row);
-            if (cell == null || !(SyncState.Signal(cell.Leaf) is string signal))
-                return;
+            var signal = cell == null ? null : SyncState.Signal(cell.Leaf);
             if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
             {
-                if (AddCandidateCommand?.CanExecute(signal) != true)
-                    return;
-                var menu = new ContextMenu
-                {
-                    ItemsSource = new[]
-                    {
-                        new MenuItem { Header = L.T("Añadir a la lista de excluyentes"), Command = AddCandidateCommand, CommandParameter = signal },
-                    },
-                };
-                menu.Open(this);
-                e.Handled = true;
+                // El menú se engancha al control y Avalonia lo abre al soltar el botón; fuera de una instrucción no hay menú.
+                ContextMenu = signal == null || AddCandidateCommand?.CanExecute(signal) != true ? null : CandidateMenu(signal);
+                return;
             }
-            else if (ToggleCommand?.CanExecute(signal) == true)
-            {
+            if (signal != null && ToggleCommand?.CanExecute(signal) == true)
                 ToggleCommand.Execute(signal);
-            }
+        }
+
+        private ContextMenu CandidateMenu(string signal)
+        {
+            var item = new MenuItem { Header = L.T("Añadir a la lista de excluyentes") };
+            item.Click += (_, __) =>
+            {
+                if (AddCandidateCommand?.CanExecute(signal) == true)
+                    AddCandidateCommand.Execute(signal);
+            };
+            return new ContextMenu { ItemsSource = new[] { item } };
         }
 
         public override void Render(DrawingContext context)
