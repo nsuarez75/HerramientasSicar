@@ -259,13 +259,18 @@ namespace HerramientasSICAR.ViewModels
     /// <summary>Una HMI del proyecto conectado, como destino de las listas de textos.</summary>
     public sealed partial class DestinoHmi : ObservableObject
     {
-        public DestinoHmi(string nombre, bool marcado)
+        public DestinoHmi(string nombre, string nombreVisible, bool marcado)
         {
             Nombre = nombre;
+            NombreVisible = nombreVisible;
             _marcado = marcado;
         }
 
+        /// <summary>Nombre de la HMI en TIA: es con el que se importa.</summary>
         public string Nombre { get; }
+
+        /// <summary>Nombre que se enseña (en un IPC, el de la estación).</summary>
+        public string NombreVisible { get; }
 
         [ObservableProperty]
         private bool _marcado;

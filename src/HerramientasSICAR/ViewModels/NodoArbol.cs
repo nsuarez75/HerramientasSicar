@@ -105,19 +105,23 @@ namespace HerramientasSICAR.ViewModels
             return nodo;
         }
 
-        /// <summary>Árbol de una HMI: sus ramas, con las únicas (elementos globales, vista general) como elementos sueltos.</summary>
-        public static NodoArbol DesdeHmi(HmiTree hmi, Action alCambiarMarcas)
+        /// <summary>
+        /// Árbol de una HMI: sus ramas, con las únicas (elementos globales, vista general) como elementos sueltos.
+        /// <paramref name="nombreVisible"/> es el que se enseña (en un IPC, el de la estación); <see cref="Dispositivo"/>
+        /// sigue siendo el nombre de la HMI, que es con el que se habla con TIA.
+        /// </summary>
+        public static NodoArbol DesdeHmi(HmiTree hmi, Action alCambiarMarcas, string nombreVisible = null)
         {
-            var nodo = new NodoArbol(TipoNodo.Hmi, hmi.Name, null, new string[0], hmi.Name, null, null, alCambiarMarcas) { IsExpanded = true };
+            var nodo = new NodoArbol(TipoNodo.Hmi, hmi.Name, null, new string[0], nombreVisible ?? hmi.Name, null, null, alCambiarMarcas) { IsExpanded = true };
             foreach (var rama in hmi.Branches)
                 nodo.Hijos.Add(nodo.NodoDeRama(rama));
             return nodo;
         }
 
         /// <summary>Un PLC o una HMI sin su contenido, que se lee después con <see cref="ReemplazarContenido"/> o <see cref="ReemplazarRamas"/>.</summary>
-        public static NodoArbol SinLeer(DeviceInfo dispositivo, Action alCambiarMarcas) =>
-            new NodoArbol(dispositivo.Kind == DeviceKind.Hmi ? TipoNodo.Hmi : TipoNodo.Plc, dispositivo.Name, null, new string[0], dispositivo.Name,
-                L.T("sin leer"), null, alCambiarMarcas) { Leido = false };
+        public static NodoArbol SinLeer(DeviceInfo dispositivo, Action alCambiarMarcas, string nombreVisible = null) =>
+            new NodoArbol(dispositivo.Kind == DeviceKind.Hmi ? TipoNodo.Hmi : TipoNodo.Plc, dispositivo.Name, null, new string[0],
+                nombreVisible ?? dispositivo.Name, L.T("sin leer"), null, alCambiarMarcas) { Leido = false };
 
         /// <summary>El PLC o la HMI del que cuelga este nodo.</summary>
         public NodoArbol Raiz => Padre?.Raiz ?? this;
