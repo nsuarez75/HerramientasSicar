@@ -159,6 +159,18 @@ public class SyncCheckerTests
     }
 
     [Fact]
+    public void Conflicts_WaitStepJumpsToDecisionStep_NotReported()
+    {
+        // S020 espera y salta a S030 (decisión) con los mismos interlocks: no es doble sincronización.
+        var waiting = Step(20, C("Pieza"), C("Fin"), jumps: [new StepJump(30, Not(SyncPulse))]);
+        var decision = Step(30, C("Pieza"), C("Fin2"));
+        Assert.Empty(new SyncChecker().Check(Sequence(waiting, decision)));
+
+        // Sin el salto, el mismo par sí sale.
+        Assert.Single(new SyncChecker().Check(Sequence(waiting with { Jumps = [] }, decision)));
+    }
+
+    [Fact]
     public void Conflicts_RobotServiceSteps_NotChecked()
     {
         var sequence = Sequence(
