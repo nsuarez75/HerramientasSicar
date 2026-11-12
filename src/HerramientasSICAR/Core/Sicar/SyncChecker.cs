@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 // - 2.3: en un paso, ilockAuto y transAuto sin programar valen 0 (un paso manual nunca es ejecutable) e
 //   ilockExtSync vale 1. ilockNoSync e ilockExtInt no participan.
 // - 2.9: durante la sincronización #Sequence.pos_Pulse_OM_Sync vale 1 (así se bloquean los saltos).
+// - Un par en el que un paso salta al otro (paso de espera → paso de decisión) no es doble sincronización.
 // Para cada par de pasos se busca un estado de señales que los haga ejecutables a la vez y sin que ningún
 // salto anterior se los salte. Además se excluye lo físicamente imposible (sensores -H/-W de un actuador a la
 // vez, una señal con dos valores) y, en secuencias de robot, los pasos de servicio S223-S227.
@@ -96,6 +97,10 @@ public sealed partial class SyncChecker
             }
             for (var j = i + 1; j < steps.Count; j++)
             {
+                if (JumpsBetween(steps[i], steps[j]))
+                {
+                    continue;
+                }
                 var both = BoolFormula.And(conditions[steps[i].Number], conditions[steps[j].Number]);
                 var state = WithConstraints(both).Solve();
                 if (state != null)
@@ -168,6 +173,11 @@ public sealed partial class SyncChecker
         }
         return name.Equals("Sequence.pos_Pulse_OM_Sync", StringComparison.OrdinalIgnoreCase) ? true : null;
     }
+
+    // Un paso de espera comparte interlocks con el paso de decisión al que salta: si se sincroniza en el de
+    // espera, su salto lleva al paso que toca. Por eso un par en el que uno salta al otro no es doble sincronización.
+    public static bool JumpsBetween(SequenceStep a, SequenceStep b) =>
+        a.Jumps.Any(j => j.Target == b.Number) || b.Jumps.Any(j => j.Target == a.Number);
 
     private static bool IsRobotServiceStep(SequenceStep step) => step.Number is >= FirstRobotServiceStep and <= LastRobotServiceStep;
 
