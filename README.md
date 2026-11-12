@@ -4,7 +4,7 @@ Conjunto de herramientas para automatizar algunas tareas en los proyectos de lí
 
 ## Requisitos
 
-- Windows con .NET Framework 4.8.
+- Windows de 64 bits. No hace falta instalar .NET: el ejecutable lo lleva dentro.
 - TIA Portal V19 instalado, con Openness. Sin él solo funciona el Generador HMI, para editar y generar archivos.
 - El usuario de Windows tiene que estar en el grupo **Siemens TIA Openness**.
 
@@ -90,7 +90,13 @@ No es específica del estándar SICAR@GST. Renumera 1, 2, 3… los usos con índ
 
 ## Compilar
 
-Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR.sln -c Release`. El resultado es un único `HerramientasSICAR.exe` de 64 bits (las librerías, también las nativas de dibujo, van dentro con Costura, que las extrae a una carpeta temporal al arrancar).
+.NET 10 (SDK 10.0) y Avalonia 12. Abrir `HerramientasSICAR.sln` en Visual Studio o `dotnet build HerramientasSICAR.sln -c Release`.
+
+Para sacar el ejecutable de una release, un único `HerramientasSICAR.exe` de 64 bits con .NET y las librerías dentro:
+
+```
+dotnet publish src/HerramientasSICAR/HerramientasSICAR.csproj -c Release -r win-x64
+```
 
 Con TIA se habla a través de [TIA-Connector](https://github.com/nsuarez75/TIA-Connector), que está como submódulo de git en `external/TIA-Connector`. Al clonar: `git clone --recurse-submodules` (o, si ya está clonado, `git submodule update --init`). Su cliente lleva dentro el puente, un `.exe` aparte que es el único que carga Openness (`Siemens.Engineering.dll`, de la instalación de TIA Portal V19); la app lo extrae a `%LOCALAPPDATA%\TIA-Connector\bridge\` y lo arranca la primera vez que necesita TIA. Para traer una versión nueva de TIA-Connector: actualizar el submódulo, commit y compilar.
 
@@ -104,8 +110,8 @@ El código de la app está en `src/HerramientasSICAR/` y los tests en `tests/Her
 
 - **Todo lo que habla con TIA pasa por TIA-Connector** (`TiaClient` y sus modelos: `BlockRef`, `PlcTree`, `HmiBranch`, `BatchResult`…); ninguna herramienta llama a Openness. `ViewModels/Contexto.cs` arranca el cliente (`TiaAsync`), conecta y guarda el proyecto conectado y el árbol leído, y avisa a todas las herramientas cuando cambia. `Helpers/TextosTia.cs` compone en el idioma de la app el progreso, los fallos y los errores que TIA-Connector devuelve como códigos. En las herramientas, `Herramienta` tiene lo común (elegir PLC, progreso en la barra de estado) y `SelectorBloques` es el árbol de bloques filtrado que usan Comentador, DiagExpected y Renumerar Array. Lo que necesita una carpeta temporal (Comentador, DiagExpected, Sincro Checker, Generador HMI) usa `TempFolder` de TIA-Connector.
 - `Helpers/`: la lógica de cada herramienta (Excel de DiagExpected, traductor en línea…) y `TextosTia.cs`. `Logica/`: qué XML se importan y en qué orden (bloques y HMI; las reglas de nombres, rutas y ramas de HMI son las de TIA-Connector: `FileRules` y `HmiRules`), `sincro.json` de Sincro Checker, comentarios de los FB de secuencia del Comentador (`ComentariosSecuencia.cs`), arrays con índice fijo de Renumerar Array (`ArraysBloque.cs`), comprobación de versión y, en `Logica/MenusHmi/`, el catálogo de menús, el proyecto `.hmimenus` y la generación del FC y las listas del Generador HMI.
-- `Nucleo/`: copia del núcleo de GST-Diag (`src/GstDiag.Core`: Lad, Logic, SimaticMl, Sicar, Symbols, Programs y `Diagnostics/ValueSource.cs`) con lo que lee el programa exportado y comprueba la doble sincronización. Es el mismo código con el espacio de nombres `HerramientasSICAR.Nucleo` y los cambios mínimos para .NET Framework 4.8: `GeneratedRegex` pasa a `Regex` normal, unos pocos métodos que 4.8 no tiene (`Compat.cs`) y PolySharp para lo que le falta al lenguaje. Sus tests son los de GST-Diag (`tests/HerramientasSICAR.Tests/Nucleo/`). GST-Diag ya no tiene doble sincronización: desde entonces esta copia es la única y se mantiene aquí.
-- `ViewModels/`, `Views/`: la ventana, con Avalonia 11.3 (la última versión que funciona en .NET Framework 4.8; ahora que Openness va en el puente de TIA-Connector, la app puede pasar a .NET 10) y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, árbol del proyecto, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide).
+- `Nucleo/`: copia del núcleo de GST-Diag (`src/GstDiag.Core`: Lad, Logic, SimaticMl, Sicar, Symbols, Programs y `Diagnostics/ValueSource.cs`) con lo que lee el programa exportado y comprueba la doble sincronización. Es el mismo código con el espacio de nombres `HerramientasSICAR.Nucleo`; de cuando la app era .NET Framework 4.8 queda que usa `Regex` normal en lugar de `GeneratedRegex`. Sus tests son los de GST-Diag (`tests/HerramientasSICAR.Tests/Nucleo/`). GST-Diag ya no tiene doble sincronización: desde entonces esta copia es la única y se mantiene aquí.
+- `ViewModels/`, `Views/`: la ventana, con Avalonia 12 y CommunityToolkit.Mvvm. Cada herramienta es un `Herramienta` con su vista; `Contexto` es lo que comparten (conexión, árbol del proyecto, diálogos y barra de estado). `Views/Theme.axaml` tiene los colores y estilos comunes de nuestras apps; `Controls/Icon.cs`, los iconos (Lucide).
 - `L.cs` y `Textos.en.cs`: los textos se escriben en castellano y se traducen al inglés con `L.T`. Al añadir un texto, añadir su traducción (el test lo comprueba).
 
 ## Licencia

@@ -7,7 +7,14 @@ Los errores y peticiones nuevas van como issues de GitHub. Aquí, lo que queda a
 - Probar con TIA todo lo que pasa ahora por TIA-Connector: buscar proyectos y conectar (aviso de permiso de TIA),
   leer el árbol de PLC y HMI, Importar / Exportar (bloques y HMI), Generador HMI «Importar en TIA…», Comentador,
   Numerador, Renumerar Array, DiagExpected y Sincro Checker «Exportar el PLC desde TIA y comprobar».
-- Comprobar que al cerrar la app ya no sale el cierre con error de Windows (`0xc0020001`) y que TIA sigue abierto.
+- Comprobar que al cerrar la app **después de conectar** ya no sale el cierre con error de Windows (`0xc0020001`) y
+  que TIA sigue abierto. Sin conectar ya está comprobado (12/11/2026): se cierra sin error y el puente termina.
+
+## .NET 10 y Avalonia 12 (issue #46)
+
+- Probado (12/11/2026): arranca, se ve bien y busca los proyectos abiertos a través del puente.
+- Falta repasar a mano cada herramienta con Avalonia 12: diálogos de archivo y carpeta, árbol con casillas, Generador
+  HMI (textos con marca de agua, ahora `PlaceholderText`), traductor en línea, tema claro/oscuro e idioma.
 
 ## Versión 2.0 (issue #6)
 
