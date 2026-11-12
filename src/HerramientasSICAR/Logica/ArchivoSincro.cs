@@ -16,7 +16,7 @@ namespace HerramientasSICAR.Logica
     {
         public const string Nombre = "sincro.json";
 
-        /// <summary>Idioma de edición de GST-Diag cuando no se sabe (carpeta exportada con otra herramienta).</summary>
+        /// <summary>Idioma de edición que se usa cuando no se sabe (carpeta exportada con otra herramienta).</summary>
         public const string IdiomaPorDefecto = "en-US";
 
         public string IdiomaEdicion { get; set; } = IdiomaPorDefecto;

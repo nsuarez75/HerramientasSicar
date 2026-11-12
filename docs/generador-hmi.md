@@ -16,7 +16,7 @@ Ya no se lee ni se genera ningún Excel.
 ## Proyecto
 
 - Se guarda en un archivo `.hmimenus` (JSON): Nuevo / Abrir / Guardar / Guardar como. Es la forma de exportar e
-  importar la configuración, como los proyectos de GST-LoS y GST-FIT. Al arrancar se abre el último proyecto usado.
+  importar la configuración. Al arrancar se abre el último proyecto usado.
 - **HMI**: de 1 a 8, cada una con nombre libre y número; el número elige su IDB `HMIMenusConfigNN_IDB`. No puede
   haber dos con el mismo número.
 - Los **nombres** de pantallas, los **títulos OEM** y las **funciones de usuario** son comunes a todas las HMI. Lo

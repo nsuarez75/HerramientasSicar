@@ -87,7 +87,7 @@ namespace HerramientasSICAR.ViewModels
     }
 
     /// <summary>
-    /// Doble sincronización de un PLC, con la misma comprobación que GST-Diag (Nucleo/Sicar/SyncChecker.cs): pares de
+    /// Doble sincronización de un PLC (Nucleo/Sicar/SyncChecker.cs): pares de
     /// pasos que pueden sincronizar a la vez y decisiones del usuario sobre señales excluyentes. Al exportar desde TIA,
     /// el programa va a %TEMP% y las decisiones a AppData (<see cref="ArchivoSincro.EnAppData"/>); al abrir una carpeta
     /// exportada a mano, al sincro.json de esa carpeta.
@@ -102,7 +102,7 @@ namespace HerramientasSICAR.ViewModels
         }
 
         public override string Nombre => "Sincro Checker";
-        public override string Descripcion => L.T("Busca en el programa de un PLC los pares de pasos de cada secuencia que pueden ser candidatos a la vez al pasar de manual a automático, lo que da error de sincronización. Usa las mismas reglas que GST-Diag.");
+        public override string Descripcion => L.T("Busca en el programa de un PLC los pares de pasos de cada secuencia que pueden ser candidatos a la vez al pasar de manual a automático, lo que da error de sincronización.");
         public override string Icono => "git-compare";
 
         // Puede abrir una carpeta ya exportada sin conexión; solo «Exportar desde TIA» necesita el proyecto.

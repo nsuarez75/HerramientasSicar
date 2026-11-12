@@ -339,12 +339,12 @@ namespace HerramientasSICAR
                 "Each Production data position is a dataset with its text list, one row per item on the screen. A dataset with no text at all gets the standard texts; if it has any, empty rows stay empty.",
 
             // ---- Sincro Checker
-            ["Busca en el programa de un PLC los pares de pasos de cada secuencia que pueden ser candidatos a la vez al pasar de manual a automático, lo que da error de sincronización. Usa las mismas reglas que GST-Diag."] =
-                "Finds, in a PLC program, the pairs of steps of each sequence that can be candidates at the same time when switching from manual to automatic, which causes a synchronisation error. It uses the same rules as GST-Diag.",
+            ["Busca en el programa de un PLC los pares de pasos de cada secuencia que pueden ser candidatos a la vez al pasar de manual a automático, lo que da error de sincronización."] =
+                "Finds, in a PLC program, the pairs of steps of each sequence that can be candidates at the same time when switching from manual to automatic, which causes a synchronisation error.",
             ["Exportar el PLC desde TIA y comprobar"] = "Export the PLC from TIA and check",
             ["Abrir una carpeta exportada…"] = "Open an exported folder…",
-            ["Se lee el programa entero del PLC, como en GST-Diag: así se siguen las condiciones de activación de las señales y salen los mismos pares en las dos apps."] =
-                "The whole PLC program is read, as in GST-Diag: this way the activation conditions of the signals are followed and both apps show the same pairs.",
+            ["Se lee el programa entero del PLC: así se siguen las condiciones de activación de las señales."] =
+                "The whole PLC program is read: this way the activation conditions of the signals are followed.",
             ["Carpeta con el programa exportado del PLC"] = "Folder with the exported PLC program",
             ["Buscando los PLC del proyecto…"] = "Looking for the PLCs of the project…",
             ["Exportar desde TIA"] = "Export from TIA",
@@ -370,7 +370,7 @@ namespace HerramientasSICAR
             ["Secuencia {0}: {1}"] = "Sequence {0}: {1}",
             ["No se pudo guardar la decisión: {0}"] = "Could not save the decision: {0}",
 
-            // ---- Núcleo de GST-Diag (lectura del programa)
+            // ---- Núcleo (lectura del programa)
             ["La carpeta no tiene bloques exportados: {0}"] = "The folder has no exported blocks: {0}",
             ["No se pudo leer {0}: {1}"] = "Could not read {0}: {1}",
             ["No se han encontrado las OM en el FC983: las secuencias salen sin zona operacional."] =

@@ -1,7 +1,7 @@
 # HerramientasSICAR
 
 Herramientas que automatizan tareas repetitivas en los proyectos TIA Portal de líneas de GESTAMP programadas con el
-estándar **SICAR@GST**. El vocabulario común a todas las apps está en el `GLOSSARY.md` del repo GST-Tools.
+estándar **SICAR@GST**.
 
 ## Estándar SICAR
 
@@ -71,7 +71,7 @@ varios a la vez, da error de sincronización.
 
 **Coincidencia**:
 Par de **pasos** para los que existe un estado de señales que cumple los **ilocks** de los dos: es un posible
-**error de sincronización**, que detecta Sincro Checker. Se calcula igual que la doble sincronización de GST-Diag.
+**error de sincronización**, que detecta Sincro Checker.
 _Evitar_: conflicto, solape
 
 **Señales excluyentes**:
