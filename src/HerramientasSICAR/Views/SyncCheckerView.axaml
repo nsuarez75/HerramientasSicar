@@ -38,7 +38,8 @@
 
         <!-- Pares arriba y decisiones guardadas abajo: la separación se arrastra y las decisiones se pliegan -->
         <Grid x:Name="Body" RowDefinitions="*,Auto,Auto">
-            <Grid ColumnDefinitions="260,280,*" ColumnSpacing="14" IsVisible="{Binding HasPairs}">
+            <!-- Tres columnas (OM, pares, ladder) con separaciones que se arrastran para dar sitio al ladder -->
+            <Grid ColumnDefinitions="260,Auto,280,Auto,*" IsVisible="{Binding HasPairs}">
                 <!-- Secuencias con pares -->
                 <!-- Secuencias con pares, por OM -->
                 <Border Classes="card" Padding="4">
@@ -60,7 +61,9 @@
                 </Border>
 
                 <!-- Pares de la secuencia -->
-                <ListBox Grid.Column="1" Classes="table" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">
+                <GridSplitter Grid.Column="1" Width="14" ResizeDirection="Columns" Background="Transparent" />
+
+                <ListBox Grid.Column="2" Classes="table" MinWidth="120" ItemsSource="{Binding Pairs}" SelectedItem="{Binding SelectedPair}">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:PairRow">
                             <StackPanel Margin="0,2">
@@ -72,7 +75,9 @@
                 </ListBox>
 
                 <!-- Ladder de los dos pasos del par arriba y decisión sobre el par abajo, con la separación arrastrable -->
-                <Grid x:Name="PairArea" Grid.Column="2" RowDefinitions="*,Auto,Auto">
+                <GridSplitter Grid.Column="3" Width="14" ResizeDirection="Columns" Background="Transparent" />
+
+                <Grid x:Name="PairArea" Grid.Column="4" RowDefinitions="*,Auto,Auto">
                     <Border Classes="card" MinHeight="120" IsVisible="{Binding HasPair}">
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,10">
