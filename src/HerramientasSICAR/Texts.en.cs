@@ -160,9 +160,10 @@ namespace HerramientasSICAR
             ["Nombre del bloque en el proyecto conectado."] = "Name of the block in the connected project.",
             ["Ej.: FB1040_ST10_FB"] = "E.g. FB1040_ST10_FB",
             ["Exportar y generar Excel"] = "Export and generate Excel",
-            ["El bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar. El Excel se guarda en la carpeta del proyecto (junto al .ap19) como «bloque»_DIAG.xlsx."] =
-                "The block is compiled if needed and exported to a temporary folder that is deleted afterwards. The Excel file is saved in the project folder (next to the .ap19) as «block»_DIAG.xlsx.",
+            ["El bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar. El Excel se guarda donde elijas; se propone «bloque»_DIAG.xlsx en la última carpeta usada."] =
+                "The block is compiled if needed and exported to a temporary folder that is deleted afterwards. The Excel file is saved wherever you choose; «block»_DIAG.xlsx in the last folder used is suggested.",
             ["Exportando {0}…"] = "Exporting {0}…",
+            ["Guardar el Excel de DiagExpected"] = "Save the DiagExpected Excel",
             ["Excel generado: {0}"] = "Excel file generated: {0}",
             ["El archivo XML exportado no existe."] = "The exported XML file does not exist.",
             ["No se pudo crear el archivo Excel."] = "Could not create the Excel file.",

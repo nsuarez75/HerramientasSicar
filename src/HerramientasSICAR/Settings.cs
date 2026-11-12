@@ -35,6 +35,10 @@ namespace HerramientasSICAR
         [JsonPropertyName("UltimaCarpetaHmiGenerada")]
         public string LastHmiOutputFolder { get; set; }
 
+        /// <summary>Carpeta donde se guardó por última vez un Excel de DiagExpected.</summary>
+        [JsonPropertyName("UltimaCarpetaDiagExpected")]
+        public string LastDiagExpectedFolder { get; set; }
+
         /// <summary>Por ruta de proyecto, los PLC y HMI que se eligieron leer al conectar la última vez.</summary>
         [JsonPropertyName("DispositivosLeidos")]
         public Dictionary<string, List<string>> ReadDevices { get; set; } = new Dictionary<string, List<string>>();

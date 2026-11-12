@@ -30,7 +30,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="10">
                     <c:Icon Kind="info" Width="15" Height="15" Foreground="{DynamicResource App.AccentText}" VerticalAlignment="Top" Margin="0,1,0,0" />
                     <TextBlock Classes="muted" Foreground="{DynamicResource App.AccentText}" MaxWidth="600" TextWrapping="Wrap"
-                               Text="{l:T 'El bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar. El Excel se guarda en la carpeta del proyecto (junto al .ap19) como «bloque»_DIAG.xlsx.'}" />
+                               Text="{l:T 'El bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar. El Excel se guarda donde elijas; se propone «bloque»_DIAG.xlsx en la última carpeta usada.'}" />
                 </StackPanel>
             </Border>
         </StackPanel>

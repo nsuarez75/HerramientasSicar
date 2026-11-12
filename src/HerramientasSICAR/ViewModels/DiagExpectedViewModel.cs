@@ -35,10 +35,20 @@ namespace HerramientasSICAR.ViewModels
         private async Task Generate()
         {
             var block = Selector.SelectedBlock;
+            // Dónde se guarda el Excel: se propone la última carpeta usada (la primera vez, la del proyecto).
+            var settings = ToolContext.Settings;
+            string folder = Directory.Exists(settings.LastDiagExpectedFolder) ? settings.LastDiagExpectedFolder : ToolContext.ProjectFile.ProjectFolder;
+            string excel = await ToolContext.Dialogs.SaveFile(L.T("Guardar el Excel de DiagExpected"),
+                Path.Combine(folder, block.Name + "_DIAG.xlsx"), FileKind.Excel);
+            if (excel == null)
+                return;
+            settings.LastDiagExpectedFolder = Path.GetDirectoryName(excel);
+            settings.Save();
+
             await ToolContext.Work(L.T("Exportando {0}…", block.Name), async () =>
             {
-                // Exportar compila el bloque si hace falta. El XML va a una carpeta temporal que se borra al terminar: en la
-                // carpeta del proyecto solo queda el Excel.
+                // Exportar compila el bloque si hace falta. El XML va a una carpeta temporal que se borra al terminar: solo
+                // queda el Excel donde se ha elegido.
                 var tia = await ToolContext.TiaAsync();
                 using (var temp = new TempFolder())
                 {
@@ -50,7 +60,6 @@ namespace HerramientasSICAR.ViewModels
                         return;
                     }
                     string xml = export.Files.First().Path;
-                    string excel = Path.Combine(ToolContext.ProjectFile.ProjectFolder, block.Name + "_DIAG.xlsx");
                     await Task.Run(() => new DiagExpectedGenerator().ProcessAndGenerateExcel(xml, excel));
                     ToolContext.ShowStatus(L.T("Excel generado: {0}", excel));
                 }

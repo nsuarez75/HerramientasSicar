@@ -38,6 +38,6 @@ namespace HerramientasSICAR.ViewModels
         Task<IReadOnlyList<string>> ChooseFiles(string title, string initial, params FileKind[] types);
 
         /// <summary>Dónde guardar un archivo nuevo, o null si se cancela.</summary>
-        Task<string> SaveFile(string title, string suggested, FileKind tipo);
+        Task<string> SaveFile(string title, string suggested, FileKind kind);
     }
 }
