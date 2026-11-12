@@ -64,16 +64,16 @@ namespace HerramientasSICAR.Views
         public Task<IReadOnlyList<string>> ChooseFiles(string title, string initial, params FileKind[] types) =>
             Open(title, initial, types, multiple: true);
 
-        public async Task<string> SaveFile(string title, string suggested, FileKind tipo)
+        public async Task<string> SaveFile(string title, string suggested, FileKind kind)
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = title,
                 SuggestedFileName = suggested == null ? null : Path.GetFileName(suggested),
                 SuggestedStartLocation = await Start(suggested == null ? null : Path.GetDirectoryName(suggested)),
-                DefaultExtension = tipo.Patterns[0].TrimStart('*', '.'),
+                DefaultExtension = kind.Patterns[0].TrimStart('*', '.'),
                 ShowOverwritePrompt = true,
-                FileTypeChoices = new[] { Filter(tipo) },
+                FileTypeChoices = new[] { Filter(kind) },
             });
             return file?.TryGetLocalPath();
         }

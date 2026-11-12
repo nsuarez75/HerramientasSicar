@@ -75,7 +75,7 @@ Sincro Checker detecta esa situación al programar. Lee el programa entero de un
 
 ### DiagExpected
 
-Dado un FB de secuencia, genera un Excel con el estado necesario en cada paso de actuadores y sensores. El FB se elige en el árbol, que solo enseña los FB de secuencia de las estaciones, plegables por OM. Al pulsar **Exportar y generar Excel**, el bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar, y el Excel se guarda en la carpeta del proyecto (junto al `.ap19`) como `<bloque>_DIAG.xlsx`.
+Dado un FB de secuencia, genera un Excel con el estado necesario en cada paso de actuadores y sensores. El FB se elige en el árbol, que solo enseña los FB de secuencia de las estaciones, plegables por OM. Al pulsar **Exportar y generar Excel**, el bloque se compila si hace falta y se exporta a una carpeta temporal que se borra al terminar, y el Excel se guarda donde se elija en el diálogo de guardar, que propone `<bloque>_DIAG.xlsx` en la última carpeta usada (la primera vez, la del proyecto, junto al `.ap19`).
 Es necesario revisar el contenido generado, ya que no funciona de manera perfecta: sirve para sacar una primera plantilla sobre la que trabajar.
 
 ### Numerador
