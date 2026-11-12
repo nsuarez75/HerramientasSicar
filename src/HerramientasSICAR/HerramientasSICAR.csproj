@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- .NET Framework 4.8 (por eso Avalonia 11.3 y no la 12): Openness ya va en el puente de TIA-Connector, así que
-         la app puede pasar a .NET 10 -->
-    <TargetFramework>net48</TargetFramework>
+    <!-- Solo Windows: TIA Portal solo existe en Windows. Openness va en el puente de TIA-Connector, no aquí -->
+    <TargetFramework>net10.0-windows</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>latest</LangVersion>
     <AssemblyName>HerramientasSICAR</AssemblyName>
@@ -15,53 +14,33 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
+  <!-- Al publicar con -r win-x64 sale un único .exe con todo dentro (también las nativas de dibujo de Avalonia).
+       Va condicionado al RuntimeIdentifier para que compilar y pasar los tests no lo pidan -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <AvaloniaResource Include="Assets\alomatek.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.22" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="System.Text.Json" Version="9.0.2" />
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="ClosedXML" Version="0.102.2" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.16.0" />
+    <!-- DocumentFormat.OpenXml 2.16 trae System.IO.Packaging 6.0.0, con un fallo de seguridad conocido -->
+    <PackageReference Include="System.IO.Packaging" Version="10.0.0" />
     <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageReference Include="GTranslate" Version="2.3.1" />
-    <!-- El núcleo (Nucleo/) viene de GST-Diag, escrito para .NET 10: PolySharp añade lo que le falta a .NET Framework -->
-    <PackageReference Include="PolySharp" Version="1.16.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <!-- Un único .exe con las librerías dentro -->
-    <PackageReference Include="Costura.Fody" Version="5.7.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Fody" Version="6.8.2">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <!-- Costura no mete solas las nativas de SkiaSharp y HarfBuzz (dibujo y texto de Avalonia):
-       se embeben como nativas de 64 bits para que el .exe funcione sin nada al lado -->
-  <Target Name="EmbeberNativas" BeforeTargets="BeforeBuild">
-    <ItemGroup>
-      <_Nativa Include="@(None)" Condition="'%(None.Link)' == 'x64\libSkiaSharp.dll' Or '%(None.Link)' == 'x64\libHarfBuzzSharp.dll'" />
-      <_Nativa Include="@(Content)" Condition="'%(Content.Link)' == 'x64\libSkiaSharp.dll' Or '%(Content.Link)' == 'x64\libHarfBuzzSharp.dll'" />
-    </ItemGroup>
-    <RemoveDuplicates Inputs="@(_Nativa)">
-      <Output TaskParameter="Filtered" ItemName="_NativaUnica" />
-    </RemoveDuplicates>
-    <ItemGroup>
-      <EmbeddedResource Include="@(_NativaUnica)" LogicalName="costura64.%(Filename)%(Extension)" />
-    </ItemGroup>
-  </Target>
-
-  <ItemGroup>
-    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <!-- TIA-Connector (submódulo en external/): todo lo que se hace con TIA pasa por su cliente, que lleva dentro el

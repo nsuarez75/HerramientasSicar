@@ -113,7 +113,7 @@
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" IsVisible="{Binding EsOem}">
                                 <TextBlock Text="{l:T 'Título del grupo OEM'}" Classes="label" VerticalAlignment="Center" />
                                 <TextBox Grid.Column="1" MaxWidth="360" HorizontalAlignment="Left" Width="360"
-                                         Text="{Binding TituloOem.Valor, FallbackValue=''}" Watermark="{Binding TituloOem.MarcaDeAgua, FallbackValue=''}" />
+                                         Text="{Binding TituloOem.Valor, FallbackValue=''}" PlaceholderText="{Binding TituloOem.MarcaDeAgua, FallbackValue=''}" />
                             </Grid>
                         </StackPanel>
 
@@ -145,7 +145,7 @@
                                     <DataTemplate x:DataType="vm:FilaPantalla">
                                         <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="8" Margin="14,2">
                                             <TextBlock Text="{Binding Posicion}" Classes="mono" VerticalAlignment="Center" />
-                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor, FallbackValue=''}" Watermark="{Binding Nombre.MarcaDeAgua, FallbackValue=''}"
+                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor, FallbackValue=''}" PlaceholderText="{Binding Nombre.MarcaDeAgua, FallbackValue=''}"
                                                      IsVisible="{Binding TieneNombre}" />
                                             <ItemsControl Grid.Column="2" ItemsSource="{Binding Casillas}">
                                                 <ItemsControl.ItemsPanel>
@@ -202,11 +202,11 @@
                                     <DataTemplate x:DataType="vm:FilaFuncion">
                                         <Grid ColumnDefinitions="30,2*,*,*,*,*" ColumnSpacing="8" Margin="14,2">
                                             <TextBlock Text="{Binding Numero}" Classes="mono" VerticalAlignment="Center" />
-                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor}" Watermark="{Binding Nombre.MarcaDeAgua}" />
-                                            <TextBox Grid.Column="2" Text="{Binding AccionIzquierda.Valor}" Watermark="{Binding AccionIzquierda.MarcaDeAgua}" />
-                                            <TextBox Grid.Column="3" Text="{Binding AccionDerecha.Valor}" Watermark="{Binding AccionDerecha.MarcaDeAgua}" />
-                                            <TextBox Grid.Column="4" Text="{Binding FeedbackIzquierda.Valor}" Watermark="{Binding FeedbackIzquierda.MarcaDeAgua}" />
-                                            <TextBox Grid.Column="5" Text="{Binding FeedbackDerecha.Valor}" Watermark="{Binding FeedbackDerecha.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="1" Text="{Binding Nombre.Valor}" PlaceholderText="{Binding Nombre.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="2" Text="{Binding AccionIzquierda.Valor}" PlaceholderText="{Binding AccionIzquierda.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="3" Text="{Binding AccionDerecha.Valor}" PlaceholderText="{Binding AccionDerecha.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="4" Text="{Binding FeedbackIzquierda.Valor}" PlaceholderText="{Binding FeedbackIzquierda.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="5" Text="{Binding FeedbackDerecha.Valor}" PlaceholderText="{Binding FeedbackDerecha.MarcaDeAgua}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -245,7 +245,7 @@
                                     <DataTemplate x:DataType="vm:FilaDataset">
                                         <Grid ColumnDefinitions="44,*" ColumnSpacing="8" Margin="14,2">
                                             <TextBlock Text="{Binding Numero}" Classes="mono" VerticalAlignment="Center" />
-                                            <TextBox Grid.Column="1" Text="{Binding Texto.Valor}" Watermark="{Binding Texto.MarcaDeAgua}" />
+                                            <TextBox Grid.Column="1" Text="{Binding Texto.Valor}" PlaceholderText="{Binding Texto.MarcaDeAgua}" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

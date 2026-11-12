@@ -1,10 +1,9 @@
-using GTranslate.Translators;
+﻿using GTranslate.Translators;
 using HerramientasSICAR.Logica;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,13 +16,6 @@ namespace HerramientasSICAR.Helpers
         public const int MaxConcurrentes = 20;
 
         private static readonly ITranslator Servicio = new AggregateTranslator();
-
-        static Traductor()
-        {
-            // .NET Framework limita por defecto a 2 conexiones HTTP simultáneas por host, lo que anula el paralelismo.
-            if (ServicePointManager.DefaultConnectionLimit < MaxConcurrentes * 2)
-                ServicePointManager.DefaultConnectionLimit = MaxConcurrentes * 2;
-        }
 
         /// <summary>
         /// Traduce muchos textos en paralelo (como mucho <see cref="MaxConcurrentes"/> a la vez). Devuelve, por cada par
